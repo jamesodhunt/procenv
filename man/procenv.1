@@ -1,0 +1,259 @@
+.TH PROCENV "1" "2012-10-24" "User Commands"
+.\"
+.SH NAME
+procenv \- display process environment details
+.\" Macros
+.de Vb \" Begin verbatim text
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve \" End verbatim text
+.ft R
+.fi
+..
+.\"
+.SH SYNOPSIS
+.B procenv
+[\fIOPTION\fR]
+.\"
+.SH DESCRIPTION
+Display details of the process environment in a parseable format.
+.\"
+.SH OPTIONS
+.TP
+\fB\-a\fR, \fB\-\-meta\fR
+Display meta details.
+.\"
+.TP
+\fB\-b\fR, \fB\-\-libs\fR
+Display library details.
+.\"
+.TP
+\fB\-c\fR, \fB\-\-cgroup[s]\fR
+Display cgroup details (Linux only).
+.HP
+\fB\-d\fR, \fB\-\-compiler\fR
+Display compiler details.
+.\"
+.TP
+\fB\-e\fR, \fB\-\-env[ironment]\fR
+Display environment variables.
+.\"
+.TP
+\fB\-\-exec\fR
+Treat non-option arguments as program to execute after running
+\fBprocenv\fR.
+.\"
+.TP
+\fB\-f\fR, \fB\-\-fds\fR
+Display file descriptor details.
+.\"
+.TP
+\fB\-\-file=\fR\fIFILE\fR
+Send output to file \fIFILE\fR (implies \fB--output=file\fR).
+.PP
+.\"
+.TP
+\fB\-g\fR, \fB\-\-sizeof\fR
+Display sizes of data types.
+.\"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+This help text.
+.\"
+.TP
+\fB\-i\fR, \fB\-\-misc\fR
+Display miscellaneous details.
+.\"
+.TP
+\fB\-j\fR, \fB\-\-uname\fR
+Display uname details.
+.\"
+.TP
+\fB\-k\fR, \fB\-\-clock[s]\fR
+Display clock details.
+.\"
+.TP
+\fB\-l\fR, \fB\-\-limits\fR
+Display limits.
+.\"
+.TP
+\fB\-m\fR, \fB\-\-mount[s]\fR
+Display mount details.
+.PP
+.\"
+.TP
+\fB\-n\fR, \fB\-\-confstr\fR
+Display confstr details.
+.PP
+.\"
+.TP
+\fB\-o\fR, \fB\-\-oom\fR
+Display out-of-memory manager details (Linux only).
+.PP
+.\"
+.TP
+\fB\-\-output=\fR\fITYPE\fR
+Send output to alternative location. \fITYPE\fR can be one of:
+.RS
+.IP \(bu 4
+\fIfile\fR (send output to a file).
+.IP \(bu 4
+\fIstderr\fR (write to standard error).
+.IP \(bu 4
+\fIstdout\fR (write to standard output (default)).
+.IP \(bu 4
+\fIsyslog\fR (write to the system log file).
+.IP \(bu 4
+\fIterminal\fR (write to terminal).
+.RE
+.PP
+.\"
+.TP
+\fB\-p\fR, \fB\-\-proc[ess]\fR
+Display process details.
+.PP
+.\"
+.TP
+\fB\-p\fR, \fB\-\-proc[ess]\fR
+Display process details.
+.PP
+.\"
+.TP
+\fB\-q\fR, \fB\-\-time\fR
+Display time details.
+.PP
+.\"
+.TP
+\fB\-r\fR, \fB\-\-range[s]\fR
+Display range of data types.
+.PP
+.\"
+.TP
+\fB\-s\fR, \fB\-\-signal[s]\fR
+Display signal details.
+.PP
+.\"
+.TP
+\fB\-t\fR, \fB\-\-tty\fR
+Display terminal details.
+.PP
+.\"
+.TP
+\fB\-u\fR, \fB\-\-stat\fR
+Display stat details.
+.PP
+.\"
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Display version details.
+.PP
+.\"
+.TP
+\fB\-w\fR, \fB\-\-capabilities\fR
+Display capability details (Linux only).
+.PP
+.\"
+.TP
+\fB\-x\fR, \fB\-\-pathconf\fR
+Display pathconf details.
+.PP
+.\"
+.TP
+\fB\-y\fR, \fB\-\-sysconf\fR
+Display sysconf details.
+.PP
+.\"
+.TP
+\fB\-z\fR, \fB\-\-timezone\fR
+Display timezone details.
+.PP
+.\"
+.SH ENVIRONMENT VARIABLES
+.\"
+The following environment variables may be used as aliases to their
+command-line counterparts:
+.\"
+.TP
+\fBPROCENV_FILE\fR
+Alternative to \fB\-\-file\fR.
+.PP
+.\"
+.TP
+\fBPROCENV_EXEC\fR
+Alternative to \fB\-\-exec\fR.
+.PP
+.\"
+.TP
+\fBPROCENV_OUTPUT\fR
+Alternative to \fB\-\-output\fR.
+.PP
+.\"
+.SH NOTES
+.IP \(bu 4
+Excluding \fB\-\-exec\fR, \fB\-\-file\fR and \fB\-\-output\fR, up to one
+option may be provided.
+.IP \(bu
+If no option that restricts output is provided, all available information is displayed.
+.IP \(bu
+Command-line options take priority over environment variables.
+.IP \(bu
+If \fB\-\-exec\fR is specifed, atleast one non-option argument must also be
+specified.
+.sp 1
+.\"
+.SH EXAMPLES
+.\"
+.Vb
+\& # Show limits
+\& procenv -l
+\&
+\& # Send compiler information to syslog
+\& procenv --compiler --output=syslog
+\&
+\& # The following kernel command-line snippet will cause procenv to
+\& # write output to first serial tty device and then execute init(8)
+\& # in debug mode to allow early boot environment to be examined.
+\& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init --debug"
+.Ve
+.\"
+.SH LIMITATIONS
+.IP \(bu 4
+Spaces within the value of \fBPROCENV_EXEC\fR are treated as delimiters
+meaning that any spaces within a string argument for example will result in
+incorrect behaviour.
+.\"
+.SH AUTHOR
+Written by James Hunt
+.RB < james.hunt@ubuntu.com >
+.\"
+.SH COPYRIGHT
+Copyright \(co 2012 James Hunt
+.RB < james.hunt@ubuntu.com >
+.\"
+.SH LICENSE
+GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.\"
+.SH SEE ALSO
+.BR capabilities (7)
+.BR cc (1)
+.BR credentials (7)
+.BR date (1)
+.BR env (1)
+.BR getconf (1)
+.BR groups (1)
+.BR kill (1)
+.BR ldd (1)
+.BR ls (1)
+.BR mount (1)
+.BR proc (5)
+.BR ps (1)
+.BR sh (1)
+.BR stat (1)
+.BR stty (1)
+.BR umask (P)
+.BR uname (1)
