@@ -2,6 +2,7 @@
 
 	* Set EXTRA_DIST to ensure man page
 	  included in distribution.
+	* man/procenv.1: Typos and hyphen fixes.
 
 2012-10-25  James Hunt  <james.hunt@ubuntu.com>
 

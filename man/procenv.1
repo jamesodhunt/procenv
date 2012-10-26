@@ -51,7 +51,7 @@ Display file descriptor details.
 .\"
 .TP
 \fB\-\-file=\fR\fIFILE\fR
-Send output to file \fIFILE\fR (implies \fB--output=file\fR).
+Send output to file \fIFILE\fR (implies \fB\-\-output=file\fR).
 .PP
 .\"
 .TP
@@ -210,12 +210,12 @@ specified.
 \& procenv -l
 \&
 \& # Send compiler information to syslog
-\& procenv --compiler --output=syslog
+\& procenv \-\-compiler \-\-output=syslog
 \&
 \& # The following kernel command-line snippet will cause procenv to
 \& # write output to first serial tty device and then execute init(8)
 \& # in debug mode to allow early boot environment to be examined.
-\& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init --debug"
+\& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
 .Ve
 .\"
 .SH LIMITATIONS
