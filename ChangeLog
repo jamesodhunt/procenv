@@ -1,3 +1,8 @@
+2012-10-26  James Hunt  <james.hunt@ubuntu.com>
+
+	* Set EXTRA_DIST to ensure man page
+	  included in distribution.
+
 2012-10-25  James Hunt  <james.hunt@ubuntu.com>
 
 	* Initial import.
