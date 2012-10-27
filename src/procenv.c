@@ -878,6 +878,7 @@ dump_misc (void)
 	show ("container: %s", container_type ());
 
 	show_cpu ();
+	dump_priorities ();
 	show ("memory page size: %d bytes", getpagesize ());
 }
 
@@ -1321,33 +1322,31 @@ void
 dump (void)
 {
 	dump_meta ();
-	show_stat ();
-	show_uname ();
-	show_compiler ();
-	dump_user ();
-	dump_priorities ();
-	dump_misc ();
-	dump_fds ();
 
 #if defined (PROCENV_LINUX)
 	show_capabilities ();
-	show_oom ();
 	show_linux_cgroups ();
 #endif
-
-	show_env ();
-	show_rlimits ();
-	dump_sysconf ();
-	show_confstrs ();
-	show_timezone ();
 	show_clocks ();
-	show_time ();
-	show_tty_attrs ();
-	show_signals ();
-	show_mounts (SHOW_ALL);
+	show_compiler ();
+	show_confstrs ();
+	show_env ();
+	dump_fds ();
 	show_libs ();
-	show_sizeof ();
+	show_rlimits ();
+	dump_misc ();
+	show_mounts (SHOW_ALL);
+	show_oom ();
+	dump_user ();
 	show_ranges ();
+	show_signals ();
+	show_sizeof ();
+	show_stat ();
+	dump_sysconf ();
+	show_time ();
+	show_timezone ();
+	show_tty_attrs ();
+	show_uname ();
 }
 
 #if defined (PROCENV_LINUX)
@@ -2396,7 +2395,7 @@ show_uname (void)
 void
 show_capabilities (void)
 {
-	header ("capabilities (linux)");
+	header ("capabilities(linux)");
 
 	show_capability (CAP_CHOWN);
 	show_capability (CAP_DAC_OVERRIDE);
@@ -2476,7 +2475,7 @@ show_linux_cgroups (void)
 	if (! f)
 		return;
 
-	header ("cgroup (linux)");
+	header ("cgroup(linux)");
 
 	while (fgets (buffer, sizeof (buffer), f)) {
 		len = strlen (buffer);
@@ -2558,7 +2557,7 @@ show_oom (void)
 	size_t   len;
 	int      ret;
 
-	header ("oom (linux)");
+	header ("oom(linux)");
 
 	for (file = files; file && *file; file++) {
 		ret = sprintf (path, "%s/%s", dir, *file);
