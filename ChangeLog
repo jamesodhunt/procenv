@@ -1,3 +1,11 @@
+2012-10-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - get_path(): New function to return path of specified program.
+	  - show_stat(): Ensure we can resolve argv[0] to a full
+	    path by using get_path().
+	  - check_envvars(): Made strsep() usage safe.
+
 2012-10-26  James Hunt  <james.hunt@ubuntu.com>
 
 	* Set EXTRA_DIST to ensure man page

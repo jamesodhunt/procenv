@@ -1225,11 +1225,21 @@ show_stat (void)
 	char         modestr[10+1];
 	mode_t       perms;
 	int          i = 0;
+	char        *tmp = NULL;
 
 	assert (program_name);
+	assert (misc.cwd);
 
-	if (! realpath (program_name, real_path))
+	tmp = strdup ("");
+	assert (tmp);
+
+	tmp = get_path (program_name);
+	assert (tmp);
+
+	if (! realpath (tmp, real_path))
 		die ("unable to resolve path");
+
+	free (tmp);
 
 	if (stat (real_path, &st) < 0)
 		die ("unable to stat path: '%s'", real_path);
@@ -2760,11 +2770,11 @@ check_envvars (void)
 		if (! exec_args)
 			die ("failed to allocate space for args copy");
 
-
 		/* build the argument array */
-		for (token = strsep (&string, " "), i=0;
+		tmp = string;
+		for (token = strsep (&tmp, " "), i=0;
 				token;
-				token = strsep (&string, " "), i++)
+				token = strsep (&tmp, " "), i++)
 		{
 			exec_args[i] = strdup (token);
 			if (! exec_args[i])
@@ -2795,6 +2805,71 @@ get_major_minor (const char *path, int *major, int *minor)
 
 	*major = major (st.st_dev);
 	*minor = minor (st.st_dev);
+}
+
+/**
+ * Find full path to @argv0.
+ *
+ * Returns: newly-allocated path to @argv0, or NULL on error.
+ *
+ * Note that returned path will not necessarily be the canonical path,
+ * so it should be passed to readlink(2).
+ **/
+char *
+get_path (const char *argv0)
+{
+    char        *slash;
+    char        *path;
+    char        *prog_path = NULL;
+    char        *tmp;
+    char        *element;
+    char         possible[PATH_MAX];
+    struct stat  statbuf;
+
+    assert (argv0);
+
+    slash = strchr (argv0, '/');
+
+    if (slash == argv0) {
+        /* absolute path */
+        return strdup (argv0);
+    } else if (slash) {
+         char cwd[PATH_MAX];
+
+         /* relative path */
+         assert (getcwd (cwd, sizeof (cwd)));
+         strcat (cwd, "/");
+         strcat (cwd, argv0);
+
+         if (! stat (cwd, &statbuf))
+             return strdup (cwd);
+         return NULL;
+    }
+
+    /* path search required */
+    tmp = getenv ("PATH");
+    path = strdup (tmp ? tmp : _PATH_STDPATH);
+    assert (path);
+
+    tmp = path;
+    for(element = strsep (&tmp, ":");
+            element;            
+            element = strsep (&tmp, ":")) {
+
+        sprintf (possible, "%s%s%s",
+                element,
+                element [strlen (element)-1] == '/' ? "" : "/",
+                argv0);
+
+        if (! stat (possible, &statbuf)) {
+            prog_path = strdup (possible);
+            break;
+        }
+    }
+
+    free (path);
+
+    return prog_path;
 }
 
 int

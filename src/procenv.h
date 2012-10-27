@@ -354,6 +354,7 @@ void set_indent (void);
 void show_stat (void);
 void get_major_minor (const char *path, int *major, int *minor);
 bool uid_match (uid_t uid);
+char * get_path (const char *argv0);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);
