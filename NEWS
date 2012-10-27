@@ -1,3 +1,7 @@
+0.5	2012-10-27
+
+	* Fluff removal.
+
 0.4	2012-10-27
 
 	* Path resolution fixes and strsep() safety. 
