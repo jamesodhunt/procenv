@@ -1,8 +1,12 @@
-0.3	2012-10-25
+0.4	2012-10-27
+
+	* Path resolution fixes and strsep() safety. 
+
+0.3	2012-10-26
 
 	* Man page fixes.
 
-0.2	2012-10-25
+0.2	2012-10-26
 
 	* Include man page in distribution.
 
