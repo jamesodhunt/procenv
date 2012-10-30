@@ -1,5 +1,5 @@
 procenv (0.5-1) unstable; urgency=low
 
-  * Initial release. (Closes: #XXXXXX)
+  * Initial release. (Closes: #691801)
 
- -- James Hunt <james.hunt@ubuntu.com>  Sat, 27 Oct 2012 20:34:01 +0100
+ -- James Hunt <james.hunt@ubuntu.com>  Tue, 30 Oct 2012 09:17:49 +0000
