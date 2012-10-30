@@ -873,7 +873,8 @@ dump_misc (void)
 #endif
 	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
 #if defined (PROCENV_LINUX)
-	show_linux_selinux_context ();
+	show_linux_security_module ();
+	show_linux_security_module_context ();
 #endif
 	show ("container: %s", container_type ());
 
@@ -2440,26 +2441,55 @@ show_capabilities (void)
 }
 
 void
-show_linux_selinux_context (void)
+show_linux_security_module (void)
 {
-	char   *context;
+	char *lsm = UNKNOWN_STR;
+#if defined(HAVE_APPARMOR)
+	if (aa_is_enabled ())
+		lsm = "AppArmor";
+#endif
+#if defined(HAVE_SELINUX)
+	if (is_selinux_enabled ())
+		lsm = "SELinux";
+#endif
+	show ("Linux Security Module: %s", lsm);
+}
+
+void
+show_linux_security_module_context (void)
+{
+	char   *context = NULL;
+	char   *mode = NULL;
 	size_t  len;
 
-#ifdef HAVE_SELINUX
+#if defined(HAVE_APPARMOR)
+	if (aa_gettaskcon (user.pid, &context, &mode) < 0)
+		die ("failed to query AppArmor context");
+
+	if (context) {
+		if (mode)
+			show ("LSM context: %s (%s)", context, mode);
+		else
+			show ("LSM context: %s", context);
+	} else
+		show ("LSM context: %s", UNKNOWN_STR);
+
+#elif defined(HAVE_SELINUX)
 	if (getpidcon (user.pid, &context) < 0)
 		die ("failed to query SELinux context");
 
 	len = strlen (context);
 
 	/* don't show trailing NL */
-	show ("selinux context: %.*s",
+	show ("LSM context: %.*s",
 			len - 1,
 			context);
 
-	free (context);
 #else
-	show ("selinux context: %s", UNKNOWN_STR);
+	show ("LSM context: %s", UNKNOWN_STR);
 #endif
+	free (context);
+	free (mode);
 
 }
 

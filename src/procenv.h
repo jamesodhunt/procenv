@@ -56,6 +56,9 @@
 #include <sys/prctl.h>
 #include <linux/capability.h>
 #include <linux/vt.h>
+#ifdef HAVE_APPARMOR
+#include <sys/apparmor.h>
+#endif
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
 #endif
@@ -362,7 +365,8 @@ void dump_linux_proc_fds (void);
 void show_linux_cgroups (void);
 void show_oom (void);
 void show_capabilities (void);
-void show_linux_selinux_context (void);
+void show_linux_security_module (void);
+void show_linux_security_module_context (void);
 void show_linux_mounts (ShowMountType what);
 void show_linux_proc_branch (void);
 void show_linux_cpu (void);
