@@ -2383,8 +2383,6 @@ show_uname (void)
 
 #define show_capability(cap) \
 { \
-	int ret; \
-	\
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
 	if (ret < 0) \
@@ -2396,6 +2394,8 @@ show_uname (void)
 void
 show_capabilities (void)
 {
+	int ret;
+
 	header ("capabilities(linux)");
 
 	show_capability (CAP_CHOWN);
@@ -2437,6 +2437,31 @@ show_capabilities (void)
 #endif
 #ifdef CAP_WAKE_ALARM
 	show_capability (CAP_WAKE_ALARM);
+#endif
+
+#ifdef PR_GET_KEEPCAPS
+	ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
+	if (ret < 0 && errno != ENOSYS)
+		die ("prctl failed for PR_GET_KEEPCAPS");
+	if (ret >= 0)
+		show ("keep=%s", ret ? YES_STR : NO_STR);
+#endif
+
+#ifdef PR_GET_SECUREBITS
+	ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
+	if (ret < 0 && errno != ENOSYS)
+		die ("prctl failed for PR_GET_SECUREBITS");
+	if (ret >= 0) {
+		struct securebits_t {
+			unsigned int securebits;
+		} flags;
+		flags.securebits = (unsigned int)ret;
+		show ("securebits=0x%x", flags.securebits);
+
+		show_const (flags, securebits, SECBIT_KEEP_CAPS);
+		show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
+		show_const (flags, securebits, SECBIT_NOROOT);
+	}
 #endif
 }
 

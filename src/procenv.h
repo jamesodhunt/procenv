@@ -54,6 +54,9 @@
 #include <execinfo.h>
 #include <sys/inotify.h>
 #include <sys/prctl.h>
+#ifdef PR_GET_SECUREBITS
+#include <linux/securebits.h>
+#endif
 #include <linux/capability.h>
 #include <linux/vt.h>
 #ifdef HAVE_APPARMOR
