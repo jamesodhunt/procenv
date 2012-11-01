@@ -1336,7 +1336,9 @@ dump (void)
 	show_rlimits ();
 	dump_misc ();
 	show_mounts (SHOW_ALL);
+#if defined (PROCENV_LINUX)
 	show_oom ();
+#endif
 	dump_user ();
 	show_ranges ();
 	show_signals ();

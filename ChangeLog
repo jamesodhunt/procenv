@@ -1,3 +1,7 @@
+2012-11-01  James Hunt  <james.hunt@ubuntu.com>
+
+	* Hide show_oom() for non-Linux platforms.
+
 2012-10-27  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:
