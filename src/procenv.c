@@ -873,7 +873,9 @@ dump_misc (void)
 #endif
 	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
 #if defined (PROCENV_LINUX)
-	show_linux_selinux_context ();
+	show_linux_prctl ();
+	show_linux_security_module ();
+	show_linux_security_module_context ();
 #endif
 	show ("container: %s", container_type ());
 
@@ -1708,6 +1710,266 @@ show_bsd_proc_branch (void)
 
 #if defined (PROCENV_LINUX)
 void
+show_linux_prctl (void)
+{
+	int  rc;
+	int  arg2;
+	char name[17] = { 0 };
+
+#ifdef PR_GET_DUMPABLE
+	rc = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_DUMPABLE");
+	if (rc >= 0) {
+		switch (rc) {
+		case 0:
+			show ("dumpable: %s", NO_STR);
+			break;
+		case 1:
+			show ("dumpable: %s", YES_STR);
+			break;
+		case 2:
+			show ("dumpable: root-only");
+			break;
+		default:
+			show ("dumpable: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_ENDIAN
+	rc = prctl (PR_GET_ENDIAN, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		pdie ("PR_GET_ENDIAN");
+	if (rc >= 0) {
+		switch (arg2) {
+		case PR_ENDIAN_BIG:
+			show ("endian: big");
+			break;
+		case PR_ENDIAN_LITTLE:
+			show ("endian: little");
+			break;
+		case PR_ENDIAN_PPC_LITTLE:
+			show ("endian: PowerPC pseduo little endian");
+			break;
+		default:
+			show ("endian: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_FPEMU
+	rc = prctl (PR_GET_FPEMU, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		pdie ("PR_GET_FPEMU");
+	if (rc >= 0) {
+		switch (arg2) {
+		case PR_FPEMU_NOPRINT:
+			show ("floating point emulation: yes");
+			break;
+		case PR_FPEMU_SIGFPE:
+			show ("floating point emulation: send SIGFPE");
+			break;
+		default:
+			show ("floating point emulation: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_FPEXC
+	rc = prctl (PR_GET_FPEXC, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		pdie ("PR_GET_FPEXC");
+	if (rc >= 0) {
+		switch (arg2) {
+		case PR_FP_EXC_SW_ENABLE:
+			show ("floating point exceptions: software");
+			break;
+		case PR_FP_EXC_DISABLED:
+			show ("floating point exceptions: disabled");
+			break;
+		case PR_FP_EXC_NONRECOV:
+			show ("floating point exceptions: non-recoverable");
+			break;
+		case PR_FP_EXC_ASYNC:
+			show ("floating point exceptions: asynchronous");
+			break;
+		case PR_FP_EXC_PRECISE:
+			show ("floating point exceptions: precise");
+			break;
+		default:
+			show ("floating point exceptions: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_NAME
+	rc = prctl (PR_GET_NAME, name, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_NAME");
+	show ("process name: %s", name);
+#endif
+
+#ifdef PR_GET_PDEATHSIG
+	rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_PDEATHSIG");
+	if (rc == 0)
+		show ("parent death signal: disabled");
+	else if (rc > 0)
+		show ("parent death signal: %d", arg2);
+#endif
+
+#ifdef PR_GET_SECCOMP
+	rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_SECCOMP");
+	if (rc >= 0) {
+		switch (rc) {
+		case 0:
+			show ("secure computing: disabled");
+			break;
+		case 1:
+			show ("secure computing: read/write/exit (mode 1)");
+			break;
+		case 2:
+			show ("secure computing: BPF (mode 2)");
+			break;
+		default:
+			show ("secure computing: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_TIMING
+	rc = prctl (PR_GET_TIMING, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_TIMING");
+	if (rc >= 0) {
+		switch (rc) {
+		case PR_TIMING_STATISTICAL:
+			show ("process timing: statistical");
+			break;
+		case PR_TIMING_TIMESTAMP:
+			show ("process timing: time-stamp");
+			break;
+		default:
+			show ("process timing: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_TSC
+	rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_TSC");
+	if (rc >= 0) {
+		switch (arg2) {
+		case PR_TSC_ENABLE:
+			show ("timestamp counter read: enabled");
+			break;
+		case PR_TSC_SIGSEGV:
+			show ("timestamp counter read: segmentation fault");
+			break;
+		default:
+			show ("timestamp counter read: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_UNALIGNED
+	rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_UNALIGNED");
+	if (rc >= 0) {
+		switch (arg2) {
+		case PR_UNALIGN_NOPRINT:
+			show ("unaligned access: fix-up");
+			break;
+		case PR_UNALIGN_SIGBUS:
+			show ("unaligned access: send SIGBUS");
+			break;
+		default:
+			show ("unaligned access: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_MCE_KILL_GET
+	rc = prctl (PR_MCE_KILL_GET, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_MCE_KILL_GET");
+	if (rc >= 0) {
+		switch (rc) {
+		case PR_MCE_KILL_DEFAULT:
+			show ("machine-check exception: system default");
+			break;
+		case PR_MCE_KILL_EARLY:
+			show ("machine-check exception: early kill");
+			break;
+		case PR_MCE_KILL_LATE:
+			show ("machine-check exception: late kill");
+			break;
+		default:
+			show ("machine-check exception: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_NO_NEW_PRIVS
+	rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_NO_NEW_PRIVS");
+	if (rc >= 0) {
+		switch (rc) {
+		case 0:
+			show ("no new privileges: normal execve");
+			break;
+		case 1:
+			show ("no new privileges: enabled");
+			break;
+		default:
+			show ("no new privileges: %s", UNKNOWN_STR);
+			break;
+		}
+	}
+#endif
+
+#ifdef PR_GET_TIMERSLACK
+	rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_TIMERSLACK");
+	if (rc >= 0)
+		show ("timer slack: %dns", rc);
+#endif
+
+#ifdef PR_GET_CHILD_SUBREAPER
+	rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS)
+		pdie ("PR_GET_CHILD_SUBREAPER");
+	if (rc >= 0)
+		show ("child subreader: %s", arg2 ? YES_STR : NO_STR);
+#endif
+
+#ifdef PR_GET_TID_ADDRESS
+	rc = prctl (PR_GET_TID_ADDRESS, &arg2, 0, 0, 0);
+	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		pdie ("PR_GET_TID_ADDRESS");
+	if (rc >= 0)
+		show ("clear child tid address: %p", arg2);
+#endif
+}
+
+void
 show_linux_proc_branch (void)
 {
 	char    buffer[1024];
@@ -2384,8 +2646,6 @@ show_uname (void)
 
 #define show_capability(cap) \
 { \
-	int ret; \
-	\
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
 	if (ret < 0) \
@@ -2397,6 +2657,8 @@ show_uname (void)
 void
 show_capabilities (void)
 {
+	int ret;
+
 	header ("capabilities(linux)");
 
 	show_capability (CAP_CHOWN);
@@ -2439,29 +2701,83 @@ show_capabilities (void)
 #ifdef CAP_WAKE_ALARM
 	show_capability (CAP_WAKE_ALARM);
 #endif
+
+#ifdef PR_GET_KEEPCAPS
+	ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
+	if (ret < 0 && errno != ENOSYS)
+		die ("prctl failed for PR_GET_KEEPCAPS");
+	if (ret >= 0)
+		show ("keep=%s", ret ? YES_STR : NO_STR);
+#endif
+
+#if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
+	ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
+	if (ret < 0 && errno != ENOSYS)
+		die ("prctl failed for PR_GET_SECUREBITS");
+	if (ret >= 0) {
+		struct securebits_t {
+			unsigned int securebits;
+		} flags;
+		flags.securebits = (unsigned int)ret;
+		show ("securebits=0x%x", flags.securebits);
+
+		show_const (flags, securebits, SECBIT_KEEP_CAPS);
+		show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
+		show_const (flags, securebits, SECBIT_NOROOT);
+	}
+#endif
 }
 
 void
-show_linux_selinux_context (void)
+show_linux_security_module (void)
 {
-	char   *context;
+	char *lsm = UNKNOWN_STR;
+#if defined(HAVE_APPARMOR)
+	if (aa_is_enabled ())
+		lsm = "AppArmor";
+#endif
+#if defined(HAVE_SELINUX)
+	if (is_selinux_enabled ())
+		lsm = "SELinux";
+#endif
+	show ("Linux Security Module: %s", lsm);
+}
+
+void
+show_linux_security_module_context (void)
+{
+	char   *context = NULL;
+	char   *mode = NULL;
 	size_t  len;
 
-#ifdef HAVE_SELINUX
+#if defined(HAVE_APPARMOR)
+	if (aa_gettaskcon (user.pid, &context, &mode) < 0)
+		die ("failed to query AppArmor context");
+
+	if (context) {
+		if (mode)
+			show ("LSM context: %s (%s)", context, mode);
+		else
+			show ("LSM context: %s", context);
+	} else
+		show ("LSM context: %s", UNKNOWN_STR);
+
+#elif defined(HAVE_SELINUX)
 	if (getpidcon (user.pid, &context) < 0)
 		die ("failed to query SELinux context");
 
 	len = strlen (context);
 
 	/* don't show trailing NL */
-	show ("selinux context: %.*s",
+	show ("LSM context: %.*s",
 			len - 1,
 			context);
 
-	free (context);
 #else
-	show ("selinux context: %s", UNKNOWN_STR);
+	show ("LSM context: %s", UNKNOWN_STR);
 #endif
+	free (context);
+	free (mode);
 
 }
 
