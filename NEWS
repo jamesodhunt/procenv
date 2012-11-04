@@ -1,3 +1,8 @@
+0.6	2012-10-27
+
+	* AppArmor, capabilities and prctl(2) contributions from
+	  Kees Cook.
+
 0.5	2012-10-27
 
 	* Fluff removal.
