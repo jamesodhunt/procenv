@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(procenv, 0.5, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.6, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012 James Hunt <james.hunt@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
@@ -21,6 +21,9 @@ PKG_PROG_PKG_CONFIG
 # Checks for libraries.
 
 # Checks for header files.
+# this header is not available on older distributions (such as Ubuntu
+# Lucid)
+AC_CHECK_HEADERS([linux/securebits.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -38,6 +41,9 @@ AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
+
+AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
+AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 
 # Other checks
 
