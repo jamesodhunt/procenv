@@ -1,3 +1,9 @@
+2012-11-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* AUTHORS: Corrected email address.
+	* man/procenv.1: Credit Kees in copyright and add in
+	  standard "warranty".
+
 2012-11-01  James Hunt  <james.hunt@ubuntu.com>
 
 	* Hide show_oom() for non-Linux platforms.
