@@ -92,6 +92,8 @@ struct procenv_user     user;
 struct procenv_misc     misc;
 struct procenv_priority priority;
 
+struct utsname uts;
+
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 struct mntopt_map {
 	uint64_t   flag;
@@ -1189,6 +1191,11 @@ init (void)
 	get_user_info ();
 	get_misc ();
 	get_priorities ();
+
+	/* required to allow for more graceful handling of prctl(2)
+	 * options that were introduced in kernel version 'x.y'.
+	 */
+	get_uname ();
 }
 
 void
@@ -1350,7 +1357,7 @@ dump (void)
 	show_time ();
 	show_timezone ();
 	show_tty_attrs ();
-	show_uname ();
+	dump_uname ();
 }
 
 #if defined (PROCENV_LINUX)
@@ -1865,7 +1872,7 @@ show_linux_prctl (void)
 	}
 #endif
 
-#ifdef PR_GET_TSC
+#if defined (PR_GET_TSC) && defined (PROCENV_ARCH_X86)
 	rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
 	if (rc < 0 && errno != ENOSYS)
 		pdie ("PR_GET_TSC");
@@ -1926,21 +1933,25 @@ show_linux_prctl (void)
 #endif
 
 #ifdef PR_GET_NO_NEW_PRIVS
-	rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_NO_NEW_PRIVS");
-	if (rc >= 0) {
-		switch (rc) {
-		case 0:
-			show ("no new privileges: normal execve");
-			break;
-		case 1:
-			show ("no new privileges: enabled");
-			break;
-		default:
-			show ("no new privileges: %s", UNKNOWN_STR);
-			break;
+	if (KERNEL_VERSION (3, 5)) {
+		rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			pdie ("PR_GET_NO_NEW_PRIVS");
+		if (rc >= 0) {
+			switch (rc) {
+			case 0:
+				show ("no new privileges: normal execve");
+				break;
+			case 1:
+				show ("no new privileges: enabled");
+				break;
+			default:
+				show ("no new privileges: %s", UNKNOWN_STR);
+				break;
+			}
 		}
+	} else {
+		show ("no new privileges: %s", UNKNOWN_STR);
 	}
 #endif
 
@@ -1953,11 +1964,15 @@ show_linux_prctl (void)
 #endif
 
 #ifdef PR_GET_CHILD_SUBREAPER
-	rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_CHILD_SUBREAPER");
-	if (rc >= 0)
-		show ("child subreader: %s", arg2 ? YES_STR : NO_STR);
+	if (KERNEL_VERSION (3, 4)) {
+		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			pdie ("PR_GET_CHILD_SUBREAPER");
+		if (rc >= 0)
+			show ("child subreader: %s", arg2 ? YES_STR : NO_STR);
+	} else {
+		show ("child subreader: %s", UNKNOWN_STR);
+	}
 #endif
 
 #ifdef PR_GET_TID_ADDRESS
@@ -2622,13 +2637,15 @@ show_time (void)
 }
 
 void
-show_uname (void)
+get_uname (void)
 {
-	struct utsname uts;
-
 	if (uname (&uts) < 0)
 		die ("failed to query uname");
+}
 
+void
+dump_uname (void)
+{
 	header ("uname");
 
 	show ("sysname: %s", uts.sysname);
@@ -3324,7 +3341,7 @@ main (int  argc,
 			break;
 
 		case 'j':
-			show_uname ();
+			dump_uname ();
 			break;
 
 		case 'k':
