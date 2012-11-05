@@ -1,3 +1,7 @@
+0.7	2012-11-05
+
+	* Fixes for non-x86 kernels and specific kernel versions.
+
 0.6	2012-10-27
 
 	* AppArmor, capabilities and prctl(2) contributions from
