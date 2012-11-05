@@ -1,3 +1,15 @@
+2012-11-05  James Hunt  <james.hunt@ubuntu.com>
+
+	* Split show_uname() into get_uname() and dump_uname().
+	* init(): Call get_uname().
+	* show_linux_prctl():
+	  - Check for x86 before quering PR_GET_TSC.
+	  - Check for kernel v3.5 before querying PR_GET_NO_NEW_PRIVS.
+	  - Check for kernel v3.4 before querying PR_GET_CHILD_SUBREAPER.
+	* New macros:
+	  - PROCENV_ARCH_X86.
+	  - KERNEL_VERSION().
+
 2012-11-04  James Hunt  <james.hunt@ubuntu.com>
 
 	* AUTHORS: Corrected email address.

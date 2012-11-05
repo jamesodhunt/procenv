@@ -49,6 +49,24 @@
 #define PROCENV_LINUX
 #endif
 
+#if defined (__i386__) || defined (__x86_64__)
+#define PROCENV_ARCH_X86
+#endif
+
+/**
+ * KERNEL_VERSION:
+ *
+ * @major: Linux major kernel version number,
+ * @minor: Linux minor kernel version number.
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by (major, minor) tuple, else FALSE.
+ **/
+#define KERNEL_VERSION(major, minor) \
+((uts.release[0] >= (major+'0')) && \
+ (uts.release[1] == '.') && \
+ (uts.release[2] >= (minor+'0')))
+
 #if defined (PROCENV_LINUX)
 #include <mntent.h>
 #include <execinfo.h>
@@ -356,7 +374,8 @@ void show_pathconfs (ShowMountType what, const char *dir);
 void show_sizeof (void);
 void show_ranges (void);
 void show_compiler (void);
-void show_uname (void);
+void get_uname (void);
+void dump_uname (void);
 void show_all_groups (void);
 int is_console (int fd);
 long get_kernel_bits (void);
