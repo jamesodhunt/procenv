@@ -391,6 +391,7 @@ usage (void)
 	show ("  -s, --signal[s]     : Display signal details.");
 	show ("  -t, --tty           : Display terminal details.");
 	show ("  -u, --stat          : Display stat details.");
+	show ("  -U, --rusage        : Display rusage details.");
 	show ("  -v, --version       : Display version details.");
 	show ("  -w, --capabilities  : Display capaibility details (Linux only).");
 	show ("  -x, --pathconf      : Display pathconf details.");
@@ -669,7 +670,6 @@ show_signals (void)
 	}
 }
 
-
 void
 show_rlimits (void)
 {
@@ -715,6 +715,32 @@ show_rlimits (void)
 #endif
 
 	show_limit (RLIMIT_STACK);
+}
+
+void
+show_rusage (void)
+{
+	struct rusage usage;
+
+	header ("rusage");
+
+	if (getrusage (RUSAGE_SELF, &usage) < 0)
+		die ("unable to query rusage");
+
+	show_usage (usage, ru_maxrss);
+	show_usage (usage, ru_ixrss);
+	show_usage (usage, ru_idrss);
+	show_usage (usage, ru_isrss);
+	show_usage (usage, ru_minflt);
+	show_usage (usage, ru_majflt);
+	show_usage (usage, ru_nswap);
+	show_usage (usage, ru_inblock);
+	show_usage (usage, ru_oublock);
+	show_usage (usage, ru_msgsnd);
+	show_usage (usage, ru_msgrcv);
+	show_usage (usage, ru_nsignals);
+	show_usage (usage, ru_nvcsw);
+	show_usage (usage, ru_nivcsw);
 }
 
 void
@@ -1350,6 +1376,12 @@ dump (void)
 #endif
 	dump_user ();
 	show_ranges ();
+
+	/* We should really call this last, to make figures as reliable
+	 * as possible.
+	 */
+	show_rusage ();
+
 	show_signals ();
 	show_sizeof ();
 	show_stat ();
@@ -2379,6 +2411,8 @@ show_sizeof (void)
 	show_size (wchar_t);
 
 	show_size (intmax_t);
+	show_size (uintmax_t);
+	show_size (imaxdiv_t);
 	show_size (intptr_t);
 	show_size (uintptr_t);
 
@@ -2393,6 +2427,10 @@ show_sizeof (void)
 	show_size (pid_t);
 	show_size (uid_t);
 	show_size (gid_t);
+
+	show_size (rlim_t);
+	show_size (fenv_t);
+	show_size (fexcept_t);
 
 	show_size (wint_t);
 	show_size (div_t);
@@ -2660,16 +2698,6 @@ dump_uname (void)
 }
 
 #if defined (PROCENV_LINUX)
-
-#define show_capability(cap) \
-{ \
-	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
-	\
-	if (ret < 0) \
-	die ("prctl failed for " #cap); \
-	\
-	show (#cap "=%s", ret ? YES_STR : NO_STR); \
-}
 
 void
 show_capabilities (void)
@@ -3245,6 +3273,7 @@ main (int  argc,
 		{"signals"      , no_argument, NULL, 's'},
 		{"tty"          , no_argument, NULL, 't'},
 		{"stat"         , no_argument, NULL, 'u'},
+		{"rusage"       , no_argument, NULL, 'U'},
 		{"version"      , no_argument, NULL, 'v'},
 		{"capabilities" , no_argument, NULL, 'w'},
 		{"pathconf"     , no_argument, NULL, 'x'},
@@ -3270,7 +3299,7 @@ main (int  argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"abcdefghijklmnopqrstvwxyz",
+				"abcdefghijklmnopqrstuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -3388,6 +3417,10 @@ main (int  argc,
 
 		case 'u':
 			show_stat ();
+			break;
+
+		case 'U':
+			show_rusage ();
 			break;
 
 		case 'v':
