@@ -33,10 +33,12 @@
 #include <getopt.h>
 #include <assert.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <link.h>
+#include <fenv.h>
 #include <sys/utsname.h>
 
 #if defined (__FreeBSD__) \
@@ -88,6 +90,17 @@
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
 #endif
+
+#define show_capability(cap) \
+{ \
+	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
+	\
+	if (ret < 0) \
+	die ("prctl failed for " #cap); \
+	\
+	show (#cap "=%s", ret ? YES_STR : NO_STR); \
+}
+
 #endif
 
 #include <sys/ioctl.h>
@@ -240,6 +253,9 @@
 			is_limit_max (tmp.rlim_max)); \
 }
 
+#define show_usage(rusage, name) \
+	show ("%s=%lu", #name, rusage.name)
+
 #define get_sysconf(s) \
  	sysconf (s)
 
@@ -348,6 +364,7 @@ void dump_user (void);
 void dump_misc (void);
 void show_env (void);
 void show_rlimits (void);
+void show_rusage (void);
 void dump_sysconf (void);
 void show_confstrs (void);
 void dump_priorities (void);

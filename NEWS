@@ -1,3 +1,9 @@
+0.8	2012-11-16
+
+	* Man page updates.
+	* Added resource usage.
+	* Added more types for --sizeof.
+
 0.7	2012-11-05
 
 	* Fixes for non-x86 kernels and specific kernel versions.
