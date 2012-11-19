@@ -1,3 +1,9 @@
+0.9	2012-11-19
+
+	* Platform fixes identified by building on Debian-supported
+	  platforms.
+	* Improved man page.
+
 0.8	2012-11-16
 
 	* Man page updates.
