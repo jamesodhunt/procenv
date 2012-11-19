@@ -55,20 +55,6 @@
 #define PROCENV_ARCH_X86
 #endif
 
-/**
- * KERNEL_VERSION:
- *
- * @major: Linux major kernel version number,
- * @minor: Linux minor kernel version number.
- *
- * Returns: TRUE if running Linux kernel is atleast at version
- * specified by (major, minor) tuple, else FALSE.
- **/
-#define KERNEL_VERSION(major, minor) \
-((uts.release[0] >= (major+'0')) && \
- (uts.release[1] == '.') && \
- (uts.release[2] >= (minor+'0')))
-
 #if defined (PROCENV_LINUX)
 #include <mntent.h>
 #include <execinfo.h>
@@ -101,6 +87,52 @@
 	show (#cap "=%s", ret ? YES_STR : NO_STR); \
 }
 
+/**
+ * LINUX_KERNEL_M:
+ * @major: Linux major kernel version number.
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by @major else FALSE.
+ **/
+#define LINUX_KERNEL_M(major) \
+    (linux_kernel_version (major, -1, -1, -1))
+
+/**
+ * LINUX_KERNEL_MM:
+ * @major: Linux major kernel version number,
+ * @minor: Linux minor kernel version number.
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by (@major, @minor) else FALSE.
+ **/
+#define LINUX_KERNEL_MM(major, minor) \
+    (linux_kernel_version (major, minor, -1, -1))
+
+/**
+ * LINUX_KERNEL_MMR:
+ * @major: Linux major kernel version number,
+ * @minor: Linux minor kernel version number,
+ * @revision: kernel revision version.
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by (@major, @minor, @revision) else FALSE.
+ **/
+#define LINUX_KERNEL_MMR(major, minor, revision) \
+    (linux_kernel_version (major, minor, revision, -1))
+
+/**
+ * LINUX_KERNEL_MMRP:
+ * @major: Linux major kernel version number,
+ * @minor: Linux minor kernel version number,
+ * @revision: kernel revision version,
+ * @patch: kernel patch level version.
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by (@major, @minor, @revision, @patch) else FALSE.
+ **/
+#define LINUX_KERNEL_MMRP(major, minor, revision, patch) \
+    (linux_kernel_version (major, minor, revision, patch))
+
 #endif
 
 #include <sys/ioctl.h>
@@ -117,6 +149,11 @@
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 #include <sys/mount.h>
+#endif
+
+/* Horrid hack for Hurd... :-( */
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 #define PROCENV_OUTPUT_ENV "PROCENV_OUTPUT"
@@ -423,6 +460,7 @@ void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 void show_linux_scheduler (void);
+bool linux_kernel_version (int major, int minor, int revision, int patch);
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
