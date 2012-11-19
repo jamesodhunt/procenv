@@ -218,7 +218,9 @@ struct procenv_map sysconf_map[] = {
 	mk_posixopt_sysconf_map_entry (ADVISORY_INFO),
 	mk_posixopt_sysconf_map_entry (ASYNCHRONOUS_IO),
 	mk_posixopt_sysconf_map_entry (BARRIERS),
+#if defined (_POSIX_CHOWN_RESTRICTED)
 	mk_sysconf_map_entry (_POSIX_CHOWN_RESTRICTED),
+#endif
 	mk_posixopt_sysconf_map_entry (CLOCK_SELECTION),
 	mk_posixopt_sysconf_map_entry (CPUTIME),
 	mk_posixopt_sysconf_map_entry (FILE_LOCKING),
@@ -268,8 +270,12 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_POSIX_VDISABLE),
 	mk_sysconf_map_entry (_XOPEN_CRYPT),
 	mk_sysconf_map_entry (_XOPEN_LEGACY),
+#if defined (_XOPEN_REALTIME)
 	mk_sysconf_map_entry (_XOPEN_REALTIME),
+#endif
+#if defined (_XOPEN_REALTIME_THREADS)
 	mk_sysconf_map_entry (_XOPEN_REALTIME_THREADS),
+#endif
 	mk_sysconf_map_entry (_XOPEN_UNIX),
 
 	{ 0, NULL }
@@ -319,13 +325,17 @@ struct procenv_map signal_map[] = {
 
 #if defined (PROCENV_LINUX)
 	mk_map_entry (SIGPWR),
+#ifdef SIGSTKFLT
 	mk_map_entry (SIGSTKFLT),
+#endif
 #endif
 
 	mk_map_entry (SIGSYS),
 
 #if defined (PROCENV_LINUX)
+#ifdef SIGUNUSED
 	mk_map_entry (SIGUNUSED),
+#endif
 #endif
 	mk_map_entry (SIGURG),
 	mk_map_entry (SIGVTALRM),
@@ -1427,6 +1437,61 @@ show_linux_mounts (ShowMountType what)
 
 	fclose (mtab);
 }
+
+/**
+ * linux_kernel_version:
+ *
+ * @major: major kernel version number,
+ * @minor: minor kernel version number,
+ * @revision: kernel revision version,
+ * @patch: kernel patch level version.
+ *
+ * @minor, @revision and @patch may be -1 to denote that those version
+ * elements are not important to the caller. Once a parameter has been
+ * specified as -1, all subsequent parameters are ignored
+ * (treated as -1 too).
+ *
+ * Returns: TRUE if running Linux kernel is atleast at version
+ * specified by (@major, @minor, @revision, @patch), else FALSE.
+ **/
+bool
+linux_kernel_version (int major, int minor, int revision, int patch)
+{
+	int  actual_major = -1;
+	int  actual_minor = -1;
+	int  actual_revision = -1;
+	int  actual_patch = -1;
+	int  ret;
+
+	assert (uts.release);
+
+	/* We need something to work with */
+	assert (major);
+
+	ret = sscanf (uts.release, "%d.%d.%d-%d",
+			&actual_major, &actual_minor,
+			&actual_revision, &actual_patch);
+
+	/* We need something to compare against */
+	assert (ret && actual_major != -1);
+
+	if (actual_major >= major && actual_minor >= minor &&
+	    actual_revision >= revision && actual_patch >= patch)
+		return TRUE;
+	else if (actual_major >= major && actual_minor >= minor &&
+		 actual_revision >= revision &&
+		 patch == -1)
+		return TRUE;
+	else if (actual_major >= major && actual_minor >= minor &&
+		 revision == -1 && patch == -1)
+		return TRUE;
+	else if (actual_major >= major &&
+		 minor == -1 && revision == -1 && patch == -1)
+		return TRUE;
+
+	return FALSE;
+}
+
 #endif
 
 void
@@ -1864,23 +1929,25 @@ show_linux_prctl (void)
 #endif
 
 #ifdef PR_GET_SECCOMP
-	rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_SECCOMP");
-	if (rc >= 0) {
-		switch (rc) {
-		case 0:
-			show ("secure computing: disabled");
-			break;
-		case 1:
-			show ("secure computing: read/write/exit (mode 1)");
-			break;
-		case 2:
-			show ("secure computing: BPF (mode 2)");
-			break;
-		default:
-			show ("secure computing: %s", UNKNOWN_STR);
-			break;
+	if (LINUX_KERNEL_MMR (2, 6, 23)) {
+		rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			pdie ("PR_GET_SECCOMP");
+		if (rc >= 0) {
+			switch (rc) {
+			case 0:
+				show ("secure computing: disabled");
+				break;
+			case 1:
+				show ("secure computing: read/write/exit (mode 1)");
+				break;
+			case 2:
+				show ("secure computing: BPF (mode 2)");
+				break;
+			default:
+				show ("secure computing: %s", UNKNOWN_STR);
+				break;
+			}
 		}
 	}
 #endif
@@ -1965,7 +2032,7 @@ show_linux_prctl (void)
 #endif
 
 #ifdef PR_GET_NO_NEW_PRIVS
-	if (KERNEL_VERSION (3, 5)) {
+	if (LINUX_KERNEL_MM (3, 5)) {
 		rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
 			pdie ("PR_GET_NO_NEW_PRIVS");
@@ -1996,14 +2063,14 @@ show_linux_prctl (void)
 #endif
 
 #ifdef PR_GET_CHILD_SUBREAPER
-	if (KERNEL_VERSION (3, 4)) {
+	if (LINUX_KERNEL_MM (3, 4)) {
 		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
 			pdie ("PR_GET_CHILD_SUBREAPER");
 		if (rc >= 0)
-			show ("child subreader: %s", arg2 ? YES_STR : NO_STR);
+			show ("child subreaper: %s", arg2 ? YES_STR : NO_STR);
 	} else {
-		show ("child subreader: %s", UNKNOWN_STR);
+		show ("child subreaper: %s", UNKNOWN_STR);
 	}
 #endif
 
@@ -2179,8 +2246,12 @@ work:
 	show_const (tty, c_cflag, HUPCL);
 	show_const (tty, c_cflag, CLOCAL);
 #if defined (PROCENV_LINUX)
+#ifdef CIBAUD
 	show_const (tty, c_cflag, CIBAUD);
+#endif
+#ifdef CMSPAR
 	show_const (tty, c_cflag, CMSPAR);
+#endif
 #endif
 	show_const (tty, c_cflag, CRTSCTS);
 
@@ -2741,7 +2812,9 @@ show_capabilities (void)
 	show_capability (CAP_MAC_OVERRIDE);
 	show_capability (CAP_MAC_ADMIN);
 #ifdef CAP_SYSLOG
-	show_capability (CAP_SYSLOG);
+	if (LINUX_KERNEL_MMR (2, 6, 37))
+		show_capability (CAP_SYSLOG);
+
 #endif
 #ifdef CAP_WAKE_ALARM
 	show_capability (CAP_WAKE_ALARM);
@@ -3180,58 +3253,58 @@ get_major_minor (const char *path, int *major, int *minor)
 char *
 get_path (const char *argv0)
 {
-    char        *slash;
-    char        *path;
-    char        *prog_path = NULL;
-    char        *tmp;
-    char        *element;
-    char         possible[PATH_MAX];
-    struct stat  statbuf;
+	char        *slash;
+	char        *path;
+	char        *prog_path = NULL;
+	char        *tmp;
+	char        *element;
+	char         possible[PATH_MAX];
+	struct stat  statbuf;
 
-    assert (argv0);
+	assert (argv0);
 
-    slash = strchr (argv0, '/');
+	slash = strchr (argv0, '/');
 
-    if (slash == argv0) {
-        /* absolute path */
-        return strdup (argv0);
-    } else if (slash) {
-         char cwd[PATH_MAX];
+	if (slash == argv0) {
+		/* absolute path */
+		return strdup (argv0);
+	} else if (slash) {
+		char cwd[PATH_MAX];
 
-         /* relative path */
-         assert (getcwd (cwd, sizeof (cwd)));
-         strcat (cwd, "/");
-         strcat (cwd, argv0);
+		/* relative path */
+		assert (getcwd (cwd, sizeof (cwd)));
+		strcat (cwd, "/");
+		strcat (cwd, argv0);
 
-         if (! stat (cwd, &statbuf))
-             return strdup (cwd);
-         return NULL;
-    }
+		if (! stat (cwd, &statbuf))
+			return strdup (cwd);
+		return NULL;
+	}
 
-    /* path search required */
-    tmp = getenv ("PATH");
-    path = strdup (tmp ? tmp : _PATH_STDPATH);
-    assert (path);
+	/* path search required */
+	tmp = getenv ("PATH");
+	path = strdup (tmp ? tmp : _PATH_STDPATH);
+	assert (path);
 
-    tmp = path;
-    for(element = strsep (&tmp, ":");
-            element;            
-            element = strsep (&tmp, ":")) {
+	tmp = path;
+	for(element = strsep (&tmp, ":");
+			element;            
+			element = strsep (&tmp, ":")) {
 
-        sprintf (possible, "%s%s%s",
-                element,
-                element [strlen (element)-1] == '/' ? "" : "/",
-                argv0);
+		sprintf (possible, "%s%s%s",
+				element,
+				element [strlen (element)-1] == '/' ? "" : "/",
+				argv0);
 
-        if (! stat (possible, &statbuf)) {
-            prog_path = strdup (possible);
-            break;
-        }
-    }
+		if (! stat (possible, &statbuf)) {
+			prog_path = strdup (possible);
+			break;
+		}
+	}
 
-    free (path);
+	free (path);
 
-    return prog_path;
+	return prog_path;
 }
 
 int
@@ -3321,7 +3394,7 @@ main (int  argc,
 			} else if (! strcmp ("exec", long_options[long_index].name)) {
 				reexec = TRUE;
 			}
-		
+
 			done = FALSE;
 
 			/* reset */
@@ -3467,7 +3540,7 @@ main (int  argc,
 		openlog (PACKAGE_NAME, LOG_CONS | LOG_PID, LOG_USER);
 
 	if (reexec && ! exec_args && optind >= argc)
-			die ("must specify atleast one argument with '--exec'");
+		die ("must specify atleast one argument with '--exec'");
 
 	dump ();
 
