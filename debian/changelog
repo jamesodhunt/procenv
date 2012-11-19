@@ -1,6 +1,7 @@
 procenv (0.9-1) unstable; urgency=low
 
   * New upstream release.
+  * debian/control: Added libkvm-dev to Build-Depends for kfreebsd.
 
  -- James Hunt <james.hunt@ubuntu.com>  Mon, 19 Nov 2012 20:17:16 +0000
 
