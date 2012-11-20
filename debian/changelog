@@ -2,23 +2,23 @@ procenv (0.10-1) unstable; urgency=low
 
   * New upstream release which checks running kernel version to determine
     if capabilities can be legitimately queried (Closes #693795).
+  * Fixed previous changelog entry to show how bugs closed.
 
  -- James Hunt <james.hunt@ubuntu.com>  Tue, 20 Nov 2012 19:46:19 +0000
 
 procenv (0.9-1) unstable; urgency=low
 
-  * New upstream release.
-  * Fix "test runs fail on autobuilders (using vserver?)" <explain what
-    you changed and why> (Closes: #693764)
-  * Fix "FTBFS on the Hurd: assorted bad assumptions, starting with
-    PATH_MAX" <explain what you changed and why> (Closes: #693766)
-  * Fix "FTBFS on kFreeBSD: no kvm.h" <explain what you changed and why>
-    (Closes: #693767)
-  * Fix "FTBFS on powerpc: 'CIBAUD' undeclared" <explain what you
-    changed and why> (Closes: #693769)
-  * Fix "FTBFS on mips(el): SIGSTKFLT, SIGUNUSED, CMSPAR undeclared"
-    <explain what you changed and why> (Closes: #693768)
-  * debian/control: Added libkvm-dev to Build-Depends for kfreebsd.
+  * New upstream release (which fixes all bugs below directly
+    except #693767).
+  * Check kernel version before querying CAP_SYSLOG and
+    PR_GET_SECCOMP (Closes: #693764).
+  * Hack to define PATH_MAX for Hurd, which doesn't specify this
+    (Closes: #693766).
+  * Guard against 'CIBAUD' not being defined (Closes: #693769).
+  * Guard against SIGSTKFLT, SIGUNUSED and CMSPAR not being defined
+    (Closes: #693768).
+  * debian/control: Added libkvm-dev to Build-Depends for kfreebsd
+    (Closes: #693767).
 
  -- James Hunt <james.hunt@ubuntu.com>  Tue, 20 Nov 2012 08:48:28 +0000
 
