@@ -40,6 +40,7 @@
 #include <link.h>
 #include <fenv.h>
 #include <sys/utsname.h>
+#include <locale.h>
 
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
@@ -77,14 +78,22 @@
 #include <selinux/selinux.h>
 #endif
 
+/**
+ * show_capability:
+ * @cap: capability.
+ *
+ * Display specified capability, or NOT_DEFINED_STR if value is
+ * unknown.
+ **/
 #define show_capability(cap) \
 { \
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
-	if (ret < 0) \
-	die ("prctl failed for " #cap); \
-	\
-	show (#cap "=%s", ret ? YES_STR : NO_STR); \
+	show (#cap "=%s", ret < 0 \
+			? NOT_DEFINED_STR \
+			: ret \
+			? YES_STR \
+			: NO_STR); \
 }
 
 /**
@@ -181,6 +190,8 @@
 #define MAX_STR          _(" (max)")
 #define DEFINED_STR      _("defined")
 #define NOT_DEFINED_STR  _("not defined")
+#define BIG_STR          _("big")
+#define LITTLE_STR       _("little")
 
 #if defined (PROCENV_BSD)
 		/* SIGTHL is hidden by default */
@@ -445,6 +456,7 @@ void show_stat (void);
 void get_major_minor (const char *path, int *major, int *minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
+bool is_big_endian (void);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);
