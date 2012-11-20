@@ -7,3 +7,6 @@
 - add to show_sizeof():
   - intN_t group   
 - i18n
+
+- don't hide any option that a particular O/S / arch doesn't
+  have: show the option with a value of `UNKNOWN_STR'.

@@ -1,3 +1,9 @@
+0.10	2012-11-20
+
+	* Further platform fixes identified by building on
+	  Debian-supported buildd's.
+	* Added locale output.
+
 0.9	2012-11-19
 
 	* Platform fixes identified by building on Debian-supported
