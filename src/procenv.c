@@ -346,6 +346,19 @@ struct procenv_map signal_map[] = {
 	{ 0, NULL },
 };
 
+struct procenv_map locale_map[] = {
+
+	mk_map_entry (LC_ALL),
+	mk_map_entry (LC_COLLATE),
+	mk_map_entry (LC_CTYPE),
+	mk_map_entry (LC_MESSAGES),
+	mk_map_entry (LC_MONETARY),
+	mk_map_entry (LC_NUMERIC),
+	mk_map_entry (LC_TIME),
+
+	{ 0, NULL }
+};
+
 struct procenv_map scheduler_map[] = {
 
 	mk_map_entry (SCHED_OTHER),
@@ -384,6 +397,7 @@ usage (void)
 	show ("  -j, --uname         : Display uname details.");
 	show ("  -k, --clock[s]      : Display clock details.");
 	show ("  -l, --limits        : Display limits.");
+	show ("  -L, --locale        : Display locale details.");
 	show ("  -m, --mount[s]      : Display mount details.");
 	show ("  -n, --confstr       : Display confstr details.");
 	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
@@ -902,6 +916,8 @@ dump_priorities (void)
 void
 dump_misc (void)
 {
+	long bits;
+
 	header ("misc");
 
 	show ("umask: %4.4o", misc.umask_value);
@@ -920,6 +936,15 @@ dump_misc (void)
 	show_cpu ();
 	dump_priorities ();
 	show ("memory page size: %d bytes", getpagesize ());
+	show ("platform: %s", get_platform ());
+	bits = get_kernel_bits ();
+
+	if (bits == -1)
+		show ("kernel bits: %s", UNKNOWN_STR);
+	else
+		show ("kernel bits: %ld", bits);
+	show ("endianness: %s",
+		is_big_endian () ? BIG_STR : LITTLE_STR);
 }
 
 void
@@ -1246,20 +1271,28 @@ cleanup (void)
 		closelog ();
 }
 
+/**
+ * is_big_endian:
+ *
+ * Returns: TRUE if system is big-endian, else FALSE.
+ **/
+bool
+is_big_endian (void)
+{
+	int x = 1;
+
+	if (*(char *)&x == 1)
+		return FALSE;
+
+	return TRUE;
+}
+
 void
 dump_meta (void)
 {
-	long bits;
 	header (PACKAGE_NAME);
 
 	show ("version: %s", PACKAGE_STRING);
-	show ("platform: %s", get_platform ());
-	bits = get_kernel_bits ();
-
-	if (bits == -1)
-		show ("kernel bits: %s", UNKNOWN_STR);
-	else
-		show ("kernel bits: %ld", bits);
 }
 
 void
@@ -1275,9 +1308,6 @@ show_stat (void)
 
 	assert (program_name);
 	assert (misc.cwd);
-
-	tmp = strdup ("");
-	assert (tmp);
 
 	tmp = get_path (program_name);
 	assert (tmp);
@@ -1378,6 +1408,7 @@ dump (void)
 	show_env ();
 	dump_fds ();
 	show_libs ();
+	show_locale ();
 	show_rlimits ();
 	dump_misc ();
 	show_mounts (SHOW_ALL);
@@ -2299,6 +2330,18 @@ work:
 
 }
 
+show_locale (void)
+{
+	struct procenv_map *p;
+	char               *value;
+
+	header ("locale");
+
+	for (p = locale_map; p && p->name; p++) {
+		value = setlocale (p->num, NULL);
+		show ("%s=%s", p->name, value ? value : UNKNOWN_STR);
+	}
+}
 
 const char *
 get_signal_name (int signum)
@@ -2315,6 +2358,12 @@ get_signal_name (int signum)
 	return NULL;
 }
 
+/**
+ * get_platform:
+ *
+ * Returns: static string representing best guess
+ * at platform name.
+ **/
 char *
 get_platform (void)
 {
@@ -2341,24 +2390,82 @@ get_platform (void)
 	return "iSeries";
 #endif
 
+#ifdef linux
+
 #ifdef __FreeBSD_kernel__
+#if defined(__i386__)
+	return "Linux (kFreeBSD i386)";
+#endif
+#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
+	return "Linux (kFreeBSD x64/AMD64)";
+#endif
 	return "kFreeBSD";
+#endif /* __FreeBSD_kernel__*/
+
+#ifdef __MACH__
+#ifdef __i386__
+	return "Linux (Hurd i386)";
+#endif
+#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
+	return "Linux (Hurd x64/AMD64)";
 #endif
 
-#ifdef linux
-#ifdef __s390__
+	return "Linux (Hurd)";
+#endif /* __MACH__ */
+
+	/* why this isn't s380z is anyones guess ;-) */
+#ifdef __s390x__
 	return "Linux (zSeries)";
 #endif
-#if defined (__x86_64) || defined (__amd64)
+
+#ifdef __s390__
+	return "Linux (S/390)";
+#endif
+
+#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
 	return "Linux (x64/AMD64)";
 #endif
+
 #ifdef __i386__
-	return "Linux (Intel)";
+	return "Linux (i386)";
 #endif
 #ifdef __powerpc__
 	return "Linux (PPC)";
 #endif
+
+#ifdef __ia64__
+	return "Linux (IA64)";
 #endif
+
+#ifdef __sparc64__
+	return "Linux (SPARC64)";
+#endif
+
+#ifdef __sparc__
+	return "Linux (SPARC)";
+#endif
+
+#ifdef __sh__
+	return "Linux (SuperH)";
+#endif
+
+#ifdef __mips__
+	return "Linux (MIPS)";
+#endif
+
+#ifdef __arm__
+#ifdef __ARMEL__
+	return "Linux (ARMEL)";
+#endif
+#ifdef __ARMHF__
+	return "Linux (ARMHF)";
+#endif
+	return "Linux (ARM)";
+#endif
+
+	return "Linux";
+
+#endif /* linux */
 
 #ifdef VMS
 	return "OpenVMS";
@@ -2376,7 +2483,7 @@ get_platform (void)
 	return "Windows";
 #endif
 
-	return "<unknown>";
+	return UNKNOWN_STR;
 }
 
 int
@@ -2804,20 +2911,29 @@ show_capabilities (void)
 	show_capability (CAP_SYS_RESOURCE);
 	show_capability (CAP_SYS_TIME);
 	show_capability (CAP_SYS_TTY_CONFIG);
-	show_capability (CAP_MKNOD);
-	show_capability (CAP_LEASE);
-	show_capability (CAP_AUDIT_WRITE);
-	show_capability (CAP_AUDIT_CONTROL);
+	if (LINUX_KERNEL_MM (2, 4)) {
+		show_capability (CAP_MKNOD);
+		show_capability (CAP_LEASE);
+	}
+	if (LINUX_KERNEL_MMR (2, 6, 11)) {
+		show_capability (CAP_AUDIT_WRITE);
+		show_capability (CAP_AUDIT_CONTROL);
+	}
 	show_capability (CAP_SETFCAP);
-	show_capability (CAP_MAC_OVERRIDE);
-	show_capability (CAP_MAC_ADMIN);
+	if (LINUX_KERNEL_MMR (2, 6, 25)) {
+		show_capability (CAP_MAC_OVERRIDE);
+		show_capability (CAP_MAC_ADMIN);
+	}
+
 #ifdef CAP_SYSLOG
 	if (LINUX_KERNEL_MMR (2, 6, 37))
 		show_capability (CAP_SYSLOG);
 
 #endif
+
 #ifdef CAP_WAKE_ALARM
-	show_capability (CAP_WAKE_ALARM);
+	if (LINUX_KERNEL_MM (3, 0))
+		show_capability (CAP_WAKE_ALARM);
 #endif
 
 #ifdef PR_GET_KEEPCAPS
@@ -2829,19 +2945,21 @@ show_capabilities (void)
 #endif
 
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
-	ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
-	if (ret < 0 && errno != ENOSYS)
-		die ("prctl failed for PR_GET_SECUREBITS");
-	if (ret >= 0) {
-		struct securebits_t {
-			unsigned int securebits;
-		} flags;
-		flags.securebits = (unsigned int)ret;
-		show ("securebits=0x%x", flags.securebits);
+	if (LINUX_KERNEL_MMR (2, 6, 26)) {
+		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
+		if (ret < 0 && errno != ENOSYS)
+			die ("prctl failed for PR_GET_SECUREBITS");
+		if (ret >= 0) {
+			struct securebits_t {
+				unsigned int securebits;
+			} flags;
+			flags.securebits = (unsigned int)ret;
+			show ("securebits=0x%x", flags.securebits);
 
-		show_const (flags, securebits, SECBIT_KEEP_CAPS);
-		show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
-		show_const (flags, securebits, SECBIT_NOROOT);
+			show_const (flags, securebits, SECBIT_KEEP_CAPS);
+			show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
+			show_const (flags, securebits, SECBIT_NOROOT);
+		}
 	}
 #endif
 }
@@ -3333,6 +3451,7 @@ main (int  argc,
 		{"clock"        , no_argument, NULL, 'k'},
 		{"clocks"       , no_argument, NULL, 'k'},
 		{"limits"       , no_argument, NULL, 'l'},
+		{"locale"       , no_argument, NULL, 'L'},
 		{"mount"        , no_argument, NULL, 'm'},
 		{"mounts"       , no_argument, NULL, 'm'},
 		{"confstr"      , no_argument, NULL, 'n'},
@@ -3372,7 +3491,7 @@ main (int  argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"abcdefghijklmnopqrstuUvwxyz",
+				"abcdefghijklLmnopqrstuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -3452,6 +3571,10 @@ main (int  argc,
 
 		case 'l':
 			show_rlimits ();
+			break;
+
+		case 'L':
+			show_locale ();
 			break;
 
 		case 'm':
