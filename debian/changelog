@@ -1,9 +1,19 @@
 procenv (0.9-1) unstable; urgency=low
 
   * New upstream release.
+  * Fix "test runs fail on autobuilders (using vserver?)" <explain what
+    you changed and why> (Closes: #693764)
+  * Fix "FTBFS on the Hurd: assorted bad assumptions, starting with
+    PATH_MAX" <explain what you changed and why> (Closes: #693766)
+  * Fix "FTBFS on kFreeBSD: no kvm.h" <explain what you changed and why>
+    (Closes: #693767)
+  * Fix "FTBFS on powerpc: 'CIBAUD' undeclared" <explain what you
+    changed and why> (Closes: #693769)
+  * Fix "FTBFS on mips(el): SIGSTKFLT, SIGUNUSED, CMSPAR undeclared"
+    <explain what you changed and why> (Closes: #693768)
   * debian/control: Added libkvm-dev to Build-Depends for kfreebsd.
 
- -- James Hunt <james.hunt@ubuntu.com>  Mon, 19 Nov 2012 20:17:16 +0000
+ -- James Hunt <james.hunt@ubuntu.com>  Tue, 20 Nov 2012 08:48:28 +0000
 
 procenv (0.8-1) unstable; urgency=low
 
