@@ -926,6 +926,8 @@ dump_misc (void)
 	show ("root: '%s'", misc.root);
 #endif
 	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
+	show ("code endian: %s",
+		is_big_endian () ? BIG_STR : LITTLE_STR);
 #if defined (PROCENV_LINUX)
 	show_linux_prctl ();
 	show_linux_security_module ();
@@ -943,8 +945,15 @@ dump_misc (void)
 		show ("kernel bits: %s", UNKNOWN_STR);
 	else
 		show ("kernel bits: %ld", bits);
-	show ("endianness: %s",
-		is_big_endian () ? BIG_STR : LITTLE_STR);
+
+#if defined (PROCENV_LINUX)
+#ifdef LINUX_VERSION_CODE
+	show ("kernel headers version: %u.%u.%u",
+			(LINUX_VERSION_CODE >> 16),
+			((LINUX_VERSION_CODE >> 8) & 0xFF),
+			(LINUX_VERSION_CODE & 0xFF));
+#endif
+#endif
 }
 
 void
@@ -1475,49 +1484,59 @@ show_linux_mounts (ShowMountType what)
  * @major: major kernel version number,
  * @minor: minor kernel version number,
  * @revision: kernel revision version,
- * @patch: kernel patch level version.
  *
- * @minor, @revision and @patch may be -1 to denote that those version
- * elements are not important to the caller. Once a parameter has been
- * specified as -1, all subsequent parameters are ignored
+ * @minor and @revision may be -1 to denote that those version
+ * elements are not important to the caller. Once a parameter
+ * has been specified as -1, subsequent parameters are ignored
  * (treated as -1 too).
  *
  * Returns: TRUE if running Linux kernel is atleast at version
- * specified by (@major, @minor, @revision, @patch), else FALSE.
+ * specified by (@major, @minor, @revision), else FALSE.
  **/
 bool
-linux_kernel_version (int major, int minor, int revision, int patch)
+linux_kernel_version (int major, int minor, int revision)
 {
-	int  actual_major = -1;
-	int  actual_minor = -1;
-	int  actual_revision = -1;
-	int  actual_patch = -1;
+	int  actual_version    = 0x000000;
+	int  requested_version = 0x000000;
+	int  actual_major      = -1;
+	int  actual_minor      = -1;
+	int  actual_revision   = -1;
 	int  ret;
 
 	assert (uts.release);
+	assert (sizeof (int) >= 4);
 
 	/* We need something to work with */
-	assert (major);
+	assert (major > 0);
 
-	ret = sscanf (uts.release, "%d.%d.%d-%d",
+	ret = sscanf (uts.release, "%d.%d.%d",
 			&actual_major, &actual_minor,
-			&actual_revision, &actual_patch);
+			&actual_revision);
 
 	/* We need something to compare against */
 	assert (ret && actual_major != -1);
 
-	if (actual_major >= major && actual_minor >= minor &&
-	    actual_revision >= revision && actual_patch >= patch)
-		return TRUE;
-	else if (actual_major >= major && actual_minor >= minor &&
-		 actual_revision >= revision &&
-		 patch == -1)
-		return TRUE;
-	else if (actual_major >= major && actual_minor >= minor &&
-		 revision == -1 && patch == -1)
-		return TRUE;
-	else if (actual_major >= major &&
-		 minor == -1 && revision == -1 && patch == -1)
+	requested_version |= (0xFF0000 & (major << 16)); 
+
+	if (minor != -1) {
+		requested_version |= (0x00FF00 & (minor << 8));
+
+		if (revision != -1)
+			requested_version |= (0x0000FF & revision);
+	}
+
+	if (actual_revision != -1) {
+		actual_version |= (0x0000FF & actual_revision);
+	}
+
+	if (actual_minor != -1)
+		actual_version |= (0x00FF00 & (actual_minor << 8));
+
+	if (actual_major != -1)
+		actual_version |= (0xFF0000 & (actual_major << 16)); 
+
+
+	if (actual_version >= requested_version)
 		return TRUE;
 
 	return FALSE;
@@ -1851,264 +1870,329 @@ show_linux_prctl (void)
 	int  arg2;
 	char name[17] = { 0 };
 
-#ifdef PR_GET_DUMPABLE
-	rc = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_DUMPABLE");
-	if (rc >= 0) {
-		switch (rc) {
-		case 0:
-			show ("dumpable: %s", NO_STR);
-			break;
-		case 1:
-			show ("dumpable: %s", YES_STR);
-			break;
-		case 2:
-			show ("dumpable: root-only");
-			break;
-		default:
-			show ("dumpable: %s", UNKNOWN_STR);
-			break;
+#ifdef PR_GET_ENDIAN
+	if (LINUX_KERNEL_MMR (2, 6, 18)) {
+		const char *value;
+
+		rc = prctl (PR_GET_ENDIAN, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (arg2) {
+			case PR_ENDIAN_BIG:
+				value = BIG_STR; 
+				break;
+			case PR_ENDIAN_LITTLE:
+				value = LITTLE_STR; 
+				break;
+			case PR_ENDIAN_PPC_LITTLE:
+				value = "PowerPC pseduo little endian";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("process endian: %s", value);
 	}
 #endif
 
-#ifdef PR_GET_ENDIAN
-	rc = prctl (PR_GET_ENDIAN, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
-		pdie ("PR_GET_ENDIAN");
-	if (rc >= 0) {
-		switch (arg2) {
-		case PR_ENDIAN_BIG:
-			show ("endian: big");
-			break;
-		case PR_ENDIAN_LITTLE:
-			show ("endian: little");
-			break;
-		case PR_ENDIAN_PPC_LITTLE:
-			show ("endian: PowerPC pseduo little endian");
-			break;
-		default:
-			show ("endian: %s", UNKNOWN_STR);
-			break;
+#ifdef PR_GET_DUMPABLE
+	if (LINUX_KERNEL_MMR (2, 3, 20)) {
+		const char *value;
+		rc = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (rc) {
+			case 0:
+				value = NO_STR;
+				break;
+			case 1:
+				value = YES_STR;
+				break;
+			case 2:
+				value = "root-only";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("dumpable: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_FPEMU
-	rc = prctl (PR_GET_FPEMU, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
-		pdie ("PR_GET_FPEMU");
-	if (rc >= 0) {
-		switch (arg2) {
-		case PR_FPEMU_NOPRINT:
-			show ("floating point emulation: yes");
-			break;
-		case PR_FPEMU_SIGFPE:
-			show ("floating point emulation: send SIGFPE");
-			break;
-		default:
-			show ("floating point emulation: %s", UNKNOWN_STR);
-			break;
+	/* Use the earliest version where this option was introduced
+	 * (for some architectures).
+	 */
+	if (LINUX_KERNEL_MMR (2, 4, 18)) {
+		const char *value;
+
+		rc = prctl (PR_GET_FPEMU, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (arg2) {
+			case PR_FPEMU_NOPRINT:
+				value = YES_STR;
+				break;
+			case PR_FPEMU_SIGFPE:
+				value = "send SIGFPE";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("floating point emulation: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_FPEXC
-	rc = prctl (PR_GET_FPEXC, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
-		pdie ("PR_GET_FPEXC");
-	if (rc >= 0) {
-		switch (arg2) {
-		case PR_FP_EXC_SW_ENABLE:
-			show ("floating point exceptions: software");
-			break;
-		case PR_FP_EXC_DISABLED:
-			show ("floating point exceptions: disabled");
-			break;
-		case PR_FP_EXC_NONRECOV:
-			show ("floating point exceptions: non-recoverable");
-			break;
-		case PR_FP_EXC_ASYNC:
-			show ("floating point exceptions: asynchronous");
-			break;
-		case PR_FP_EXC_PRECISE:
-			show ("floating point exceptions: precise");
-			break;
-		default:
-			show ("floating point exceptions: %s", UNKNOWN_STR);
-			break;
+	/* Use the earliest version where this option was introduced
+	 * (for some architectures).
+	 */
+	if (LINUX_KERNEL_MMR (2, 4, 21)) {
+		const char *value;
+
+		rc = prctl (PR_GET_FPEXC, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (arg2) {
+			case PR_FP_EXC_SW_ENABLE:
+				value = "software";
+				break;
+			case PR_FP_EXC_DISABLED:
+				value = "disabled";
+				break;
+			case PR_FP_EXC_NONRECOV:
+				value = "non-recoverable";
+				break;
+			case PR_FP_EXC_ASYNC:
+				value = "asynchronous";
+				break;
+			case PR_FP_EXC_PRECISE:
+				value = "precise";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("floating point exceptions: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_NAME
-	rc = prctl (PR_GET_NAME, name, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_NAME");
-	show ("process name: %s", name);
+	if (LINUX_KERNEL_MMR (2, 6, 11)) {
+		rc = prctl (PR_GET_NAME, name, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			show ("process name: %s", UNKNOWN_STR);
+		show ("process name: %s", name);
+	}
+
 #endif
 
 #ifdef PR_GET_PDEATHSIG
-	rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_PDEATHSIG");
-	if (rc == 0)
-		show ("parent death signal: disabled");
-	else if (rc > 0)
-		show ("parent death signal: %d", arg2);
+	if (LINUX_KERNEL_MMR (2, 3, 15)) {
+		const char *value;
+
+		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			show ("parent death signal: %s", UNKNOWN_STR);
+		if (rc == 0)
+			show ("parent death signal: disabled");
+		else if (rc > 0)
+			show ("parent death signal: %d", arg2);
+	}
+#if 1
+	else
+	{
+		/* FIXME */
+		show ("XXXX: FIXME:BUG");
+	}
+#endif
 #endif
 
 #ifdef PR_GET_SECCOMP
 	if (LINUX_KERNEL_MMR (2, 6, 23)) {
+		const char *value;
+
 		rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
-			pdie ("PR_GET_SECCOMP");
+			value = UNKNOWN_STR;
 		if (rc >= 0) {
 			switch (rc) {
 			case 0:
-				show ("secure computing: disabled");
+				value = "disabled";
 				break;
 			case 1:
-				show ("secure computing: read/write/exit (mode 1)");
+				value = "read/write/exit (mode 1)";
 				break;
 			case 2:
-				show ("secure computing: BPF (mode 2)");
+				value = "BPF (mode 2)";
 				break;
 			default:
-				show ("secure computing: %s", UNKNOWN_STR);
+				value = UNKNOWN_STR;
 				break;
 			}
 		}
+		show ("secure computing: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_TIMING
-	rc = prctl (PR_GET_TIMING, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_TIMING");
-	if (rc >= 0) {
-		switch (rc) {
-		case PR_TIMING_STATISTICAL:
-			show ("process timing: statistical");
-			break;
-		case PR_TIMING_TIMESTAMP:
-			show ("process timing: time-stamp");
-			break;
-		default:
-			show ("process timing: %s", UNKNOWN_STR);
-			break;
+	/* Not 100% accurate - this option was actually
+	 * introduced in 2.6.0-test4
+	 */
+	if (LINUX_KERNEL_MMR (2, 6, 1)) {
+		const char *value;
+		rc = prctl (PR_GET_TIMING, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (rc) {
+			case PR_TIMING_STATISTICAL:
+				value = "statistical";
+				break;
+			case PR_TIMING_TIMESTAMP:
+				value = "time-stamp";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("process timing: %s", value);
 	}
 #endif
 
 #if defined (PR_GET_TSC) && defined (PROCENV_ARCH_X86)
-	rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_TSC");
-	if (rc >= 0) {
-		switch (arg2) {
-		case PR_TSC_ENABLE:
-			show ("timestamp counter read: enabled");
-			break;
-		case PR_TSC_SIGSEGV:
-			show ("timestamp counter read: segmentation fault");
-			break;
-		default:
-			show ("timestamp counter read: %s", UNKNOWN_STR);
-			break;
+	if (LINUX_KERNEL_MMR (2, 6, 26)) {
+		const char *value;
+
+		rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (arg2) {
+			case PR_TSC_ENABLE:
+				value = "enabled";
+				break;
+			case PR_TSC_SIGSEGV:
+				value = "segmentation fault";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("timestamp counter read: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_UNALIGNED
-	rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_UNALIGNED");
-	if (rc >= 0) {
-		switch (arg2) {
-		case PR_UNALIGN_NOPRINT:
-			show ("unaligned access: fix-up");
-			break;
-		case PR_UNALIGN_SIGBUS:
-			show ("unaligned access: send SIGBUS");
-			break;
-		default:
-			show ("unaligned access: %s", UNKNOWN_STR);
-			break;
+	if (LINUX_KERNEL_MMR (2, 3, 48)) {
+		const char *value;
+
+		rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (arg2) {
+			case PR_UNALIGN_NOPRINT:
+				value = "fix-up";
+				break;
+			case PR_UNALIGN_SIGBUS:
+				value = "send SIGBUS";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("unaligned access: %s", value);
 	}
 #endif
 
 #ifdef PR_MCE_KILL_GET
-	rc = prctl (PR_MCE_KILL_GET, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_MCE_KILL_GET");
-	if (rc >= 0) {
-		switch (rc) {
-		case PR_MCE_KILL_DEFAULT:
-			show ("machine-check exception: system default");
-			break;
-		case PR_MCE_KILL_EARLY:
-			show ("machine-check exception: early kill");
-			break;
-		case PR_MCE_KILL_LATE:
-			show ("machine-check exception: late kill");
-			break;
-		default:
-			show ("machine-check exception: %s", UNKNOWN_STR);
-			break;
+	if (LINUX_KERNEL_MMR (2, 6, 32)) {
+		const char *value;
+
+		rc = prctl (PR_MCE_KILL_GET, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			value = UNKNOWN_STR;
+		if (rc >= 0) {
+			switch (rc) {
+			case PR_MCE_KILL_DEFAULT:
+				value = "system default";
+				break;
+			case PR_MCE_KILL_EARLY:
+				value = "early kill";
+				break;
+			case PR_MCE_KILL_LATE:
+				value = "late kill";
+				break;
+			default:
+				value = UNKNOWN_STR;
+				break;
+			}
 		}
+		show ("machine-check exception: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_NO_NEW_PRIVS
 	if (LINUX_KERNEL_MM (3, 5)) {
+		const char *value;
+
 		rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
-			pdie ("PR_GET_NO_NEW_PRIVS");
+			value = UNKNOWN_STR;
 		if (rc >= 0) {
 			switch (rc) {
 			case 0:
-				show ("no new privileges: normal execve");
+				value = "normal execve";
 				break;
 			case 1:
-				show ("no new privileges: enabled");
+				value = "enabled";
 				break;
 			default:
-				show ("no new privileges: %s", UNKNOWN_STR);
+				value = UNKNOWN_STR;
 				break;
 			}
 		}
-	} else {
-		show ("no new privileges: %s", UNKNOWN_STR);
+		show ("no new privileges: %s", value);
 	}
 #endif
 
 #ifdef PR_GET_TIMERSLACK
-	rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS)
-		pdie ("PR_GET_TIMERSLACK");
-	if (rc >= 0)
-		show ("timer slack: %dns", rc);
+	if (LINUX_KERNEL_MMR (2, 6, 28)) {
+		rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
+		if (rc < 0 && errno != ENOSYS)
+			show ("timer slack: %s", UNKNOWN_STR);
+		if (rc >= 0)
+			show ("timer slack: %dns", rc);
+	}
 #endif
 
 #ifdef PR_GET_CHILD_SUBREAPER
 	if (LINUX_KERNEL_MM (3, 4)) {
 		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
-			pdie ("PR_GET_CHILD_SUBREAPER");
+			show ("child subreaper: %s", UNKNOWN_STR);
 		if (rc >= 0)
 			show ("child subreaper: %s", arg2 ? YES_STR : NO_STR);
-	} else {
-		show ("child subreaper: %s", UNKNOWN_STR);
 	}
 #endif
 
 #ifdef PR_GET_TID_ADDRESS
 	rc = prctl (PR_GET_TID_ADDRESS, &arg2, 0, 0, 0);
 	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
-		pdie ("PR_GET_TID_ADDRESS");
+		show ("clear child tid address: %s", UNKNOWN_STR);
 	if (rc >= 0)
 		show ("clear child tid address: %p", arg2);
 #endif
@@ -2451,6 +2535,13 @@ get_platform (void)
 
 #ifdef __mips__
 	return "Linux (MIPS)";
+#endif
+
+#ifdef __alpha__
+	return "Linux (Alpha)";
+#endif
+#ifdef __m68k__
+	return "Linux (m68k)";
 #endif
 
 #ifdef __arm__
@@ -3557,6 +3648,7 @@ main (int  argc,
 			break;
 
 		case 'i':
+			get_user_info ();
 			get_misc ();
 			dump_misc ();
 			break;

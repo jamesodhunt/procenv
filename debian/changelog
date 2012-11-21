@@ -1,3 +1,15 @@
+procenv (0.11-1) unstable; urgency=low
+
+  * New upstream release which handles prctl failures gracefully.
+    This should not strictly be required but for the fact that
+    when building in a chroot environment, the running kernel
+    version may well be back-level with respect to the installed
+    libc such that although libc advertises the availability of
+    particular prctl options, the kernel is unable to honour them,
+    since it has no knowledge of them. (Closes: #693764, #693795).
+
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 21 Nov 2012 19:44:15 +0000
+
 procenv (0.10-1) unstable; urgency=low
 
   * New upstream release which checks running kernel version to determine
