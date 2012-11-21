@@ -1,3 +1,10 @@
+0.11	2012-11-21
+
+	* Dont't allow prctl to fail, even for environments
+	  such as chroots where libc defines the symbols, but
+	  the kernel outside the chroot does not implement
+	  the features.
+
 0.10	2012-11-20
 
 	* Further platform fixes identified by building on

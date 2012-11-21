@@ -63,6 +63,7 @@
 #include <sys/prctl.h>
 
 #include <linux/prctl.h>
+#include <linux/version.h>
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -104,7 +105,7 @@
  * specified by @major else FALSE.
  **/
 #define LINUX_KERNEL_M(major) \
-    (linux_kernel_version (major, -1, -1, -1))
+    (linux_kernel_version (major, -1, -1))
 
 /**
  * LINUX_KERNEL_MM:
@@ -115,7 +116,7 @@
  * specified by (@major, @minor) else FALSE.
  **/
 #define LINUX_KERNEL_MM(major, minor) \
-    (linux_kernel_version (major, minor, -1, -1))
+    (linux_kernel_version (major, minor, -1))
 
 /**
  * LINUX_KERNEL_MMR:
@@ -127,20 +128,7 @@
  * specified by (@major, @minor, @revision) else FALSE.
  **/
 #define LINUX_KERNEL_MMR(major, minor, revision) \
-    (linux_kernel_version (major, minor, revision, -1))
-
-/**
- * LINUX_KERNEL_MMRP:
- * @major: Linux major kernel version number,
- * @minor: Linux minor kernel version number,
- * @revision: kernel revision version,
- * @patch: kernel patch level version.
- *
- * Returns: TRUE if running Linux kernel is atleast at version
- * specified by (@major, @minor, @revision, @patch) else FALSE.
- **/
-#define LINUX_KERNEL_MMRP(major, minor, revision, patch) \
-    (linux_kernel_version (major, minor, revision, patch))
+    (linux_kernel_version (major, minor, revision))
 
 #endif
 
@@ -216,12 +204,6 @@
 #define die(...) \
 { \
 	_show ("ERROR", 0, __VA_ARGS__); \
-	exit (EXIT_FAILURE); \
-}
-
-#define pdie(f) \
-{ \
-	_show ("ERROR", 0, "%s: %s", f, strerror(errno)); \
 	exit (EXIT_FAILURE); \
 }
 
@@ -472,7 +454,7 @@ void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 void show_linux_scheduler (void);
-bool linux_kernel_version (int major, int minor, int revision, int patch);
+bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
