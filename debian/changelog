@@ -1,3 +1,10 @@
+procenv (0.12-1) unstable; urgency=low
+
+  * New upstream release including fix to handle identifying
+    GNU/Hurd (Closes: #693973).
+
+ -- James Hunt <james.hunt@ubuntu.com>  Thu, 22 Nov 2012 20:30:45 +0000
+
 procenv (0.11-1) unstable; urgency=low
 
   * New upstream release which handles prctl failures gracefully.

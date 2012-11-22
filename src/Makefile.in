@@ -52,7 +52,7 @@ POST_UNINSTALL = :
 bin_PROGRAMS = procenv$(EXEEXT)
 @HAVE_SELINUX_TRUE@am__append_1 = -DHAVE_SELINUX
 @HAVE_APPARMOR_TRUE@am__append_2 = -DHAVE_APPARMOR
-TESTS = procenv$(EXEEXT)
+TESTS = tests/show_compiler_details procenv$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -180,6 +180,7 @@ top_srcdir = @top_srcdir@
 procenv_SOURCES = procenv.c procenv.h
 procenv_LDADD = -lrt
 procenv_CPPFLAGS = $(am__append_1) $(am__append_2)
+EXTRA_DIST = tests/show_compiler_details
 all: all-am
 
 .SUFFIXES:
