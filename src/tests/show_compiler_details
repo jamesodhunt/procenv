@@ -1,0 +1,52 @@
+#!/bin/sh
+#---------------------------------------------------------------------
+# Description: Script to dump preprocessor/compiler/linker details.
+# Notes: Tested with gcc and clang.
+#---------------------------------------------------------------------
+
+CC=${CC:-gcc}
+CPP=${CPP:-cpp}
+LD=${LD:-ld}
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: preprocessor ('$CPP') version"
+echo
+$CPP --version </dev/null
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: compiler ('$CC') version"
+echo
+$CC --version </dev/null
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: linker ('$LD') version"
+echo
+$LD --version </dev/null
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: preprocessor ('$CPP') search paths"
+echo
+$CPP -v < /dev/null 2>&1
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: preprocessor ('$CPP') pre-defined symbols"
+echo
+$CPP -dM < /dev/null 2>&1
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: compiler ('$CC') features"
+echo
+$CC -v -E </dev/null 2>&1
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: compiler ('$CC') search paths"
+echo
+$CC -print-search-dirs  </dev/null 2>&1
+echo
+echo "XXX:--------------------------------------------------"

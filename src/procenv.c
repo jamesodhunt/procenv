@@ -802,7 +802,7 @@ get_misc (void)
 #if defined (PROCENV_LINUX)
 	get_root (misc.root, sizeof (misc.root));
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__) || defined (PROCENV_HURD)
 	get_bsd_misc ();
 #endif
 }

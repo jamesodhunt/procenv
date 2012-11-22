@@ -52,6 +52,10 @@
 #define PROCENV_LINUX
 #endif
 
+#ifdef __GNU__
+#define PROCENV_HURD
+#endif
+
 #if defined (__i386__) || defined (__x86_64__)
 #define PROCENV_ARCH_X86
 #endif
@@ -339,7 +343,9 @@ struct procenv_user {
 #if defined (PROCENV_LINUX)
 	char proc_name[16];
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) \
+	|| defined (__FreeBSD_kernel__) \
+	|| defined (PROCENV_HURD)
 	char proc_name[COMMLEN+1];
 #endif
 
