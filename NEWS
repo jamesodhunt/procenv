@@ -1,3 +1,8 @@
+0.12	2012-11-22
+
+	* Added show_compiler_details test.
+	* Fix for GNU/Hurd.
+
 0.11	2012-11-21
 
 	* Dont't allow prctl to fail, even for environments
