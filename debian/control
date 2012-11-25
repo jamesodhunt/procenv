@@ -5,6 +5,7 @@ Maintainer: James Hunt <james.hunt@ubuntu.com>
 Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, libkvm-dev [kfreebsd-any]
 Standards-Version: 3.9.3
 Homepage: https://code.launchpad.net/procenv
+XS-Testsuite: autopkgtest
 
 Package: procenv
 Architecture: any
