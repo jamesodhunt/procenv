@@ -41,6 +41,7 @@
 #include <fenv.h>
 #include <sys/utsname.h>
 #include <locale.h>
+#include <pthread.h>
 
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
@@ -340,12 +341,10 @@ struct procenv_user {
 	pid_t ppid;
 	pid_t sid;
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	char proc_name[16];
 #endif
-#if defined (PROCENV_BSD) \
-	|| defined (__FreeBSD_kernel__) \
-	|| defined (PROCENV_HURD)
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	char proc_name[COMMLEN+1];
 #endif
 
@@ -434,6 +433,7 @@ int is_console (int fd);
 long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
+void show_threads (void);
 void append (char **str, const char *new);
 void appendf (char **str, const char *fmt, ...);
 void appendva (char **str, const char *fmt, va_list ap);
@@ -459,6 +459,7 @@ void show_linux_proc_branch (void);
 void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
+char * get_thread_scheduler_name (int sched);
 void show_linux_scheduler (void);
 bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */

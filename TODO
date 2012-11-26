@@ -13,3 +13,6 @@
   macro that replaces the existing calls to show() when used in the
   context of dumping a key/value pair along with logic to change the
   output format.
+- uptime (using utmp)?
+- text/data/bss/stack details (end(3), sbrk(2))
+- add program arguments to show_misc().
