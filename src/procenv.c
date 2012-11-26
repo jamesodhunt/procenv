@@ -374,6 +374,12 @@ struct procenv_map scheduler_map[] = {
 	{ 0, NULL }
 };
 
+struct procenv_map thread_sched_policy_map[] = {
+	mk_map_entry (SCHED_OTHER),
+	mk_map_entry (SCHED_FIFO),
+	mk_map_entry (SCHED_RR)
+};
+
 void
 usage (void)
 {
@@ -414,6 +420,7 @@ usage (void)
 	show ("  -r, --range[s]      : Display range of data types.");
 	show ("  -s, --signal[s]     : Display signal details.");
 	show ("  -t, --tty           : Display terminal details.");
+	show ("  -T, --threads       : Display thread details.");
 	show ("  -u, --stat          : Display stat details.");
 	show ("  -U, --rusage        : Display rusage details.");
 	show ("  -v, --version       : Display version details.");
@@ -799,10 +806,10 @@ get_misc (void)
 	misc.umask_value = umask (S_IWGRP|S_IWOTH);
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	get_root (misc.root, sizeof (misc.root));
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__) || defined (PROCENV_HURD)
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	get_bsd_misc ();
 #endif
 }
@@ -916,7 +923,7 @@ dump_priorities (void)
 void
 dump_misc (void)
 {
-	long bits;
+	long            bits;
 
 	header ("misc");
 
@@ -938,6 +945,7 @@ dump_misc (void)
 	show_cpu ();
 	dump_priorities ();
 	show ("memory page size: %d bytes", getpagesize ());
+
 	show ("platform: %s", get_platform ());
 	bits = get_kernel_bits ();
 
@@ -1031,8 +1039,10 @@ get_user_info (void)
 	user.ppid = getppid ();
 
 #if defined (PROCENV_LINUX)
-	if (prctl (PR_GET_NAME, user.proc_name, 0, 0, 0) < 0)
-		die ("unable to query process details");
+	if (LINUX_KERNEL_MMR (2, 6, 11)) {
+		if (prctl (PR_GET_NAME, user.proc_name, 0, 0, 0) < 0)
+			strcpy (user.proc_name, UNKNOWN_STR);
+	}
 #endif
 
 #ifdef _GNU_SOURCE
@@ -1258,14 +1268,16 @@ void
 init (void)
 {
 	set_indent ();
-	get_user_info ();
-	get_misc ();
-	get_priorities ();
 
 	/* required to allow for more graceful handling of prctl(2)
 	 * options that were introduced in kernel version 'x.y'.
 	 */
 	get_uname ();
+
+	get_user_info ();
+	get_misc ();
+	get_priorities ();
+
 }
 
 void
@@ -1402,6 +1414,7 @@ get_kernel_bits (void)
 	return -1;
 }
 
+/* Dump out data in alphabetical fashion */
 void
 dump (void)
 {
@@ -1436,6 +1449,7 @@ dump (void)
 	show_sizeof ();
 	show_stat ();
 	dump_sysconf ();
+	show_threads ();
 	show_time ();
 	show_timezone ();
 	show_tty_attrs ();
@@ -3028,11 +3042,13 @@ show_capabilities (void)
 #endif
 
 #ifdef PR_GET_KEEPCAPS
-	ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
-	if (ret < 0 && errno != ENOSYS)
-		die ("prctl failed for PR_GET_KEEPCAPS");
-	if (ret >= 0)
-		show ("keep=%s", ret ? YES_STR : NO_STR);
+	if (LINUX_KERNEL_MMR (2, 2, 18)) {
+		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
+		if (ret < 0 && errno != ENOSYS)
+			die ("prctl failed for PR_GET_KEEPCAPS");
+		if (ret >= 0)
+			show ("keep=%s", ret ? YES_STR : NO_STR);
+	}
 #endif
 
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -3236,16 +3252,28 @@ get_scheduler_name (int sched)
 	return NULL;
 }
 
+char *
+get_thread_scheduler_name (int sched)
+{
+	struct procenv_map *p;
+
+	for (p = thread_sched_policy_map; p && p->name; p++) {
+		if (p->num == sched)
+			return p->name;
+	}
+
+	return NULL;
+}
+
 void
 show_linux_scheduler (void)
 {
 	int sched;
 
 	sched = sched_getscheduler (0);
-	if (sched < 0)
-		die ("failed to query scheduler");
-
-	show ("scheduler: %s", get_scheduler_name (sched));
+	show ("scheduler: %s",
+			sched < 0 ? UNKNOWN_STR :
+			get_scheduler_name (sched));
 }
 
 void
@@ -3254,16 +3282,17 @@ show_linux_cpu (void)
 	int cpu;
 	long max;
 
-	cpu = sched_getcpu ();
-	if (cpu < 0)
-		die ("failed to query cpu");
-
-	/* adjust to make 1-based */
-	cpu++;
-
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 
-	show ("cpu: %u of %lu", cpu, max);
+	cpu = sched_getcpu ();
+	if (cpu < 0) {
+		show ("cpu: %s of %lu", UNKNOWN_STR, max);
+	} else {
+		/* adjust to make 1-based */
+		cpu++;
+
+		show ("cpu: %u of %lu", cpu, max);
+	}
 }
 
 /**
@@ -3516,6 +3545,60 @@ get_path (const char *argv0)
 	return prog_path;
 }
 
+void
+show_threads (void)
+{
+	size_t              stack_size = 0;
+	size_t              guard_size = 0;
+	pthread_attr_t      attr;
+	int                 scope;
+	int                 sched;
+	int                 inherit_sched;
+	int                 ret;
+	struct sched_param  param;
+
+	header ("threads");
+
+	/* cannot fail */
+	(void) pthread_attr_init (&attr);
+	(void) pthread_attr_getstacksize (&attr, &stack_size);
+
+	show ("thread stack size: %lu bytes",
+			(unsigned long int)stack_size);
+
+	ret = pthread_attr_getscope (&attr, &scope);
+	show ("thread scope: %s",
+			ret != 0 ? UNKNOWN_STR :
+			scope == PTHREAD_SCOPE_SYSTEM ? "PTHREAD_SCOPE_SYSTEM"
+			: "PTHREAD_SCOPE_PROCESS");
+
+	ret = pthread_attr_getguardsize (&attr, &guard_size);
+	if (ret == 0) {
+		show ("thread guard size: %lu bytes",
+				(unsigned long int)guard_size);
+	} else {
+		show ("thread guard size: %s", UNKNOWN_STR);
+	}
+
+	ret = pthread_getschedparam (pthread_self (), &sched, &param);
+	show ("thread scheduler: %s",
+			ret != 0 ? UNKNOWN_STR : get_scheduler_name (sched));
+
+	if (ret != 0)
+		show ("thread scheduler priority: %s", UNKNOWN_STR);
+	else
+		show ("thread scheduler priority: %d", param.sched_priority);
+
+	ret = pthread_attr_getinheritsched (&attr, &inherit_sched);
+	show ("thread inherit scheduler: %s",
+			ret != 0 ? UNKNOWN_STR :
+			inherit_sched == PTHREAD_INHERIT_SCHED
+			?  "PTHREAD_INHERIT_SCHED"
+			: "PTHREAD_EXPLICIT_SCHED");
+
+	show ("thread concurrency: %d", pthread_getconcurrency ());
+}
+
 int
 main (int  argc,
 		char *argv[])
@@ -3555,6 +3638,7 @@ main (int  argc,
 		{"signal"       , no_argument, NULL, 's'},
 		{"signals"      , no_argument, NULL, 's'},
 		{"tty"          , no_argument, NULL, 't'},
+		{"threads"      , no_argument, NULL, 'T'},
 		{"stat"         , no_argument, NULL, 'u'},
 		{"rusage"       , no_argument, NULL, 'U'},
 		{"version"      , no_argument, NULL, 'v'},
@@ -3582,7 +3666,7 @@ main (int  argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"abcdefghijklLmnopqrstuUvwxyz",
+				"abcdefghijklLmnopqrstTuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -3648,6 +3732,7 @@ main (int  argc,
 			break;
 
 		case 'i':
+			get_uname ();
 			get_user_info ();
 			get_misc ();
 			dump_misc ();
@@ -3701,6 +3786,10 @@ main (int  argc,
 
 		case 't':
 			show_tty_attrs ();
+			break;
+
+		case 'T':
+			show_threads ();
 			break;
 
 		case 'u':

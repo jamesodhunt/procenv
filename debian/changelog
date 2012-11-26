@@ -1,3 +1,9 @@
+procenv (0.13-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Mon, 26 Nov 2012 13:31:39 +0000
+
 procenv (0.12-2) unstable; urgency=low
 
   * Added DEP-8 autopkgtest support.
