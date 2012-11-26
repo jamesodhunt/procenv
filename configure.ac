@@ -25,6 +25,8 @@ PKG_PROG_PKG_CONFIG
 # this header is not available on older distributions (such as Ubuntu
 # Lucid)
 AC_CHECK_HEADERS([linux/securebits.h])
+AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
+
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -40,6 +42,7 @@ AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr])
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 
+AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
 

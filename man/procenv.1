@@ -178,7 +178,9 @@ See
 \fB\-q\fR, \fB\-\-time\fR
 Display time details.
 See
-.BR clock_gettime (2) "" ", " localtime (3) "" ", and " asctime (3) "" .
+.BR clock_gettime (2) "" ", "
+.BR localtime (3) "" " and "
+.BR asctime (3) "" .
 .PP
 .\"
 .TP
@@ -200,6 +202,15 @@ See
 Display terminal details.
 See
 .BR tcgetattr (3) "" .
+.PP
+.\"
+.TP
+\fB\-T\fR, \fB\-\-threads\fR
+Display thread details.
+See
+.BR pthread_attr_getstacksize (3) "" ", "
+.BR pthread_attr_getstacksize (3) "" " and "
+.BR pthread_attr_getguardsize (3) "" .
 .PP
 .\"
 .TP
