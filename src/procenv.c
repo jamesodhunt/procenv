@@ -806,7 +806,7 @@ get_misc (void)
 	misc.umask_value = umask (S_IWGRP|S_IWOTH);
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+#if defined (PROCENV_LINUX)
 	get_root (misc.root, sizeof (misc.root));
 #endif
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
@@ -3582,7 +3582,9 @@ show_threads (void)
 
 	ret = pthread_getschedparam (pthread_self (), &sched, &param);
 	show ("thread scheduler: %s",
-			ret != 0 ? UNKNOWN_STR : get_scheduler_name (sched));
+			ret != 0
+			? UNKNOWN_STR
+			: get_thread_scheduler_name (sched));
 
 	if (ret != 0)
 		show ("thread scheduler priority: %s", UNKNOWN_STR);
