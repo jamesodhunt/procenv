@@ -227,8 +227,9 @@
 { \
 	struct timespec res; \
 	if (clock_getres (clock, &res) < 0) \
-		die ("failed to query resolution for clock " #clock); \
-	show ("%s: resolution: %ld.%09lds", #clock, res.tv_sec, res.tv_nsec); \
+		show ("%s: resolution: %s", #clock, UNKNOWN_STR); \
+	else \
+		show ("%s: resolution: %ld.%09lds", #clock, res.tv_sec, res.tv_nsec); \
 }
 
 #define show_const(t, flag, constant) \
