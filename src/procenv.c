@@ -2488,6 +2488,16 @@ get_platform (void)
 	return "iSeries";
 #endif
 
+#ifdef __MACH__
+#ifdef __i386__
+	return "GNU (Hurd i386)";
+#endif
+#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
+	return "GNU (Hurd x64/AMD64)";
+#endif
+	return "GNU (Hurd)";
+#endif /* __MACH__ */
+
 #ifdef linux
 
 #ifdef __FreeBSD_kernel__
@@ -2499,17 +2509,6 @@ get_platform (void)
 #endif
 	return "kFreeBSD";
 #endif /* __FreeBSD_kernel__*/
-
-#ifdef __MACH__
-#ifdef __i386__
-	return "Linux (Hurd i386)";
-#endif
-#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
-	return "Linux (Hurd x64/AMD64)";
-#endif
-
-	return "Linux (Hurd)";
-#endif /* __MACH__ */
 
 	/* why this isn't s380z is anyones guess ;-) */
 #ifdef __s390x__
@@ -2635,7 +2634,7 @@ show_clocks (void)
 	show_clock_res (CLOCK_PROF);
 #endif
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 #ifdef CLOCK_MONOTONIC_RAW
 	show_clock_res (CLOCK_MONOTONIC_RAW);
 #endif

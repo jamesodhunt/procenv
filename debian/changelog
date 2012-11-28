@@ -1,3 +1,10 @@
+procenv (0.15-1) unstable; urgency=low
+
+  * New upstream release that includes fixes to tolerate clock
+    resolution query failures seen on Hurd (Closes: #694627).
+
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 28 Nov 2012 20:44:41 +0000
+
 procenv (0.14-1) unstable; urgency=low
 
   * New upstream release.
