@@ -1,3 +1,15 @@
+procenv (0.13-2) unstable; urgency=low
+
+  * debian/tests/make_check: Removed as not required since autopkgtest already
+    runs 'make check' automatically via dh_auto_test as part of its setup
+    phase before the DEP-8 tests are run.
+  * debian/tests/run_installed: test added to run the installed version of
+    procenv.
+  * debian/tests/control: Removed everything aside from specification of new
+    run_installed test.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 28 Nov 2012 19:39:54 +0000
+
 procenv (0.13-1) unstable; urgency=low
 
   * New upstream release.

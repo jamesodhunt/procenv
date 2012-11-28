@@ -1,2 +1,1 @@
-Tests: make_check
-Depends: @, build-essential
+Tests: run_installed

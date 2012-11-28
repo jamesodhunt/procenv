@@ -1,0 +1,13 @@
+#!/bin/sh -e
+#---------------------------------------------------------------------
+# Run packaged version of procenv.
+#
+# Note that we do not need to run 'make check', since dh(1) does that
+# automatically via dh_auto_test(1). As a result, procenv is run
+# _twice_: via this test, but also before this test is run when dh
+# prepares the package source. This is ok though since, interestingly,
+# the environments *are* different, and not just due to the obvious
+# pid changes.
+#---------------------------------------------------------------------
+
+/usr/bin/procenv

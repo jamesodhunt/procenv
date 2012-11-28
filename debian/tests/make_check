@@ -1,3 +1,0 @@
-#!/bin/sh -e
-
-./configure && make && make check
