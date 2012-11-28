@@ -155,7 +155,7 @@
 
 /* Horrid hack for Hurd... :-( */
 #ifndef PATH_MAX
-#define PATH_MAX 1024
+#define PATH_MAX 4096
 #endif
 
 #define PROCENV_OUTPUT_ENV "PROCENV_OUTPUT"
@@ -445,6 +445,7 @@ void get_major_minor (const char *path, int *major, int *minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
+char * get_thread_scheduler_name (int sched);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);
@@ -459,7 +460,6 @@ void show_linux_proc_branch (void);
 void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
-char * get_thread_scheduler_name (int sched);
 void show_linux_scheduler (void);
 bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */
