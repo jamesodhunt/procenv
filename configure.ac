@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(procenv, 0.13, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.14, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012 James Hunt <james.hunt@ubuntu.com>
  and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
