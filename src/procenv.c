@@ -3252,19 +3252,6 @@ get_scheduler_name (int sched)
 	return NULL;
 }
 
-char *
-get_thread_scheduler_name (int sched)
-{
-	struct procenv_map *p;
-
-	for (p = thread_sched_policy_map; p && p->name; p++) {
-		if (p->num == sched)
-			return p->name;
-	}
-
-	return NULL;
-}
-
 void
 show_linux_scheduler (void)
 {
@@ -3599,6 +3586,19 @@ show_threads (void)
 			: "PTHREAD_EXPLICIT_SCHED");
 
 	show ("thread concurrency: %d", pthread_getconcurrency ());
+}
+
+char *
+get_thread_scheduler_name (int sched)
+{
+	struct procenv_map *p;
+
+	for (p = thread_sched_policy_map; p && p->name; p++) {
+		if (p->num == sched)
+			return p->name;
+	}
+
+	return NULL;
 }
 
 int
