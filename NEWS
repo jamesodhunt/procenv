@@ -1,3 +1,7 @@
+0.14	2012-11-28
+
+	* Scheduler and non-Linux platform fixes for --threads.
+
 0.13	2012-11-26
 
 	* Added --threads option.
