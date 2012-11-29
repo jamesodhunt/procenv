@@ -1,3 +1,8 @@
+2012-11-29  James Hunt  <james.hunt@ubuntu.com>
+
+	[  Dave Love fx@gnu.org ]
+	* Makefile.am: Add man page to man1_MANS for RHEL package build.
+
 2012-11-28  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: Update for --threads and set date.
