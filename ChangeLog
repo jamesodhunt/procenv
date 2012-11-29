@@ -1,3 +1,126 @@
+2012-11-28  James Hunt  <james.hunt@ubuntu.com>
+	
+	* src/procenv.c:
+	  - get_thread_scheduler_name(): Make visible to non-Linux platforms.
+	  - get_platform(): Fix for Hurd.
+	  - show_clocks(): Fix for Hurd.
+	* src/procenv.h:
+	  - Fix to gross Hurd hack.
+	  - Make visible to non-Linux platforms.
+	  - show_clock_res(): Make resilient to failure.
+	
+2012-11-26  James Hunt  <james.hunt@ubuntu.com>
+	
+	* TODO: Update.
+	* configure.ac: Add pthread.
+	* man/procenv.1: Formatting.
+	* src/procenv.c:
+	  - usage(): Added -T and --threads option.
+	  - get_misc(): Minor Hurd tweak.
+	  - get_user_info(): Added check around prctl.
+	  - init(): Call gte_uname() as early as possible to allow
+	    LINUX_KERNEL_*() macros to work.
+	  - dump(): Add show_threads().
+	  - show_capabilities(): Put kernel version guard around
+	    PR_GET_KEEPCAPS.
+	  - get_thread_scheduler_name(): New function.
+	  - show_linux_scheduler(): Disallow failure.
+	  - show_linux_cpu(): Disallow failure.
+	  - show_threads(): New function.
+	  - main():
+	  - Added --threads option.
+	  - Call get_uname() for '-i'.
+	* src/procenv.h: Added pthread.h and minor tweak for Hurd.
+	
+2012-11-22  James Hunt  <james.hunt@ubuntu.com>
+	
+	* src/tests/show_compiler_details: New test to dump out useful info
+	  as an aid to debugging build failures and for general interest.
+	* src/Makefile.am: Call show_compiler_details test before running
+	  main binary such that we can use the new tests output to diagnose
+	  failures with the main binary.
+	* src/procenv.h:
+	  - Added explicit define for GNU/Hurd to ensure that platform defines
+	    procenv_user.proc_name.
+	
+2012-11-21  James Hunt  <james.hunt@ubuntu.com>
+	
+	* TODO: Update.
+	* src/procenv.c:
+	  - dump_misc(): Added kernel headers version.
+	  - linux_kernel_version():
+	  - Rewrite as original logic was flawed - we now use the same
+	    technique as KERNEL_VERSION()/LINUX_VERSION_CODE.
+	  - Drop the @patch parameter: we're not using it and it is problematic
+	    if it contains alphabetics.
+	  - show_linux_prctl(): Don't allow prctl to fail, even for
+	    environments, such as chroots, where the libc defines the symbols,
+	    but the kernel outside the chroot does not implement the features.
+	  - get_platform(): Added alpha and m68k.
+	  - main(): Call get_user_info() if dumping misc details to ensure uname
+	    values available.
+	* src/procenv.h:
+	  - Removed LINUX_KERNEL_MMRP() as unused.
+	  - Removed pdie() macro now that we handle prctl failures gracefully.
+	
+2012-11-20  James Hunt  <james.hunt@ubuntu.com>
+	
+	* man/procenv.1:
+	  - Added new locale options.
+	  - Updated datestamp.
+	* src/procenv.c:
+	  - usage(): Added locale options.
+	  - dump_misc():
+	  - Now shows 'platform' and 'kernel bits' (moved from dump_meta()).
+	  - Added 'endianness'.
+	  - is_big_endian(): New function.
+	  - show_stat(): Fixed 1 byte memory leak.
+	  - dump(): Call show_locale().
+	  - show_locale(): New function to dump locale details.
+	  - get_platform():
+	  - Added comment header.
+	  - Added in ia64, sparc64, sparc, mips, armhf, armel, s390x, SuperH, Hurd.
+	  - Changed 'Linux (Intel)' to 'Linux (i386)'.
+	  - Return UNKNOWN_STR as last resort.
+	  - show_capabilities(): Only query certain capabilities if they are
+	    known to be theoretically available by comparing running kernel
+	    version with kernel version specified in capabilities(7) that
+	    introduced it.
+	  - main(): Updated for new locale options.
+	* src/procenv.h: show_capability():
+	  - Added comment header.
+	  - Now handles failure less brutally.
+	
+2012-11-19  James Hunt  <james.hunt@ubuntu.com>
+	
+	* man/procenv.1: Show calls made by '--proc' and '--misc'.
+	* src/procenv.c:
+	  - Various platform-specific fixes identified by recent Debian upload.
+	  - Formatting.
+	  - linux_kernel_version(): Replacement for inadequate KERNEL_VERSION() macro.
+	  - New macros that make use of linux_kernel_version():
+	  - LINUX_KERNEL_M()
+	  - LINUX_KERNEL_MM()
+	  - LINUX_KERNEL_MMR()
+	  - LINUX_KERNEL_MMRP()
+	  - Horrid hack for Hurd, which doesn't define PATH_MAX.
+
+2012-11-16  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Remove duplicate entry for --proc.
+	  - Add references to system and library call man pages for each option.
+	  - Add note that options are processed in order.
+	  - Correct order of options in syslog example.
+	  - Added rusage options.
+	* TODO: Updated.
+	* src/procenv.c:
+	  - Added rusage.
+	  - Moved show_capability() to header file.
+	  - main(): Added missing 'u' to getopt_long() call.
+	  - show_sizeof(): Added types uintmax_t, imaxdiv_t, rlim_t,
+	fenv_t, fexcept_t.
+
 2012-11-05  James Hunt  <james.hunt@ubuntu.com>
 
 	* Split show_uname() into get_uname() and dump_uname().
