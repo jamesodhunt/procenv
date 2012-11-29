@@ -442,6 +442,7 @@ void check_envvars (void);
 int get_output_value (const char *name);
 void set_indent (void);
 void show_stat (void);
+void show_locale (void);
 void get_major_minor (const char *path, int *major, int *minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);

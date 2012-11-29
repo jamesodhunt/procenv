@@ -488,7 +488,6 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 	int       ret;
 	va_list   ap;
 	char     *buffer = NULL;
-	int       fd;
 
 	assert (fmt);
 
@@ -1030,9 +1029,7 @@ void
 get_user_info (void)
 {
 	struct passwd *pw;
-	struct group  *gr;
 	void          *p;
-	int            fd;
 	int            ret;
 
 	user.pid  = getpid ();
@@ -1107,7 +1104,6 @@ get_user_info (void)
 void
 append (char **str, const char *new)
 {
-    //char    **p;
     size_t    len;
     size_t    total;
 
@@ -2012,8 +2008,6 @@ show_linux_prctl (void)
 
 #ifdef PR_GET_PDEATHSIG
 	if (LINUX_KERNEL_MMR (2, 3, 15)) {
-		const char *value;
-
 		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
 			show ("parent death signal: %s", UNKNOWN_STR);
@@ -2022,13 +2016,6 @@ show_linux_prctl (void)
 		else if (rc > 0)
 			show ("parent death signal: %d", arg2);
 	}
-#if 1
-	else
-	{
-		/* FIXME */
-		show ("XXXX: FIXME:BUG");
-	}
-#endif
 #endif
 
 #ifdef PR_GET_SECCOMP
@@ -2428,6 +2415,7 @@ work:
 
 }
 
+void
 show_locale (void)
 {
 	struct procenv_map *p;
@@ -2437,11 +2425,14 @@ show_locale (void)
 
 	value = setlocale (LC_ALL, "");
 	saved = strdup (value);
+	if (! saved)
+		die ("failed to allocate space for locale");
+
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
 		show ("%s=%s", p->name, value ? value : UNKNOWN_STR);
 	}
-	setlocale (LC_ALL, saved);
+	(void)setlocale (LC_ALL, saved);
 	free (saved);
 }
 
@@ -3608,8 +3599,6 @@ int
 main (int  argc,
 		char *argv[])
 {
-	char **args;
-	int    ret;
 	int    option;
 	int    long_index;
 	int    done = FALSE;
@@ -3810,12 +3799,7 @@ main (int  argc,
 					PACKAGE_NAME,
 					_("version"),
 					PACKAGE_VERSION);
-			/* FIXME: License */
-#if 0
-			wprintf (L"%s: %s\n", _("License"), PROGRAM_LICENSE);
-#endif
 			show ("%s: %s\n", _("Written by"), PROGRAM_AUTHORS);
-			//exit (EXIT_SUCCESS);
 			break;
 
 		case 'w':

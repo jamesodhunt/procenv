@@ -1,5 +1,7 @@
 2012-11-29  James Hunt  <james.hunt@ubuntu.com>
 
+	* General tidy-up (removing unused variables, etc).
+
 	[ Dave Love <fx@gnu.org> ]
 	* Makefile.am: Add man page to man1_MANS for RHEL package build.
 	* src/procenv.c: show_locale(): Load locale from the
