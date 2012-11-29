@@ -2558,11 +2558,11 @@ get_platform (void)
 #endif
 
 #ifdef __arm__
+#ifdef __ARM_PCS_VFP
+	return "Linux (ARMHF)";
+#endif
 #ifdef __ARMEL__
 	return "Linux (ARMEL)";
-#endif
-#ifdef __ARMHF__
-	return "Linux (ARMHF)";
 #endif
 	return "Linux (ARM)";
 #endif
