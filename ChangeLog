@@ -1,4 +1,9 @@
 2012-11-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Update for --threads and set date.
+	* src/procenv.c: get_platform(): Correction for detecting ARMHF.
+
+2012-11-28  James Hunt  <james.hunt@ubuntu.com>
 	
 	* src/procenv.c:
 	  - get_thread_scheduler_name(): Make visible to non-Linux platforms.
