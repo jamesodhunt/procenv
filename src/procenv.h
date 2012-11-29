@@ -91,6 +91,7 @@
  * Display specified capability, or NOT_DEFINED_STR if value is
  * unknown.
  **/
+#ifdef PR_CAPBSET_READ
 #define show_capability(cap) \
 { \
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
@@ -101,6 +102,9 @@
 			? YES_STR \
 			: NO_STR); \
 }
+#else
+#define show_capability(cap)
+#endif
 
 /**
  * LINUX_KERNEL_M:

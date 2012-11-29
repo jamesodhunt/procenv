@@ -37,7 +37,7 @@ AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr])
+AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])

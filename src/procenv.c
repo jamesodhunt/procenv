@@ -3265,15 +3265,20 @@ show_linux_cpu (void)
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 
+#if HAVE_SCHED_GETCPU
 	cpu = sched_getcpu ();
-	if (cpu < 0) {
-		show ("cpu: %s of %lu", UNKNOWN_STR, max);
-	} else {
-		/* adjust to make 1-based */
-		cpu++;
+	if (cpu < 0)
+		goto unknown_sched_cpu;
 
-		show ("cpu: %u of %lu", cpu, max);
-	}
+	/* adjust to make 1-based */
+	cpu++;
+
+	show ("cpu: %u of %lu", cpu, max);
+	return;
+
+unknown_sched_cpu:
+#endif
+	show ("cpu: %s of %lu", UNKNOWN_STR, max);
 }
 
 /**
