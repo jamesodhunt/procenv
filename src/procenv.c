@@ -2431,14 +2431,18 @@ work:
 show_locale (void)
 {
 	struct procenv_map *p;
-	char               *value;
+	char               *value, *saved;
 
 	header ("locale");
 
+	value = setlocale (LC_ALL, "");
+	saved = strdup (value);
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
 		show ("%s=%s", p->name, value ? value : UNKNOWN_STR);
 	}
+	setlocale (LC_ALL, saved);
+	free (saved);
 }
 
 const char *

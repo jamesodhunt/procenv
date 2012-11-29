@@ -2,6 +2,8 @@
 
 	[  Dave Love fx@gnu.org ]
 	* Makefile.am: Add man page to man1_MANS for RHEL package build.
+	* src/procenv.c: show_locale(): Load locale from the
+	  environment prior to querying, and revert at end.
 
 2012-11-28  James Hunt  <james.hunt@ubuntu.com>
 
