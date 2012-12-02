@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2012-11-20" "User Commands"
+.TH PROCENV "1" "2012-11-29" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -112,7 +112,7 @@ See
 \fB\-L\fR, \fB\-\-locale\fR
 Display locale details.
 See
-.BR setlocale (3) "" .
+.BR setlocale (3) "" " and " locale (7) "" .
 .\"
 .TP
 \fB\-m\fR, \fB\-\-mount[s]\fR
@@ -205,7 +205,7 @@ See
 .PP
 .\"
 .TP
-\fB\-T\fR, \fB\-\-threads\fR
+\fB\-T\fR, \fB\-\-thread[s]\fR
 Display thread details.
 See
 .BR pthread_attr_getstacksize (3) "" ", "
@@ -354,6 +354,7 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR groups (1)
 .BR kill (1)
 .BR ldd (1)
+.BR locale (1)
 .BR ls (1)
 .BR mount (1)
 .BR proc (5)

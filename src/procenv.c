@@ -348,12 +348,18 @@ struct procenv_map signal_map[] = {
 
 struct procenv_map locale_map[] = {
 
+	mk_map_entry (LC_ADDRESS),
 	mk_map_entry (LC_ALL),
 	mk_map_entry (LC_COLLATE),
 	mk_map_entry (LC_CTYPE),
+	mk_map_entry (LC_IDENTIFICATION),
+	mk_map_entry (LC_MEASUREMENT),
 	mk_map_entry (LC_MESSAGES),
 	mk_map_entry (LC_MONETARY),
+	mk_map_entry (LC_NAME),
 	mk_map_entry (LC_NUMERIC),
+	mk_map_entry (LC_PAPER),
+	mk_map_entry (LC_TELEPHONE),
 	mk_map_entry (LC_TIME),
 
 	{ 0, NULL }
@@ -488,7 +494,6 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 	int       ret;
 	va_list   ap;
 	char     *buffer = NULL;
-	int       fd;
 
 	assert (fmt);
 
@@ -1010,10 +1015,19 @@ dump_fds (void)
 void
 show_env (void)
 {
-	char **env = environ;
+	char    **env = environ;
+	size_t    i;
 
 	header ("environment");
 
+	/* Calculate size of environment array */
+	for (i=0; env[i]; i++)
+		;
+
+	/* sort it */
+	qsort (env, i, sizeof (env[0]), strcmp_compar);
+
+	env = environ;
 	while (env && *env) {
 		show ("%s", *env);
 		env++;
@@ -1030,9 +1044,7 @@ void
 get_user_info (void)
 {
 	struct passwd *pw;
-	struct group  *gr;
 	void          *p;
-	int            fd;
 	int            ret;
 
 	user.pid  = getpid ();
@@ -1107,7 +1119,6 @@ get_user_info (void)
 void
 append (char **str, const char *new)
 {
-    //char    **p;
     size_t    len;
     size_t    total;
 
@@ -2012,8 +2023,6 @@ show_linux_prctl (void)
 
 #ifdef PR_GET_PDEATHSIG
 	if (LINUX_KERNEL_MMR (2, 3, 15)) {
-		const char *value;
-
 		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
 		if (rc < 0 && errno != ENOSYS)
 			show ("parent death signal: %s", UNKNOWN_STR);
@@ -2022,13 +2031,6 @@ show_linux_prctl (void)
 		else if (rc > 0)
 			show ("parent death signal: %d", arg2);
 	}
-#if 1
-	else
-	{
-		/* FIXME */
-		show ("XXXX: FIXME:BUG");
-	}
-#endif
 #endif
 
 #ifdef PR_GET_SECCOMP
@@ -2428,16 +2430,24 @@ work:
 
 }
 
+void
 show_locale (void)
 {
 	struct procenv_map *p;
 	char               *value;
+	char               *v;
 
 	header ("locale");
 
+	v = getenv ("LANG");
+	show ("LANG=\"%s\"", v ? v : "");
+
+	v = getenv ("LANGUAGE");
+	show ("LANGUAGE=\"%s\"", v ? v : "");
+
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
-		show ("%s=%s", p->name, value ? value : UNKNOWN_STR);
+		show ("%s=\"%s\"", p->name, value ? value : UNKNOWN_STR);
 	}
 }
 
@@ -2558,11 +2568,11 @@ get_platform (void)
 #endif
 
 #ifdef __arm__
+#ifdef __ARM_PCS_VFP
+	return "Linux (ARMHF)";
+#endif
 #ifdef __ARMEL__
 	return "Linux (ARMEL)";
-#endif
-#ifdef __ARMHF__
-	return "Linux (ARMHF)";
 #endif
 	return "Linux (ARM)";
 #endif
@@ -3270,15 +3280,20 @@ show_linux_cpu (void)
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 
+#if HAVE_SCHED_GETCPU
 	cpu = sched_getcpu ();
-	if (cpu < 0) {
-		show ("cpu: %s of %lu", UNKNOWN_STR, max);
-	} else {
-		/* adjust to make 1-based */
-		cpu++;
+	if (cpu < 0)
+		goto unknown_sched_cpu;
 
-		show ("cpu: %u of %lu", cpu, max);
-	}
+	/* adjust to make 1-based */
+	cpu++;
+
+	show ("cpu: %u of %lu", cpu, max);
+	return;
+
+unknown_sched_cpu:
+#endif
+	show ("cpu: %s of %lu", UNKNOWN_STR, max);
 }
 
 /**
@@ -3604,8 +3619,6 @@ int
 main (int  argc,
 		char *argv[])
 {
-	char **args;
-	int    ret;
 	int    option;
 	int    long_index;
 	int    done = FALSE;
@@ -3806,12 +3819,7 @@ main (int  argc,
 					PACKAGE_NAME,
 					_("version"),
 					PACKAGE_VERSION);
-			/* FIXME: License */
-#if 0
-			wprintf (L"%s: %s\n", _("License"), PROGRAM_LICENSE);
-#endif
 			show ("%s: %s\n", _("Written by"), PROGRAM_AUTHORS);
-			//exit (EXIT_SUCCESS);
 			break;
 
 		case 'w':
