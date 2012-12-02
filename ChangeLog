@@ -5,7 +5,11 @@
 	    LC_MEASUREMENT, LC_NAME, LC_PAPER and LC_TELEPHONE
 	    (LP: #1081628).
 	  - show_env(): Sort environment variables (LP: #1081629).
-	* man/procenv.1: Add ref to locale(7).
+	  - show_locale(): Added LANG and LANGUAGE for parity with
+	    locale(1)
+	* man/procenv.1:
+	  - Add ref to locale(7).
+	  - Add ref to locale(1).
 
 2012-11-29  James Hunt  <james.hunt@ubuntu.com>
 

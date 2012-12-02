@@ -2435,6 +2435,7 @@ show_locale (void)
 {
 	struct procenv_map *p;
 	char               *value, *saved;
+	char               *v;
 
 	header ("locale");
 
@@ -2442,6 +2443,12 @@ show_locale (void)
 	saved = strdup (value);
 	if (! saved)
 		die ("failed to allocate space for locale");
+
+	v = getenv ("LANG");
+	show ("LANG=%s", v ? v : "");
+
+	v = getenv ("LANGUAGE");
+	show ("LANGUAGE=%s", v ? v : "");
 
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
