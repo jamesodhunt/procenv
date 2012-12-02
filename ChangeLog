@@ -1,3 +1,10 @@
+2012-12-02  James Hunt  <james.hunt@ubuntu.com>
+
+	* locale_map: Add LC_ADDRESS, LC_IDENTIFICATION,
+	  LC_MEASUREMENT, LC_NAME, LC_PAPER and LC_TELEPHONE
+	  (LP: #1081628).
+	* show_env(): Sort environment variables (LP: #1081629).
+
 2012-11-29  James Hunt  <james.hunt@ubuntu.com>
 
 	* General tidy-up (removing unused variables, etc).

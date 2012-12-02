@@ -348,12 +348,18 @@ struct procenv_map signal_map[] = {
 
 struct procenv_map locale_map[] = {
 
+	mk_map_entry (LC_ADDRESS),
 	mk_map_entry (LC_ALL),
 	mk_map_entry (LC_COLLATE),
 	mk_map_entry (LC_CTYPE),
+	mk_map_entry (LC_IDENTIFICATION),
+	mk_map_entry (LC_MEASUREMENT),
 	mk_map_entry (LC_MESSAGES),
 	mk_map_entry (LC_MONETARY),
+	mk_map_entry (LC_NAME),
 	mk_map_entry (LC_NUMERIC),
+	mk_map_entry (LC_PAPER),
+	mk_map_entry (LC_TELEPHONE),
 	mk_map_entry (LC_TIME),
 
 	{ 0, NULL }
@@ -1009,10 +1015,19 @@ dump_fds (void)
 void
 show_env (void)
 {
-	char **env = environ;
+	char    **env = environ;
+	size_t    i;
 
 	header ("environment");
 
+	/* Calculate size of environment array */
+	for (i=0; env[i]; i++)
+		;
+
+	/* sort it */
+	qsort (env, i, sizeof (env[0]), strcmp_compar);
+
+	env = environ;
 	while (env && *env) {
 		show ("%s", *env);
 		env++;
