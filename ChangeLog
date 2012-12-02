@@ -6,7 +6,7 @@
 	    (LP: #1081628).
 	  - show_env(): Sort environment variables (LP: #1081629).
 	  - show_locale(): Added LANG and LANGUAGE for parity with
-	    locale(1)
+	    locale(1).
 	* man/procenv.1:
 	  - Add ref to locale(7).
 	  - Add ref to locale(1).
