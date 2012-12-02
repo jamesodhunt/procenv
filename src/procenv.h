@@ -91,6 +91,7 @@
  * Display specified capability, or NOT_DEFINED_STR if value is
  * unknown.
  **/
+#ifdef PR_CAPBSET_READ
 #define show_capability(cap) \
 { \
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
@@ -101,6 +102,9 @@
 			? YES_STR \
 			: NO_STR); \
 }
+#else
+#define show_capability(cap)
+#endif
 
 /**
  * LINUX_KERNEL_M:
@@ -442,11 +446,13 @@ void check_envvars (void);
 int get_output_value (const char *name);
 void set_indent (void);
 void show_stat (void);
+void show_locale (void);
 void get_major_minor (const char *path, int *major, int *minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
 char * get_thread_scheduler_name (int sched);
+int strcmp_compar (const void *a, const void *b);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(procenv, 0.15, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.16, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012 James Hunt <james.hunt@ubuntu.com>
  and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
@@ -37,7 +37,7 @@ AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr])
+AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])
