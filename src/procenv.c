@@ -2434,28 +2434,21 @@ void
 show_locale (void)
 {
 	struct procenv_map *p;
-	char               *value, *saved;
+	char               *value;
 	char               *v;
 
 	header ("locale");
 
-	value = setlocale (LC_ALL, "");
-	saved = strdup (value);
-	if (! saved)
-		die ("failed to allocate space for locale");
-
 	v = getenv ("LANG");
-	show ("LANG=%s", v ? v : "");
+	show ("LANG=\"%s\"", v ? v : "");
 
 	v = getenv ("LANGUAGE");
-	show ("LANGUAGE=%s", v ? v : "");
+	show ("LANGUAGE=\"%s\"", v ? v : "");
 
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
-		show ("%s=%s", p->name, value ? value : UNKNOWN_STR);
+		show ("%s=\"%s\"", p->name, value ? value : UNKNOWN_STR);
 	}
-	(void)setlocale (LC_ALL, saved);
-	free (saved);
 }
 
 const char *
