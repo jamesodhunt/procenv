@@ -1,3 +1,9 @@
+procenv (0.15-2) unstable; urgency=low
+
+  * debian/control: Added missing Build-Depends on pkg-config.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Sun, 02 Dec 2012 22:55:05 +0000
+
 procenv (0.15-1) unstable; urgency=low
 
   * New upstream release that includes fixes to tolerate clock
