@@ -2,6 +2,9 @@
 
 	* TODO: Updated with a couple of ideas.
 	* man/procenv.1: Formatting of "SEE ALSO" section.
+	* src/procenv.c: show_linux_prctl(): Handle all possible
+	  return scenarios to avoid random output.
+	  Thanks Dave Love (LP: #1086771).
 
 	[ Dave Love <fx@gnu.org> ]
 	* src/procenv.c:
@@ -9,6 +12,12 @@
 	    - Guard non-POSIX locale categories for portability.
 	    - Remove LC_ALL.
 	  - show_locale(): Special-case handling for LC_ALL.
+
+	[ Mike Miller <mtmiller@ieee.org> ]
+	* src/procenv.c:
+	  - show_linux_security_module_context(): Check that Apparmor
+	    and SELinux are enabled before querying contexts
+	    (LP: #1086768).
 
 2012-12-02  James Hunt  <james.hunt@ubuntu.com>
 
