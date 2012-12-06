@@ -16,3 +16,5 @@
 - uptime (using utmp)?
 - text/data/bss/stack details (end(3), sbrk(2))
 - add program arguments to show_misc().
+- sort output of show_mounts().
+- use CPUID instruction to detect XEN environments?

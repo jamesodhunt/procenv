@@ -1,3 +1,9 @@
+procenv (0.17-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Thu, 06 Dec 2012 19:17:56 +0000
+
 procenv (0.16-1) unstable; urgency=low
 
   * New upstream release.
