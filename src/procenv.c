@@ -1910,9 +1910,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_ENDIAN, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (arg2) {
 			case PR_ENDIAN_BIG:
 				value = BIG_STR; 
@@ -1921,7 +1921,7 @@ show_linux_prctl (void)
 				value = LITTLE_STR; 
 				break;
 			case PR_ENDIAN_PPC_LITTLE:
-				value = "PowerPC pseduo little endian";
+				value = "PowerPC pseudo little endian";
 				break;
 			default:
 				value = UNKNOWN_STR;
@@ -1993,9 +1993,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_FPEXC, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (arg2) {
 			case PR_FP_EXC_SW_ENABLE:
 				value = "software";
@@ -2024,9 +2024,10 @@ show_linux_prctl (void)
 #ifdef PR_GET_NAME
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
 		rc = prctl (PR_GET_NAME, name, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			show ("process name: %s", UNKNOWN_STR);
-		show ("process name: %s", name);
+		else
+			show ("process name: %s", name);
 	}
 
 #endif
@@ -2034,11 +2035,11 @@ show_linux_prctl (void)
 #ifdef PR_GET_PDEATHSIG
 	if (LINUX_KERNEL_MMR (2, 3, 15)) {
 		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			show ("parent death signal: %s", UNKNOWN_STR);
-		if (rc == 0)
+		else if (rc == 0)
 			show ("parent death signal: disabled");
-		else if (rc > 0)
+		else
 			show ("parent death signal: %d", arg2);
 	}
 #endif
@@ -2048,9 +2049,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (rc) {
 			case 0:
 				value = "disabled";
@@ -2077,9 +2078,9 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MMR (2, 6, 1)) {
 		const char *value;
 		rc = prctl (PR_GET_TIMING, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (rc) {
 			case PR_TIMING_STATISTICAL:
 				value = "statistical";
@@ -2101,9 +2102,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (arg2) {
 			case PR_TSC_ENABLE:
 				value = "enabled";
@@ -2125,9 +2126,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (arg2) {
 			case PR_UNALIGN_NOPRINT:
 				value = "fix-up";
@@ -2149,9 +2150,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_MCE_KILL_GET, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (rc) {
 			case PR_MCE_KILL_DEFAULT:
 				value = "system default";
@@ -2176,9 +2177,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (rc) {
 			case 0:
 				value = "normal execve";
@@ -2198,9 +2199,9 @@ show_linux_prctl (void)
 #ifdef PR_GET_TIMERSLACK
 	if (LINUX_KERNEL_MMR (2, 6, 28)) {
 		rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			show ("timer slack: %s", UNKNOWN_STR);
-		if (rc >= 0)
+		else
 			show ("timer slack: %dns", rc);
 	}
 #endif
@@ -2208,18 +2209,18 @@ show_linux_prctl (void)
 #ifdef PR_GET_CHILD_SUBREAPER
 	if (LINUX_KERNEL_MM (3, 4)) {
 		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			show ("child subreaper: %s", UNKNOWN_STR);
-		if (rc >= 0)
+		else
 			show ("child subreaper: %s", arg2 ? YES_STR : NO_STR);
 	}
 #endif
 
 #ifdef PR_GET_TID_ADDRESS
 	rc = prctl (PR_GET_TID_ADDRESS, &arg2, 0, 0, 0);
-	if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+	if (rc < 0)
 		show ("clear child tid address: %s", UNKNOWN_STR);
-	if (rc >= 0)
+	else
 		show ("clear child tid address: %p", arg2);
 #endif
 }
@@ -3079,9 +3080,9 @@ show_capabilities (void)
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
 		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
-		if (ret < 0 && errno != ENOSYS)
-			die ("prctl failed for PR_GET_KEEPCAPS");
-		if (ret >= 0)
+		if (ret < 0)
+			show ("keep=%s", UNKNOWN_STR);
+		else
 			show ("keep=%s", ret ? YES_STR : NO_STR);
 	}
 #endif
@@ -3089,9 +3090,9 @@ show_capabilities (void)
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
 	if (LINUX_KERNEL_MMR (2, 6, 26)) {
 		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
-		if (ret < 0 && errno != ENOSYS)
-			die ("prctl failed for PR_GET_SECUREBITS");
-		if (ret >= 0) {
+		if (ret < 0)
+			show ("securebits=%s", UNKNOWN_STR);
+		else {
 			struct securebits_t {
 				unsigned int securebits;
 			} flags;
