@@ -1,3 +1,9 @@
+0.18	2012-12-06
+
+	* Improvements to Apparmor+SELinux handling
+	  (Mike Miller).
+	* prctl fixes (thanks Dave Love).
+
 0.17	2012-12-06
 
 	* Further locale improvements from Dave Love.
