@@ -10,6 +10,12 @@
 	    - Remove LC_ALL.
 	  - show_locale(): Special-case handling for LC_ALL.
 
+	[ Mike Miller <mtmiller@ieee.org> ]
+	* src/procenv.c:
+	  - show_linux_security_module_context(): Check that Apparmor
+	    and SELinux are enabled before querying contexts
+	    (LP: #1086768).
+
 2012-12-02  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

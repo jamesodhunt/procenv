@@ -3126,12 +3126,17 @@ show_linux_security_module_context (void)
 {
 	char   *context = NULL;
 	char   *mode = NULL;
-	size_t  len;
 
 #if defined(HAVE_APPARMOR)
-	if (aa_gettaskcon (user.pid, &context, &mode) < 0)
-		die ("failed to query AppArmor context");
-
+	if (aa_is_enabled ())
+		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
+			die ("failed to query AppArmor context");
+#endif
+#if defined(HAVE_SELINUX)
+	if (is_selinux_enabled ())
+		if (getpidcon (user.pid, &context) < 0)
+			die ("failed to query SELinux context");
+#endif
 	if (context) {
 		if (mode)
 			show ("LSM context: %s (%s)", context, mode);
@@ -3140,20 +3145,6 @@ show_linux_security_module_context (void)
 	} else
 		show ("LSM context: %s", UNKNOWN_STR);
 
-#elif defined(HAVE_SELINUX)
-	if (getpidcon (user.pid, &context) < 0)
-		die ("failed to query SELinux context");
-
-	len = strlen (context);
-
-	/* don't show trailing NL */
-	show ("LSM context: %.*s",
-			len - 1,
-			context);
-
-#else
-	show ("LSM context: %s", UNKNOWN_STR);
-#endif
 	free (context);
 	free (mode);
 
