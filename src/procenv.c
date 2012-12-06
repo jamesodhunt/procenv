@@ -348,18 +348,28 @@ struct procenv_map signal_map[] = {
 
 struct procenv_map locale_map[] = {
 
+  /* The non-conditional ones are POSIX.  */
+#ifdef LC_ADDRESS
 	mk_map_entry (LC_ADDRESS),
-	mk_map_entry (LC_ALL),
+#endif
 	mk_map_entry (LC_COLLATE),
 	mk_map_entry (LC_CTYPE),
+#ifdef LC_IDENTIFICATION
 	mk_map_entry (LC_IDENTIFICATION),
+#endif
+#ifdef LC_MEASUREMENT
 	mk_map_entry (LC_MEASUREMENT),
+#endif
 	mk_map_entry (LC_MESSAGES),
 	mk_map_entry (LC_MONETARY),
 	mk_map_entry (LC_NAME),
 	mk_map_entry (LC_NUMERIC),
+#ifdef LC_PAPER
 	mk_map_entry (LC_PAPER),
+#endif
+#ifdef LC_TELEPHONE
 	mk_map_entry (LC_TELEPHONE),
+#endif
 	mk_map_entry (LC_TIME),
 
 	{ 0, NULL }
@@ -2436,6 +2446,7 @@ show_locale (void)
 	struct procenv_map *p;
 	char               *value;
 	char               *v;
+	char               *saved = NULL;
 
 	header ("locale");
 
@@ -2445,9 +2456,24 @@ show_locale (void)
 	v = getenv ("LANGUAGE");
 	show ("LANGUAGE=\"%s\"", v ? v : "");
 
+	value = setlocale (LC_ALL, "");
+	if (value) {
+		saved = strdup (value);
+		if (! saved)
+			die ("failed to allocate space for locale");
+	}
+
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
 		show ("%s=\"%s\"", p->name, value ? value : UNKNOWN_STR);
+	}
+
+	v = getenv ("LC_ALL");
+	show ("LC_ALL=\"%s\"", v ? v : "");
+
+	if (saved) {
+		(void)setlocale (LC_ALL, saved);
+		free (saved);
 	}
 }
 
