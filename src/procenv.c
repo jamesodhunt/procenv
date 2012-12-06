@@ -1936,9 +1936,9 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MMR (2, 3, 20)) {
 		const char *value;
 		rc = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (rc) {
 			case 0:
 				value = NO_STR;
@@ -1966,9 +1966,9 @@ show_linux_prctl (void)
 		const char *value;
 
 		rc = prctl (PR_GET_FPEMU, &arg2, 0, 0, 0);
-		if (rc < 0 && errno != ENOSYS && errno != EINVAL)
+		if (rc < 0)
 			value = UNKNOWN_STR;
-		if (rc >= 0) {
+		else {
 			switch (arg2) {
 			case PR_FPEMU_NOPRINT:
 				value = YES_STR;

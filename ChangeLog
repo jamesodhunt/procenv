@@ -2,6 +2,9 @@
 
 	* TODO: Updated with a couple of ideas.
 	* man/procenv.1: Formatting of "SEE ALSO" section.
+	* src/procenv.c: show_linux_prctl(): Handle all possible
+	  return scenarios to avoid random output.
+	  Thanks Dave Love (LP: #1086771).
 
 	[ Dave Love <fx@gnu.org> ]
 	* src/procenv.c:
