@@ -1690,13 +1690,8 @@ void
 get_priorities (void)
 {
 	priority.process = getpriority (PRIO_PROCESS, 0);
-	assert (priority.process != (pid_t)-1);
-
-	priority.pgrp = getpriority (PRIO_PGRP, 0);
-	assert (priority.pgrp != (pid_t)-1);
-
-	priority.user = getpriority (PRIO_USER, 0);
-	assert (priority.user != (pid_t)-1);
+	priority.pgrp    = getpriority (PRIO_PGRP   , 0);
+	priority.user    = getpriority (PRIO_USER   , 0);
 }
 
 bool
