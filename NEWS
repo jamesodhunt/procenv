@@ -1,3 +1,7 @@
+0.19	2012-12-17
+
+	* Fixed an assertion failure if running with nice -1.
+
 0.18	2012-12-06
 
 	* Improvements to Apparmor+SELinux handling
