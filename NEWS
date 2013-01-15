@@ -1,3 +1,8 @@
+0.20	2013-01-15
+
+	* Sort environment variables and groups in locale-aware fashion.
+	* FreeBSD fix for LC_NAME.
+
 0.19	2012-12-17
 
 	* Fixed an assertion failure if running with nice -1.
