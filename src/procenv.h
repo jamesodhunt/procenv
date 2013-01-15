@@ -452,7 +452,7 @@ bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
 char * get_thread_scheduler_name (int sched);
-int strcmp_compar (const void *a, const void *b);
+int qsort_compar (const void *a, const void *b);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);

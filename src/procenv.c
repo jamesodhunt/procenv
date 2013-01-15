@@ -362,7 +362,9 @@ struct procenv_map locale_map[] = {
 #endif
 	mk_map_entry (LC_MESSAGES),
 	mk_map_entry (LC_MONETARY),
+#ifdef LC_NAME
 	mk_map_entry (LC_NAME),
+#endif
 	mk_map_entry (LC_NUMERIC),
 #ifdef LC_PAPER
 	mk_map_entry (LC_PAPER),
@@ -1035,7 +1037,7 @@ show_env (void)
 		;
 
 	/* sort it */
-	qsort (env, i, sizeof (env[0]), strcmp_compar);
+	qsort (env, i, sizeof (env[0]), qsort_compar);
 
 	env = environ;
 	while (env && *env) {
@@ -1045,9 +1047,9 @@ show_env (void)
 }
 
 int
-strcmp_compar (const void *a, const void *b)
+qsort_compar (const void *a, const void *b)
 {
-	return strcmp (*(char * const *)a, *(char * const *)b);
+	return strcoll (*(char * const *)a, *(char * const *)b);
 }
 
 void
@@ -1258,7 +1260,7 @@ show_all_groups (void)
 			die ("unable to create group entry");
 	}
 
-	qsort (group_names, size, sizeof (char *), strcmp_compar);
+	qsort (group_names, size, sizeof (char *), qsort_compar);
 
 	for (i = 0; i < size; i++) {
 		if (i+1 == size)
