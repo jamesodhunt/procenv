@@ -3060,7 +3060,8 @@ show_capabilities (void)
 		show_capability (CAP_AUDIT_WRITE);
 		show_capability (CAP_AUDIT_CONTROL);
 	}
-	show_capability (CAP_SETFCAP);
+	if (LINUX_KERNEL_MMR (2, 6, 24))
+		show_capability (CAP_SETFCAP);
 	if (LINUX_KERNEL_MMR (2, 6, 25)) {
 		show_capability (CAP_MAC_OVERRIDE);
 		show_capability (CAP_MAC_ADMIN);
