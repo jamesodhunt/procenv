@@ -810,8 +810,10 @@ show_confstrs (void)
 {
 	header ("confstr");
 
-#ifdef linux
+#if defined (_CS_GNU_LIBC_VERSION)
 	show_confstr (_CS_GNU_LIBC_VERSION);
+#endif
+#if defined (_CS_GNU_LIBPTHREAD_VERSION)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
 #endif
 	show_confstr (_CS_PATH);
