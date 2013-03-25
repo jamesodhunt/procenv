@@ -823,6 +823,7 @@ void
 get_misc (void)
 {
 	misc.umask_value = umask (S_IWGRP|S_IWOTH);
+	(void)umask (misc.umask_value);
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
 #if defined (PROCENV_LINUX)
