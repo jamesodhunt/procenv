@@ -2853,8 +2853,9 @@ show_compiler (void)
 
 #ifdef __STRICT_ANSI__
 	show ("__STRICT_ANSI__: %s", DEFINED_STR);
-#endif
+#else
 	show ("__STRICT_ANSI__: %s", NOT_DEFINED_STR);
+#endif
 
 #ifdef _POSIX_C_SOURCE
 	show ("_POSIX_C_SOURCE: %lu", _POSIX_C_SOURCE);
