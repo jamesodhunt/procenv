@@ -734,13 +734,13 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_LOCKS);
 #endif
 
 	show_limit (RLIMIT_MEMLOCK);
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_MSGQUEUE);
 	show_limit (RLIMIT_NICE);
 #endif
@@ -749,7 +749,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_NPROC);
 	show_limit (RLIMIT_RSS);
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_RTPRIO);
 #endif
 
@@ -758,7 +758,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_SIGPENDING);
 #endif
 
@@ -2534,7 +2534,7 @@ get_platform (void)
 	return "GNU (Hurd)";
 #endif /* __MACH__ */
 
-#ifdef linux
+#ifdef __linux__
 
 #ifdef __FreeBSD_kernel__
 #if defined(__i386__)
@@ -2605,7 +2605,7 @@ get_platform (void)
 
 	return "Linux";
 
-#endif /* linux */
+#endif /* __linux__ */
 
 #ifdef VMS
 	return "OpenVMS";
@@ -3011,7 +3011,7 @@ dump_uname (void)
 	show ("version: %s", uts.version);
 	show ("machine: %s", uts.machine);
 
-#if defined (_GNU_SOURCE) && defined (linux)
+#if defined (_GNU_SOURCE) && defined (__linux__)
 	show ("domainname: %s", uts.domainname);
 #endif
 }

@@ -49,7 +49,7 @@
 #define PROCENV_BSD
 #endif
 
-#ifdef linux
+#ifdef __linux__
 #define PROCENV_LINUX
 #endif
 
