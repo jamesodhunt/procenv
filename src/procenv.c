@@ -734,13 +734,13 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_LOCKS);
 #endif
 
 	show_limit (RLIMIT_MEMLOCK);
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_MSGQUEUE);
 	show_limit (RLIMIT_NICE);
 #endif
@@ -749,7 +749,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_NPROC);
 	show_limit (RLIMIT_RSS);
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_RTPRIO);
 #endif
 
@@ -758,7 +758,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef linux
+#ifdef __linux__
 	show_limit (RLIMIT_SIGPENDING);
 #endif
 
@@ -810,8 +810,10 @@ show_confstrs (void)
 {
 	header ("confstr");
 
-#ifdef linux
+#if defined (_CS_GNU_LIBC_VERSION)
 	show_confstr (_CS_GNU_LIBC_VERSION);
+#endif
+#if defined (_CS_GNU_LIBPTHREAD_VERSION)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
 #endif
 	show_confstr (_CS_PATH);
@@ -821,6 +823,7 @@ void
 get_misc (void)
 {
 	misc.umask_value = umask (S_IWGRP|S_IWOTH);
+	(void)umask (misc.umask_value);
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
 #if defined (PROCENV_LINUX)
@@ -2532,7 +2535,7 @@ get_platform (void)
 	return "GNU (Hurd)";
 #endif /* __MACH__ */
 
-#ifdef linux
+#ifdef __linux__
 
 #ifdef __FreeBSD_kernel__
 #if defined(__i386__)
@@ -2603,7 +2606,7 @@ get_platform (void)
 
 	return "Linux";
 
-#endif /* linux */
+#endif /* __linux__ */
 
 #ifdef VMS
 	return "OpenVMS";
@@ -2853,8 +2856,9 @@ show_compiler (void)
 
 #ifdef __STRICT_ANSI__
 	show ("__STRICT_ANSI__: %s", DEFINED_STR);
-#endif
+#else
 	show ("__STRICT_ANSI__: %s", NOT_DEFINED_STR);
+#endif
 
 #ifdef _POSIX_C_SOURCE
 	show ("_POSIX_C_SOURCE: %lu", _POSIX_C_SOURCE);
@@ -3008,7 +3012,7 @@ dump_uname (void)
 	show ("version: %s", uts.version);
 	show ("machine: %s", uts.machine);
 
-#if defined (_GNU_SOURCE) && defined (linux)
+#if defined (_GNU_SOURCE) && defined (__linux__)
 	show ("domainname: %s", uts.domainname);
 #endif
 }
@@ -3057,7 +3061,8 @@ show_capabilities (void)
 		show_capability (CAP_AUDIT_WRITE);
 		show_capability (CAP_AUDIT_CONTROL);
 	}
-	show_capability (CAP_SETFCAP);
+	if (LINUX_KERNEL_MMR (2, 6, 24))
+		show_capability (CAP_SETFCAP);
 	if (LINUX_KERNEL_MMR (2, 6, 25)) {
 		show_capability (CAP_MAC_OVERRIDE);
 		show_capability (CAP_MAC_ADMIN);
