@@ -22,3 +22,9 @@
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
 - add in permissions for /dev/tty and fds 0-2 if they refer to devices.
+
+- ioctls
+  - ioctl(1, TIOCGWINSZ, {ws_row=57, ws_col=179, ws_xpixel=0, ws_ypixel=0})
+    - stty -a' displays these details.
+    - how portable is it? (ioctl_list(2))
+  - TIOCGLCKTRMIOS: 
