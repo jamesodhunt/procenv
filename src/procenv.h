@@ -182,6 +182,7 @@
 
 #define YES_STR          _("yes")
 #define NO_STR           _("no")
+#define NON_STR          _("non")
 #define NA_STR           _("n/a")
 #define UNKNOWN_STR      _("unknown")
 #define MAX_STR          _(" (max)")
@@ -189,6 +190,7 @@
 #define NOT_DEFINED_STR  _("not defined")
 #define BIG_STR          _("big")
 #define LITTLE_STR       _("little")
+#define PRIVILEGED_STR   _("privileged")
 
 #if defined (PROCENV_BSD)
 		/* SIGTHL is hidden by default */
@@ -239,8 +241,33 @@
 #define show_const(t, flag, constant) \
     show ("%s:%s=%d", #flag, #constant, !!(t.flag & constant))
 
-#define show_cc(t, elem) \
+/* FIXME:
+ *
+ * show_cc_tty() and show_const_tty() are alas completely gross atm as
+ * they reference a local variable (lock_status) in show_tty_attrs().
+ */
+#ifdef PROCENV_LINUX
+#define show_cc_tty(t, elem) \
+    show ("  c_cc[%s]:0x%x%s", \
+	#elem, \
+	t.c_cc[elem], \
+	lock_status.c_cc[elem] ? " (locked)" : "");
+#else /* ! PROCENV_LINUX */
+#define show_cc_tty(t, elem) \
     show ("  c_cc[%s]:0x%x", #elem, t.c_cc[elem]);
+#endif /* PROCENV_LINUX */
+
+#ifdef PROCENV_LINUX
+#define show_const_tty(t, flag, constant) \
+	show ("%s:%s=%d%s", \
+		#flag, \
+		#constant, \
+		!!(t.flag & constant), \
+		!!(lock_status.flag) ? " (locked)" : "")
+#else /* ! PROCENV_LINUX */
+#define show_const_tty(t, flag, constant) \
+	show_const (t, flag, constant)
+#endif /* PROCENV_LINUX */
 
 #define show_pathconf(what, path, name) \
 { \
@@ -456,6 +483,7 @@ int qsort_compar (const void *a, const void *b);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);
+void get_tty_locked_status (struct termios *lock_status);
 void dump_linux_proc_fds (void);
 void show_linux_cgroups (void);
 void show_oom (void);

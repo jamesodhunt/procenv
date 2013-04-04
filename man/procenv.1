@@ -199,9 +199,11 @@ See
 .\"
 .TP
 \fB\-t\fR, \fB\-\-tty\fR
-Display terminal details.
+Display terminal details. On Linux, will also show if any attributes are
+locked when running as
+.IR root "."
 See
-.BR tcgetattr (3) "" .
+.BR tcgetattr (3) "" " and " "" " " tty_ioctl (4) "" " (Linux)."
 .PP
 .\"
 .TP

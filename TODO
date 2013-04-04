@@ -6,7 +6,7 @@
 - show_time(): Add ISO time and timezone details to "ISO" output.
 - add to show_sizeof():
   - intN_t group   
-- i18n
+- i18n (gettext)
 - don't hide any option that a particular O/S / arch doesn't
   have: show the option with a value of `UNKNOWN_STR'.
 - allow data to be dumped in JSON and XML by implementing a keyvalue()
@@ -22,9 +22,3 @@
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
 - add in permissions for /dev/tty and fds 0-2 if they refer to devices.
-
-- ioctls
-  - ioctl(1, TIOCGWINSZ, {ws_row=57, ws_col=179, ws_xpixel=0, ws_ypixel=0})
-    - stty -a' displays these details.
-    - how portable is it? (ioctl_list(2))
-  - TIOCGLCKTRMIOS: 

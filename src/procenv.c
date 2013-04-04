@@ -600,6 +600,12 @@ header (const char *fmt, ...)
 {
 	char     buffer[PROCENV_BUFFER];
 	va_list  ap;
+	size_t   bytes;
+	size_t   ret;
+
+	bytes = sizeof (buffer);
+
+	memset (buffer, '\0', sizeof (buffer));
 
 	/* Don't display header if user has specified what to display as
 	 * only 1 group of information will be displayed (so a header is
@@ -610,9 +616,16 @@ header (const char *fmt, ...)
 
 	/* append colon */
 	va_start (ap, fmt);
-	vsprintf (buffer, fmt, ap);
-	strncat (buffer, ":", sizeof (buffer));
+	ret = vsprintf (buffer, fmt, ap);
+	assert (ret);
+
+	bytes -= ret;
+	bytes--;
+
+	strncat (buffer, ":", bytes);
 	va_end (ap);
+
+	buffer[sizeof (buffer) - 1] = '\0';
 
 	_show ("", 0, buffer);
 }
@@ -734,13 +747,13 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef __linux__
+#if defined (PROCENV_LINUX)
 	show_limit (RLIMIT_LOCKS);
 #endif
 
 	show_limit (RLIMIT_MEMLOCK);
 
-#ifdef __linux__
+#if defined (PROCENV_LINUX)
 	show_limit (RLIMIT_MSGQUEUE);
 	show_limit (RLIMIT_NICE);
 #endif
@@ -749,7 +762,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_NPROC);
 	show_limit (RLIMIT_RSS);
 
-#ifdef __linux__
+#if defined (PROCENV_LINUX)
 	show_limit (RLIMIT_RTPRIO);
 #endif
 
@@ -758,7 +771,7 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTTIME);
 #endif
 
-#ifdef __linux__
+#if defined (PROCENV_LINUX)
 	show_limit (RLIMIT_SIGPENDING);
 #endif
 
@@ -1340,6 +1353,9 @@ dump_meta (void)
 	header (PACKAGE_NAME);
 
 	show ("version: %s", PACKAGE_STRING);
+	show ("mode: %s%s",
+			user.euid ? _(NON_STR) "-" : "",
+			PRIVILEGED_STR);
 }
 
 void
@@ -2248,8 +2264,10 @@ show_linux_proc_branch (void)
 		sprintf (path, "/proc/%s/status", pid);
 
 		f = fopen (path, "r");
-		if (! f)
+		if (! f) {
+			free (str);
 			return;
+		}
 
 		while (fgets (buffer, sizeof (buffer), f)) {
 			len = strlen (buffer);
@@ -2296,13 +2314,16 @@ show_linux_proc_branch (void)
 void
 show_tty_attrs (void)
 {
-	struct termios tty;
-	int            ret;
-	int            fds[4] = { -1, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
+	struct termios  tty;
+#ifdef PROCENV_LINUX
+	struct termios  lock_status;
+#endif
+	struct winsize  size;
+	int             ret;
+	int             fds[4] = { -1, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
+	int             i;
 
 	fds[0] = user.tty_fd;
-
-	int i;
 
 	header ("tty");
 
@@ -2324,49 +2345,53 @@ work:
 
 	user.tty_fd = fds[i];
 
+#ifdef PROCENV_LINUX
+	get_tty_locked_status (&lock_status);
+#endif
+
 	show ("c_iflag=0x%x", tty.c_iflag);
 
-	show_const (tty, c_iflag, IGNBRK);
-	show_const (tty, c_iflag, BRKINT);
-	show_const (tty, c_iflag, IGNPAR);
-	show_const (tty, c_iflag, PARMRK);
-	show_const (tty, c_iflag, INPCK);
-	show_const (tty, c_iflag, ISTRIP);
-	show_const (tty, c_iflag, INLCR);
-	show_const (tty, c_iflag, IGNCR);
-	show_const (tty, c_iflag, ICRNL);
+	show_const_tty (tty, c_iflag, IGNBRK);
+	show_const_tty (tty, c_iflag, BRKINT);
+	show_const_tty (tty, c_iflag, IGNPAR);
+	show_const_tty (tty, c_iflag, PARMRK);
+	show_const_tty (tty, c_iflag, INPCK);
+	show_const_tty (tty, c_iflag, ISTRIP);
+	show_const_tty (tty, c_iflag, INLCR);
+	show_const_tty (tty, c_iflag, IGNCR);
+	show_const_tty (tty, c_iflag, ICRNL);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_iflag, IUCLC);
+	show_const_tty (tty, c_iflag, IUCLC);
 #endif
-	show_const (tty, c_iflag, IXON);
-	show_const (tty, c_iflag, IXANY);
-	show_const (tty, c_iflag, IXOFF);
-	show_const (tty, c_iflag, IMAXBEL);
+	show_const_tty (tty, c_iflag, IXON);
+	show_const_tty (tty, c_iflag, IXANY);
+	show_const_tty (tty, c_iflag, IXOFF);
+	show_const_tty (tty, c_iflag, IMAXBEL);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_iflag, IUTF8);
+	show_const_tty (tty, c_iflag, IUTF8);
 #endif
 
 	show ("c_oflag=0x%x", tty.c_oflag);
 
-	show_const (tty, c_oflag, OPOST);
+	show_const_tty (tty, c_oflag, OPOST);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_oflag, OLCUC);
+	show_const_tty (tty, c_oflag, OLCUC);
 #endif
-	show_const (tty, c_oflag, ONLCR);
-	show_const (tty, c_oflag, OCRNL);
-	show_const (tty, c_oflag, ONOCR);
-	show_const (tty, c_oflag, ONLRET);
+	show_const_tty (tty, c_oflag, ONLCR);
+	show_const_tty (tty, c_oflag, OCRNL);
+	show_const_tty (tty, c_oflag, ONOCR);
+	show_const_tty (tty, c_oflag, ONLRET);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_oflag, OFILL);
-	show_const (tty, c_oflag, OFDEL);
-	show_const (tty, c_oflag, NLDLY);
-	show_const (tty, c_oflag, CRDLY);
+	show_const_tty (tty, c_oflag, OFILL);
+	show_const_tty (tty, c_oflag, OFDEL);
+	show_const_tty (tty, c_oflag, NLDLY);
+	show_const_tty (tty, c_oflag, CRDLY);
 #endif
-	show_const (tty, c_oflag, TABDLY);
+	show_const_tty (tty, c_oflag, TABDLY);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_oflag, BSDLY);
-	show_const (tty, c_oflag, VTDLY);
-	show_const (tty, c_oflag, FFDLY);
+	show_const_tty (tty, c_oflag, BSDLY);
+	show_const_tty (tty, c_oflag, VTDLY);
+	show_const_tty (tty, c_oflag, FFDLY);
 #endif
 
 	show ("c_cflag=0x%x", tty.c_cflag);
@@ -2378,67 +2403,74 @@ work:
 			get_speed (cfgetospeed (&tty)));
 
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_cflag, CBAUDEX);
+	show_const_tty (tty, c_cflag, CBAUDEX);
 #endif
-	show_const (tty, c_cflag, CSIZE);
-	show_const (tty, c_cflag, CSTOPB);
-	show_const (tty, c_cflag, CREAD);
-	show_const (tty, c_cflag, PARENB);
-	show_const (tty, c_cflag, PARODD);
-	show_const (tty, c_cflag, HUPCL);
-	show_const (tty, c_cflag, CLOCAL);
+	show_const_tty (tty, c_cflag, CSIZE);
+	show_const_tty (tty, c_cflag, CSTOPB);
+	show_const_tty (tty, c_cflag, CREAD);
+	show_const_tty (tty, c_cflag, PARENB);
+	show_const_tty (tty, c_cflag, PARODD);
+	show_const_tty (tty, c_cflag, HUPCL);
+	show_const_tty (tty, c_cflag, CLOCAL);
 #if defined (PROCENV_LINUX)
 #ifdef CIBAUD
-	show_const (tty, c_cflag, CIBAUD);
+	show_const_tty (tty, c_cflag, CIBAUD);
 #endif
 #ifdef CMSPAR
-	show_const (tty, c_cflag, CMSPAR);
+	show_const_tty (tty, c_cflag, CMSPAR);
 #endif
 #endif
-	show_const (tty, c_cflag, CRTSCTS);
+	show_const_tty (tty, c_cflag, CRTSCTS);
 
 	show ("c_lflag=0x%x", tty.c_lflag);
 
-	show_const (tty, c_lflag, ISIG);
+	show_const_tty (tty, c_lflag, ISIG);
 #if defined (PROCENV_LINUX)
-	show_const (tty, c_lflag, XCASE);
+	show_const_tty (tty, c_lflag, XCASE);
 #endif
-	show_const (tty, c_lflag, ICANON);
-	show_const (tty, c_lflag, ECHO);
-	show_const (tty, c_lflag, ECHOE);
-	show_const (tty, c_lflag, ECHOK);
-	show_const (tty, c_lflag, ECHONL);
-	show_const (tty, c_lflag, ECHOCTL);
-	show_const (tty, c_lflag, ECHOPRT);
-	show_const (tty, c_lflag, ECHOKE);
-	show_const (tty, c_lflag, FLUSHO);
-	show_const (tty, c_lflag, NOFLSH);
-	show_const (tty, c_lflag, TOSTOP);
-	show_const (tty, c_lflag, PENDIN);
-	show_const (tty, c_lflag, IEXTEN);
+	show_const_tty (tty, c_lflag, ICANON);
+	show_const_tty (tty, c_lflag, ECHO);
+	show_const_tty (tty, c_lflag, ECHOE);
+	show_const_tty (tty, c_lflag, ECHOK);
+	show_const_tty (tty, c_lflag, ECHONL);
+	show_const_tty (tty, c_lflag, ECHOCTL);
+	show_const_tty (tty, c_lflag, ECHOPRT);
+	show_const_tty (tty, c_lflag, ECHOKE);
+	show_const_tty (tty, c_lflag, FLUSHO);
+	show_const_tty (tty, c_lflag, NOFLSH);
+	show_const_tty (tty, c_lflag, TOSTOP);
+	show_const_tty (tty, c_lflag, PENDIN);
+	show_const_tty (tty, c_lflag, IEXTEN);
 
 	show ("c_cc:");
 
-	show_cc (tty, VINTR);
-	show_cc (tty, VQUIT);
-	show_cc (tty, VERASE);
-	show_cc (tty, VKILL);
-	show_cc (tty, VEOF);
-	show_cc (tty, VTIME);
-	show_cc (tty, VMIN);
+	show_cc_tty (tty, VINTR);
+	show_cc_tty (tty, VQUIT);
+	show_cc_tty (tty, VERASE);
+	show_cc_tty (tty, VKILL);
+	show_cc_tty (tty, VEOF);
+	show_cc_tty (tty, VTIME);
+	show_cc_tty (tty, VMIN);
 #if defined (PROCENV_LINUX)
-	show_cc (tty, VSWTC);
+	show_cc_tty (tty, VSWTC);
 #endif
-	show_cc (tty, VSTART);
-	show_cc (tty, VSTOP);
-	show_cc (tty, VSUSP);
-	show_cc (tty, VEOL);
-	show_cc (tty, VREPRINT);
-	show_cc (tty, VDISCARD);
-	show_cc (tty, VWERASE);
-	show_cc (tty, VLNEXT);
-	show_cc (tty, VEOL2);
+	show_cc_tty (tty, VSTART);
+	show_cc_tty (tty, VSTOP);
+	show_cc_tty (tty, VSUSP);
+	show_cc_tty (tty, VEOL);
+	show_cc_tty (tty, VREPRINT);
+	show_cc_tty (tty, VDISCARD);
+	show_cc_tty (tty, VWERASE);
+	show_cc_tty (tty, VLNEXT);
+	show_cc_tty (tty, VEOL2);
 
+	if (ioctl (user.tty_fd, TIOCGWINSZ, &size) < 0)
+		die ("failed to determine terminal dimensions");
+
+	show ("winsize:ws_row=%u", size.ws_row);
+	show ("winsize:ws_col=%u", size.ws_col);
+	show ("winsize:ws_xpixel=%u", size.ws_xpixel);
+	show ("winsize:ws_ypixel=%u", size.ws_ypixel);
 }
 
 void
@@ -2535,7 +2567,7 @@ get_platform (void)
 	return "GNU (Hurd)";
 #endif /* __MACH__ */
 
-#ifdef __linux__
+#ifdef PROCENV_LINUX
 
 #ifdef __FreeBSD_kernel__
 #if defined(__i386__)
@@ -2606,7 +2638,7 @@ get_platform (void)
 
 	return "Linux";
 
-#endif /* __linux__ */
+#endif /* PROCENV_LINUX */
 
 #ifdef VMS
 	return "OpenVMS";
@@ -3012,7 +3044,7 @@ dump_uname (void)
 	show ("version: %s", uts.version);
 	show ("machine: %s", uts.machine);
 
-#if defined (_GNU_SOURCE) && defined (__linux__)
+#if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
 	show ("domainname: %s", uts.domainname);
 #endif
 }
@@ -3205,13 +3237,17 @@ dump_linux_proc_fds (void)
 	{
 		int fd;
 
-		if ( !strcmp (ent->d_name, ".") || !strcmp (ent->d_name, "..") )
+		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
 			continue;
 
 		sprintf (path, "%s/%s", prefix_path, ent->d_name);
 		fd = atoi (ent->d_name);
 
-		len = readlink (path, link, sizeof (link));
+		len = readlink (path, link, sizeof (link)-1);
+		if (len < 0)
+			/* ignore errors */
+			continue;
+
 		assert (len);
 		link[len] = '\0';
 
@@ -3325,13 +3361,27 @@ unknown_sched_cpu:
 void
 get_root (char *root, size_t len)
 {
-	char self[] = "/proc/self/root";
-	ssize_t bytes = readlink (self, root, len);
+	char     self[] = "/proc/self/root";
+	ssize_t  bytes;
+
+	assert (root);
+
+	bytes = readlink (self, root, len);
 	assert (bytes != -1);
 	root[bytes] = '\0';
 }
 
-#endif
+void
+get_tty_locked_status (struct termios *lock_status)
+{
+	assert (lock_status);
+	assert (user.tty_fd != -1);
+
+	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0)
+		die ("failed to query terminal lock status");
+}
+
+#endif /* PROCENV_LINUX */
 
 bool
 has_ctty (void)
@@ -3528,12 +3578,27 @@ get_path (const char *argv0)
 		/* absolute path */
 		return strdup (argv0);
 	} else if (slash) {
-		char cwd[PATH_MAX];
+		char    cwd[PATH_MAX];
+		size_t  bytes;
+		size_t  len;
+		int     ret;
+
+		memset (cwd, '\0', sizeof (cwd));
+
+		bytes = sizeof (cwd);
 
 		/* relative path */
-		assert (getcwd (cwd, sizeof (cwd)));
-		strcat (cwd, "/");
-		strcat (cwd, argv0);
+		assert (getcwd (cwd, bytes));
+		len = strlen (cwd);
+
+		bytes -= len;
+
+		strncat (cwd, "/", bytes);
+
+		bytes -= strlen ("/");
+
+		strncat (cwd, argv0, bytes);
+		cwd[sizeof (cwd) - 1] = '\0';
 
 		if (! stat (cwd, &statbuf))
 			return strdup (cwd);
@@ -3546,7 +3611,7 @@ get_path (const char *argv0)
 	assert (path);
 
 	tmp = path;
-	for(element = strsep (&tmp, ":");
+	for (element = strsep (&tmp, ":");
 			element;            
 			element = strsep (&tmp, ":")) {
 
