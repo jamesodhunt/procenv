@@ -1,3 +1,13 @@
+2013-04-07  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_tty_attrs():
+	  - Clear lock status for all non-linux platforms.
+	  - Update calls to show_const_tty() and show_cc_tty() passing
+	    lock_status as a parameter.
+	* src/procenv.h:
+	  - show_cc_tty(): Pass lock status as a parameter. Comment header.
+	  - show_const_tty(): Pass lock status as a parameter. Comment header.
+
 2013-04-04  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

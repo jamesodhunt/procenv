@@ -2315,15 +2315,18 @@ void
 show_tty_attrs (void)
 {
 	struct termios  tty;
-#ifdef PROCENV_LINUX
 	struct termios  lock_status;
-#endif
 	struct winsize  size;
 	int             ret;
 	int             fds[4] = { -1, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
 	int             i;
 
 	fds[0] = user.tty_fd;
+
+	/* For non-Linux platforms, this will force the lock
+	 * status to be unlocked.
+	 */
+	memset (&lock_status, '\0', sizeof (lock_status));
 
 	header ("tty");
 
@@ -2351,47 +2354,47 @@ work:
 
 	show ("c_iflag=0x%x", tty.c_iflag);
 
-	show_const_tty (tty, c_iflag, IGNBRK);
-	show_const_tty (tty, c_iflag, BRKINT);
-	show_const_tty (tty, c_iflag, IGNPAR);
-	show_const_tty (tty, c_iflag, PARMRK);
-	show_const_tty (tty, c_iflag, INPCK);
-	show_const_tty (tty, c_iflag, ISTRIP);
-	show_const_tty (tty, c_iflag, INLCR);
-	show_const_tty (tty, c_iflag, IGNCR);
-	show_const_tty (tty, c_iflag, ICRNL);
+	show_const_tty (tty, c_iflag, IGNBRK, lock_status);
+	show_const_tty (tty, c_iflag, BRKINT, lock_status);
+	show_const_tty (tty, c_iflag, IGNPAR, lock_status);
+	show_const_tty (tty, c_iflag, PARMRK, lock_status);
+	show_const_tty (tty, c_iflag, INPCK, lock_status);
+	show_const_tty (tty, c_iflag, ISTRIP, lock_status);
+	show_const_tty (tty, c_iflag, INLCR, lock_status);
+	show_const_tty (tty, c_iflag, IGNCR, lock_status);
+	show_const_tty (tty, c_iflag, ICRNL, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_iflag, IUCLC);
+	show_const_tty (tty, c_iflag, IUCLC, lock_status);
 #endif
-	show_const_tty (tty, c_iflag, IXON);
-	show_const_tty (tty, c_iflag, IXANY);
-	show_const_tty (tty, c_iflag, IXOFF);
-	show_const_tty (tty, c_iflag, IMAXBEL);
+	show_const_tty (tty, c_iflag, IXON, lock_status);
+	show_const_tty (tty, c_iflag, IXANY, lock_status);
+	show_const_tty (tty, c_iflag, IXOFF, lock_status);
+	show_const_tty (tty, c_iflag, IMAXBEL, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_iflag, IUTF8);
+	show_const_tty (tty, c_iflag, IUTF8, lock_status);
 #endif
 
 	show ("c_oflag=0x%x", tty.c_oflag);
 
-	show_const_tty (tty, c_oflag, OPOST);
+	show_const_tty (tty, c_oflag, OPOST, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_oflag, OLCUC);
+	show_const_tty (tty, c_oflag, OLCUC, lock_status);
 #endif
-	show_const_tty (tty, c_oflag, ONLCR);
-	show_const_tty (tty, c_oflag, OCRNL);
-	show_const_tty (tty, c_oflag, ONOCR);
-	show_const_tty (tty, c_oflag, ONLRET);
+	show_const_tty (tty, c_oflag, ONLCR, lock_status);
+	show_const_tty (tty, c_oflag, OCRNL, lock_status);
+	show_const_tty (tty, c_oflag, ONOCR, lock_status);
+	show_const_tty (tty, c_oflag, ONLRET, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_oflag, OFILL);
-	show_const_tty (tty, c_oflag, OFDEL);
-	show_const_tty (tty, c_oflag, NLDLY);
-	show_const_tty (tty, c_oflag, CRDLY);
+	show_const_tty (tty, c_oflag, OFILL, lock_status);
+	show_const_tty (tty, c_oflag, OFDEL, lock_status);
+	show_const_tty (tty, c_oflag, NLDLY, lock_status);
+	show_const_tty (tty, c_oflag, CRDLY, lock_status);
 #endif
-	show_const_tty (tty, c_oflag, TABDLY);
+	show_const_tty (tty, c_oflag, TABDLY, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_oflag, BSDLY);
-	show_const_tty (tty, c_oflag, VTDLY);
-	show_const_tty (tty, c_oflag, FFDLY);
+	show_const_tty (tty, c_oflag, BSDLY, lock_status);
+	show_const_tty (tty, c_oflag, VTDLY, lock_status);
+	show_const_tty (tty, c_oflag, FFDLY, lock_status);
 #endif
 
 	show ("c_cflag=0x%x", tty.c_cflag);
@@ -2403,66 +2406,66 @@ work:
 			get_speed (cfgetospeed (&tty)));
 
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_cflag, CBAUDEX);
+	show_const_tty (tty, c_cflag, CBAUDEX, lock_status);
 #endif
-	show_const_tty (tty, c_cflag, CSIZE);
-	show_const_tty (tty, c_cflag, CSTOPB);
-	show_const_tty (tty, c_cflag, CREAD);
-	show_const_tty (tty, c_cflag, PARENB);
-	show_const_tty (tty, c_cflag, PARODD);
-	show_const_tty (tty, c_cflag, HUPCL);
-	show_const_tty (tty, c_cflag, CLOCAL);
+	show_const_tty (tty, c_cflag, CSIZE, lock_status);
+	show_const_tty (tty, c_cflag, CSTOPB, lock_status);
+	show_const_tty (tty, c_cflag, CREAD, lock_status);
+	show_const_tty (tty, c_cflag, PARENB, lock_status);
+	show_const_tty (tty, c_cflag, PARODD, lock_status);
+	show_const_tty (tty, c_cflag, HUPCL, lock_status);
+	show_const_tty (tty, c_cflag, CLOCAL, lock_status);
 #if defined (PROCENV_LINUX)
 #ifdef CIBAUD
-	show_const_tty (tty, c_cflag, CIBAUD);
+	show_const_tty (tty, c_cflag, CIBAUD, lock_status);
 #endif
 #ifdef CMSPAR
-	show_const_tty (tty, c_cflag, CMSPAR);
+	show_const_tty (tty, c_cflag, CMSPAR, lock_status);
 #endif
 #endif
-	show_const_tty (tty, c_cflag, CRTSCTS);
+	show_const_tty (tty, c_cflag, CRTSCTS, lock_status);
 
 	show ("c_lflag=0x%x", tty.c_lflag);
 
-	show_const_tty (tty, c_lflag, ISIG);
+	show_const_tty (tty, c_lflag, ISIG, lock_status);
 #if defined (PROCENV_LINUX)
-	show_const_tty (tty, c_lflag, XCASE);
+	show_const_tty (tty, c_lflag, XCASE, lock_status);
 #endif
-	show_const_tty (tty, c_lflag, ICANON);
-	show_const_tty (tty, c_lflag, ECHO);
-	show_const_tty (tty, c_lflag, ECHOE);
-	show_const_tty (tty, c_lflag, ECHOK);
-	show_const_tty (tty, c_lflag, ECHONL);
-	show_const_tty (tty, c_lflag, ECHOCTL);
-	show_const_tty (tty, c_lflag, ECHOPRT);
-	show_const_tty (tty, c_lflag, ECHOKE);
-	show_const_tty (tty, c_lflag, FLUSHO);
-	show_const_tty (tty, c_lflag, NOFLSH);
-	show_const_tty (tty, c_lflag, TOSTOP);
-	show_const_tty (tty, c_lflag, PENDIN);
-	show_const_tty (tty, c_lflag, IEXTEN);
+	show_const_tty (tty, c_lflag, ICANON, lock_status);
+	show_const_tty (tty, c_lflag, ECHO, lock_status);
+	show_const_tty (tty, c_lflag, ECHOE, lock_status);
+	show_const_tty (tty, c_lflag, ECHOK, lock_status);
+	show_const_tty (tty, c_lflag, ECHONL, lock_status);
+	show_const_tty (tty, c_lflag, ECHOCTL, lock_status);
+	show_const_tty (tty, c_lflag, ECHOPRT, lock_status);
+	show_const_tty (tty, c_lflag, ECHOKE, lock_status);
+	show_const_tty (tty, c_lflag, FLUSHO, lock_status);
+	show_const_tty (tty, c_lflag, NOFLSH, lock_status);
+	show_const_tty (tty, c_lflag, TOSTOP, lock_status);
+	show_const_tty (tty, c_lflag, PENDIN, lock_status);
+	show_const_tty (tty, c_lflag, IEXTEN, lock_status);
 
 	show ("c_cc:");
 
-	show_cc_tty (tty, VINTR);
-	show_cc_tty (tty, VQUIT);
-	show_cc_tty (tty, VERASE);
-	show_cc_tty (tty, VKILL);
-	show_cc_tty (tty, VEOF);
-	show_cc_tty (tty, VTIME);
-	show_cc_tty (tty, VMIN);
+	show_cc_tty (tty, VINTR, lock_status);
+	show_cc_tty (tty, VQUIT, lock_status);
+	show_cc_tty (tty, VERASE, lock_status);
+	show_cc_tty (tty, VKILL, lock_status);
+	show_cc_tty (tty, VEOF, lock_status);
+	show_cc_tty (tty, VTIME, lock_status);
+	show_cc_tty (tty, VMIN, lock_status);
 #if defined (PROCENV_LINUX)
-	show_cc_tty (tty, VSWTC);
+	show_cc_tty (tty, VSWTC, lock_status);
 #endif
-	show_cc_tty (tty, VSTART);
-	show_cc_tty (tty, VSTOP);
-	show_cc_tty (tty, VSUSP);
-	show_cc_tty (tty, VEOL);
-	show_cc_tty (tty, VREPRINT);
-	show_cc_tty (tty, VDISCARD);
-	show_cc_tty (tty, VWERASE);
-	show_cc_tty (tty, VLNEXT);
-	show_cc_tty (tty, VEOL2);
+	show_cc_tty (tty, VSTART, lock_status);
+	show_cc_tty (tty, VSTOP, lock_status);
+	show_cc_tty (tty, VSUSP, lock_status);
+	show_cc_tty (tty, VEOL, lock_status);
+	show_cc_tty (tty, VREPRINT, lock_status);
+	show_cc_tty (tty, VDISCARD, lock_status);
+	show_cc_tty (tty, VWERASE, lock_status);
+	show_cc_tty (tty, VLNEXT, lock_status);
+	show_cc_tty (tty, VEOL2, lock_status);
 
 	if (ioctl (user.tty_fd, TIOCGWINSZ, &size) < 0)
 		die ("failed to determine terminal dimensions");

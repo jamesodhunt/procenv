@@ -241,33 +241,33 @@
 #define show_const(t, flag, constant) \
     show ("%s:%s=%d", #flag, #constant, !!(t.flag & constant))
 
-/* FIXME:
+/**
+ * Show a terminal special characters attribute.
  *
- * show_cc_tty() and show_const_tty() are alas completely gross atm as
- * they reference a local variable (lock_status) in show_tty_attrs().
- */
-#ifdef PROCENV_LINUX
-#define show_cc_tty(t, elem) \
+ * t: struct termios,
+ * elem: element of c_cc array,
+ * lock_status: struct termios representing lock status of @t.
+ **/
+#define show_cc_tty(t, elem, lock_status) \
     show ("  c_cc[%s]:0x%x%s", \
 	#elem, \
 	t.c_cc[elem], \
 	lock_status.c_cc[elem] ? " (locked)" : "");
-#else /* ! PROCENV_LINUX */
-#define show_cc_tty(t, elem) \
-    show ("  c_cc[%s]:0x%x", #elem, t.c_cc[elem]);
-#endif /* PROCENV_LINUX */
 
-#ifdef PROCENV_LINUX
-#define show_const_tty(t, flag, constant) \
+/**
+ * Show a terminal attribute constant value.
+ *
+ * t: struct termios,
+ * flag: name of attribute,
+ * constant: value of @flag,
+ * lock_status: struct termios representing lock status of @t.
+ **/
+#define show_const_tty(t, flag, constant, lock_status) \
 	show ("%s:%s=%d%s", \
 		#flag, \
 		#constant, \
 		!!(t.flag & constant), \
 		!!(lock_status.flag) ? " (locked)" : "")
-#else /* ! PROCENV_LINUX */
-#define show_const_tty(t, flag, constant) \
-	show_const (t, flag, constant)
-#endif /* PROCENV_LINUX */
 
 #define show_pathconf(what, path, name) \
 { \
