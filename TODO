@@ -6,7 +6,7 @@
 - show_time(): Add ISO time and timezone details to "ISO" output.
 - add to show_sizeof():
   - intN_t group   
-- i18n
+- i18n (gettext)
 - don't hide any option that a particular O/S / arch doesn't
   have: show the option with a value of `UNKNOWN_STR'.
 - allow data to be dumped in JSON and XML by implementing a keyvalue()
