@@ -1,3 +1,9 @@
+0.21	2013-04-07
+
+	* Various improvements from Mike Miller including umask
+	  restoration fix.
+	* Display terminal attribute locked status (Linux only).
+
 0.20	2013-01-15
 
 	* Sort environment variables and groups in locale-aware fashion.
