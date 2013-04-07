@@ -1,3 +1,32 @@
+2013-04-07  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_tty_attrs():
+	  - Clear lock status for all non-linux platforms.
+	  - Update calls to show_const_tty() and show_cc_tty() passing
+	    lock_status as a parameter.
+	* src/procenv.h:
+	  - show_cc_tty(): Pass lock status as a parameter. Comment header.
+	  - show_const_tty(): Pass lock status as a parameter. Comment header.
+
+2013-04-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - Changed __linux__ to PROCENV_LINUX.
+	  - header(): Fix possible buffer overflow.
+	  - dump_meta(): Added a "mode" value showing if running
+	    privileged or non-privileged (the former showing potentially
+	    more information).
+	  - show_tty_attrs():
+	    - Now shows individual locked tty attributes
+	      when running in privileged mode.
+	    - Added winsize attributes.
+	  - get_tty_locked_status(): New function.
+	* man/procenv.1: Update for --tty.
+
+2013-03-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* Merge of lp:~mtmiller/procenv/portability-bug-fixes.
+
 2013-01-10  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: Updated.
