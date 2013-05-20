@@ -1,7 +1,6 @@
 # TODO
 
 - networking details
-- add arguments to show_proc_branch()?
 - add statfs(2)
 - show_time(): Add ISO time and timezone details to "ISO" output.
 - add to show_sizeof():
@@ -16,9 +15,11 @@
 - uptime (using utmp)?
 - text/data/bss/stack details (end(3), sbrk(2))
 - add program arguments to show_misc().
+- add process arguments to show_proc_branch()?
 - sort output of show_mounts().
 - use CPUID instruction to detect XEN environments?
 - use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
 - add in permissions for /dev/tty and fds 0-2 if they refer to devices.
+- ELF details.
