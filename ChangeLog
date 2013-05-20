@@ -1,3 +1,20 @@
+2013-05-17  James Hunt  <james.hunt@ubuntu.com>
+
+* man/procenv.1: Added -P/--platform option.
+* src/procenv.c:
+  - usage(): Added -P/--platform option.
+  - dump_misc(): Move platforms bits to dump_platform().
+  - dump_platform(): New function:
+  - dump(): Call dump_platform().
+    - show executable bits.
+    - Call show_data_model().
+    - Call get_os() and get_arch().
+  - get_platform(): Removed.
+  - get_os(): New function.
+  - get_arch(): New function (includes support for x32).
+  - show_data_model(): New function.
+  - main(): Added -P/--platform option.
+
 2013-04-07  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c: show_tty_attrs():

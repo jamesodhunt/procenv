@@ -434,6 +434,7 @@ usage (void)
 	show ("                      terminal # write to terminal.");
 	show ("");
 	show ("  -p, --proc[ess]     : Display process details.");
+	show ("  -P, --platform      : Display platform details.");
 	show ("  -q, --time          : Display time details.");
 	show ("  -r, --range[s]      : Display range of data types.");
 	show ("  -s, --signal[s]     : Display signal details.");
@@ -956,8 +957,6 @@ dump_priorities (void)
 void
 dump_misc (void)
 {
-	long            bits;
-
 	header ("misc");
 
 	show ("umask: %4.4o", misc.umask_value);
@@ -966,8 +965,6 @@ dump_misc (void)
 	show ("root: '%s'", misc.root);
 #endif
 	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
-	show ("code endian: %s",
-		is_big_endian () ? BIG_STR : LITTLE_STR);
 #if defined (PROCENV_LINUX)
 	show_linux_prctl ();
 	show_linux_security_module ();
@@ -979,13 +976,7 @@ dump_misc (void)
 	dump_priorities ();
 	show ("memory page size: %d bytes", getpagesize ());
 
-	show ("platform: %s", get_platform ());
-	bits = get_kernel_bits ();
 
-	if (bits == -1)
-		show ("kernel bits: %s", UNKNOWN_STR);
-	else
-		show ("kernel bits: %ld", bits);
 
 #if defined (PROCENV_LINUX)
 #ifdef LINUX_VERSION_CODE
@@ -995,6 +986,33 @@ dump_misc (void)
 			(LINUX_VERSION_CODE & 0xFF));
 #endif
 #endif
+}
+
+void
+dump_platform (void)
+{
+	long kernel_bits;
+	long executable_bits;
+
+	header ("platform");
+
+	show ("operating system: %s", get_os ());
+	show ("architecture: %s", get_arch ());
+
+	kernel_bits = get_kernel_bits ();
+
+	executable_bits = sizeof (void *) * CHAR_BIT * sizeof (char);
+
+	if (kernel_bits == -1)
+		show ("kernel bits: %s", UNKNOWN_STR);
+	else
+		show ("kernel bits: %lu", kernel_bits);
+
+	show ("executable bits: %lu", executable_bits);
+
+	show ("code endian: %s",
+		is_big_endian () ? BIG_STR : LITTLE_STR);
+	show_data_model ();
 }
 
 void
@@ -1479,6 +1497,7 @@ dump (void)
 #if defined (PROCENV_LINUX)
 	show_oom ();
 #endif
+	dump_platform ();
 	dump_user ();
 	show_ranges ();
 
@@ -2529,125 +2548,69 @@ get_signal_name (int signum)
 }
 
 /**
- * get_platform:
+ * get_os:
  *
  * Returns: static string representing best guess
- * at platform name.
+ * at operating system.
  **/
 char *
-get_platform (void)
+get_os (void)
 {
-
 #ifdef _AIX
 	return "AIX";
+#endif
+
+#ifdef __ANDROID__
+	return "Android";
 #endif
 
 #ifdef __FreeBSD__
 	return "FreeBSD";
 #endif
-#ifdef _OpenBSD__
-	return "OpenBSD";
-#endif
-#ifdef _NetBSD__
-	return "NetBSD";
+
+#if defined(__MACH__) || defined (__GNU__) || defined (__gnu_hurd__)
+	return "GNU (Hurd)";
 #endif
 
-#ifdef __hpux
+#if defined (__hpux) || defined (hpux) || defined (_hpux)
 	return "HP-UX";
 #endif
 
-#ifdef OS400
-	return "iSeries";
+#if defined (OS400) || defined (__OS400__)
+	return "iSeries (OS/400)";
 #endif
-
-#ifdef __MACH__
-#ifdef __i386__
-	return "GNU (Hurd i386)";
-#endif
-#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
-	return "GNU (Hurd x64/AMD64)";
-#endif
-	return "GNU (Hurd)";
-#endif /* __MACH__ */
 
 #ifdef PROCENV_LINUX
-
 #ifdef __FreeBSD_kernel__
-#if defined(__i386__)
-	return "Linux (kFreeBSD i386)";
+	return "Linux (kFreeBSD)";
 #endif
-#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
-	return "Linux (kFreeBSD x64/AMD64)";
-#endif
-	return "kFreeBSD";
-#endif /* __FreeBSD_kernel__*/
-
-	/* why this isn't s380z is anyones guess ;-) */
 #ifdef __s390x__
 	return "Linux (zSeries)";
 #endif
-
 #ifdef __s390__
 	return "Linux (S/390)";
-#endif
-
-#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
-	return "Linux (x64/AMD64)";
-#endif
-
-#ifdef __i386__
-	return "Linux (i386)";
-#endif
-#ifdef __powerpc__
-	return "Linux (PPC)";
-#endif
-
-#ifdef __ia64__
-	return "Linux (IA64)";
-#endif
-
-#ifdef __sparc64__
-	return "Linux (SPARC64)";
-#endif
-
-#ifdef __sparc__
-	return "Linux (SPARC)";
 #endif
 
 #ifdef __sh__
 	return "Linux (SuperH)";
 #endif
 
-#ifdef __mips__
-	return "Linux (MIPS)";
-#endif
-
-#ifdef __alpha__
-	return "Linux (Alpha)";
-#endif
-#ifdef __m68k__
-	return "Linux (m68k)";
-#endif
-
-#ifdef __arm__
-#ifdef __ARM_PCS_VFP
-	return "Linux (ARMHF)";
-#endif
-#ifdef __ARMEL__
-	return "Linux (ARMEL)";
-#endif
-	return "Linux (ARM)";
-#endif
-
 	return "Linux";
+#endif
 
-#endif /* PROCENV_LINUX */
+#ifdef _NetBSD__
+	return "NetBSD";
+#endif
+
+#ifdef _OpenBSD__
+	return "OpenBSD";
+#endif
 
 #ifdef VMS
 	return "OpenVMS";
 #endif
 
-#ifdef sun
+#if defined (sun) || defined (__sun)
 	return "Solaris";
 #endif
 
@@ -2657,6 +2620,80 @@ get_platform (void)
 
 #ifdef WINDOWS
 	return "Windows";
+#endif
+
+#ifdef __MVS__
+	return "z/OS (MVS)";
+#endif
+
+	return UNKNOWN_STR;
+}
+
+/**
+ * get_arch:
+ *
+ * Returns: static string representing best guess
+ * at architecture.
+ **/
+char *
+get_arch (void)
+{
+
+#ifdef __arm__
+#ifdef __aarch64__
+	return "ARM64";
+#endif
+#ifdef __ARM_PCS_VFP
+	return "ARMhf";
+#endif
+#ifdef __ARMEL__
+	return "ARMEL";
+#endif
+	return "ARM";
+#endif
+
+#ifdef __hppa__
+	return "HP/PA RISC";
+#endif
+
+#ifdef __i386__
+	return "i386";
+#endif
+
+#ifdef __ia64__
+	return "IA64";
+#endif
+
+#ifdef __mips__
+	return "MIPS";
+#endif
+
+#ifdef __powerpc__
+	return "PowerPC";
+#endif
+
+#ifdef __sparc64__
+	return "Sparc64";
+#endif
+
+#ifdef __sparc__
+	return "Sparc";
+#endif
+
+#ifdef __alpha__
+	return "Alpha";
+#endif
+#ifdef __m68k__
+	return "m68k";
+#endif
+
+#ifdef __ILP32__
+	if (sizeof (void *) == 4)
+		return "x32";
+#endif
+
+#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
+	return "x64/AMD64";
 #endif
 
 	return UNKNOWN_STR;
@@ -3185,7 +3222,6 @@ show_linux_security_module_context (void)
 
 	free (context);
 	free (mode);
-
 }
 
 void
@@ -3703,6 +3739,44 @@ get_thread_scheduler_name (int sched)
 	return NULL;
 }
 
+#define DATA_MODEL(array, i, l, p) \
+	(array[0] == i && array[1] == l && array[2] == p)
+
+void
+show_data_model (void)
+{
+	int	 ilp[3];
+	char     data_model[8];
+	size_t   pointer_size;
+
+	ilp[0] = sizeof (int);
+	ilp[1] = sizeof (long);
+	ilp[2] = sizeof (void *);
+
+	pointer_size = ilp[2];
+
+	if (DATA_MODEL (ilp, 2, 4, 4))
+		sprintf (data_model, "LP32");
+	else if (DATA_MODEL (ilp, 4, 4, 4))
+		sprintf (data_model, "ILP32");
+	else if (DATA_MODEL (ilp, 4, 4, 8) && sizeof (long long) == pointer_size)
+		sprintf (data_model, "LLP64");
+	else if (DATA_MODEL (ilp, 4, 8, 8))
+		sprintf (data_model, "LP64");
+	else if (DATA_MODEL (ilp, 8, 8, 8))
+		sprintf (data_model, "ILP64");
+	else
+		sprintf (data_model, UNKNOWN_STR);
+
+	if (pointer_size > 8)
+		die ("%d-byte pointers not supported", (int)pointer_size);
+
+	show ("data model: %s (%d/%d/%d)",
+			data_model,
+			ilp[0], ilp[1], ilp[2]);
+}
+#undef DATA_MODEL
+
 int
 main (int  argc,
 		char *argv[])
@@ -3734,6 +3808,7 @@ main (int  argc,
 		{"oom"          , no_argument, NULL, 'o'},
 		{"proc"         , no_argument, NULL, 'p'},
 		{"process"      , no_argument, NULL, 'p'},
+		{"platform"     , no_argument, NULL, 'P'},
 		{"time"         , no_argument, NULL, 'q'},
 		{"range"        , no_argument, NULL, 'r'},
 		{"ranges"       , no_argument, NULL, 'r'},
@@ -3768,7 +3843,7 @@ main (int  argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"abcdefghijklLmnopqrstTuUvwxyz",
+				"abcdefghijklLmnopPqrstTuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -3872,6 +3947,10 @@ main (int  argc,
 
 		case 'p':
 			dump_user ();
+			break;
+
+		case 'P':
+			dump_platform ();
 			break;
 
 		case 'q':

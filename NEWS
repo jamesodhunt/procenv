@@ -1,3 +1,10 @@
+0.22	2013-05-17
+
+	* Added --platform option which contains some information that
+	  was formally in --misc output, but also now includes the
+	  number of "architecture bits" (executable bits) and the
+	  programming model for the platform (such as LP32/ILP64).
+
 0.21	2013-04-07
 
 	* Various improvements from Mike Miller including umask

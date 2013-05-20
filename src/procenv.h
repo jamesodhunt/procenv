@@ -446,7 +446,9 @@ void show_tty_attrs (void);
 const char * get_speed (speed_t speed);
 const char * get_signal_name (int signum);
 void dump_meta (void);
-char *get_platform (void);
+char *get_os (void);
+char *get_arch (void);
+void dump_platform (void);
 int libs_callback (struct dl_phdr_info *info, size_t size, void *data);
 void show_libs (void);
 int get_indent (void);
@@ -480,6 +482,7 @@ char * get_path (const char *argv0);
 bool is_big_endian (void);
 char * get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
+void show_data_model (void);
 
 #if defined (PROCENV_LINUX)
 void get_root (char *root, size_t len);
