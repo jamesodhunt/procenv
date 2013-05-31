@@ -1,19 +1,38 @@
+2013-05-31  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - dump_misc(): Don't quote value if it's UNKNOWN_STR
+	    (for easier parsing).
+	  - show_stat(): Change "mode" to "permissions" since not only is the
+	    latter more familiar to some, the tags should be as unique as
+	    possible (and we have another "mode" for privileged execution).
+	  - show_linux_mounts(): Display UNKNOWN_STR rather than aborting if
+	    /proc not mounted.
+	  - show_linux_proc_branch: As per show_linux_mounts().
+	  - get_os(): Fixed regression where kFreeBSD was not being detected
+	    (seemingly because __linux__ is no longer defined on such systems :-)
+	  - get_arch(): Added missing detection for "SystemZ".
+	  - show_linux_cgroups(): As per show_linux_mounts().
+	  - dump_linux_proc_fds(): As per show_linux_mounts().
+	  - show_oom(): As per show_linux_mounts().
+	  - get_root(): As per show_linux_mounts().
+
 2013-05-17  James Hunt  <james.hunt@ubuntu.com>
 
-* man/procenv.1: Added -P/--platform option.
-* src/procenv.c:
-  - usage(): Added -P/--platform option.
-  - dump_misc(): Move platforms bits to dump_platform().
-  - dump_platform(): New function:
-  - dump(): Call dump_platform().
-    - show executable bits.
-    - Call show_data_model().
-    - Call get_os() and get_arch().
-  - get_platform(): Removed.
-  - get_os(): New function.
-  - get_arch(): New function (includes support for x32).
-  - show_data_model(): New function.
-  - main(): Added -P/--platform option.
+	* man/procenv.1: Added -P/--platform option.
+	* src/procenv.c:
+	  - usage(): Added -P/--platform option.
+	  - dump_misc(): Move platforms bits to dump_platform().
+	  - dump_platform(): New function:
+	  - dump(): Call dump_platform().
+	    - show executable bits.
+	    - Call show_data_model().
+	    - Call get_os() and get_arch().
+	  - get_platform(): Removed.
+	  - get_os(): New function.
+	  - get_arch(): New function (includes support for x32).
+	  - show_data_model(): New function.
+	  - main(): Added -P/--platform option.
 
 2013-04-07  James Hunt  <james.hunt@ubuntu.com>
 
