@@ -962,7 +962,10 @@ dump_misc (void)
 	show ("umask: %4.4o", misc.umask_value);
 	show ("current directory (cwd): '%s'", misc.cwd);
 #if defined (PROCENV_LINUX)
-	show ("root: '%s'", misc.root);
+	show ("root: %s%s%s",
+			strcmp (misc.root, UNKNOWN_STR) ? "'" : "",
+			misc.root,
+			strcmp (misc.root, UNKNOWN_STR) ? "'" : "");
 #endif
 	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
 #if defined (PROCENV_LINUX)
@@ -1435,7 +1438,7 @@ show_stat (void)
 	if (perms & S_ISVTX)
 		modestr[9] = 't';
 
-	show ("mode: %4.4o (%s)", perms, modestr);
+	show ("permissions: %4.4o (%s)", perms, modestr);
 
 	show ("hard links: %u", st.st_nlink);
 	show ("user id (uid): %d ('%s')", st.st_uid, get_user_name (st.st_uid));
@@ -1527,8 +1530,10 @@ show_linux_mounts (ShowMountType what)
 
 	mtab = fopen (MOUNTS, "r");
 
-	if (! mtab)
-		die ("unable to read mounts");
+	if (! mtab) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
 
 	while ((mnt = getmntent (mtab))) {
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
@@ -2284,8 +2289,8 @@ show_linux_proc_branch (void)
 
 		f = fopen (path, "r");
 		if (! f) {
-			free (str);
-			return;
+			appendf (&str, "%s", UNKNOWN_STR);
+			goto out;
 		}
 
 		while (fgets (buffer, sizeof (buffer), f)) {
@@ -2319,6 +2324,7 @@ show_linux_proc_branch (void)
 		/* parent is now the pid to search for */
 		sprintf (pid, "%s", ppid);
 	}
+out:
 
 	show (str);
 	free (str);
@@ -2568,7 +2574,7 @@ get_os (void)
 	return "FreeBSD";
 #endif
 
-#if defined(__MACH__) || defined (__GNU__) || defined (__gnu_hurd__)
+#if defined (__MACH__) || defined (__GNU__) || defined (__gnu_hurd__)
 	return "GNU (Hurd)";
 #endif
 
@@ -2580,10 +2586,11 @@ get_os (void)
 	return "iSeries (OS/400)";
 #endif
 
-#ifdef PROCENV_LINUX
-#ifdef __FreeBSD_kernel__
-	return "Linux (kFreeBSD)";
+#if defined (__FreeBSD_kernel__) && defined (__GNUC__)
+	return "GNU/kFreeBSD";
 #endif
+
+#ifdef PROCENV_LINUX
 #ifdef __s390x__
 	return "Linux (zSeries)";
 #endif
@@ -2692,7 +2699,11 @@ get_arch (void)
 		return "x32";
 #endif
 
-#if defined(__x86_64__) || defined (__x86_64) || defined (__amd64)
+#if defined (__s390__) || defined (__zarch__) || defined (__SYSC_ZARCH__) || defined (__THW_370__)
+	return "SystemZ";
+#endif
+
+#if defined (__x86_64__) || defined (__x86_64) || defined (__amd64)
 	return "x64/AMD64";
 #endif
 
@@ -3185,11 +3196,11 @@ void
 show_linux_security_module (void)
 {
 	char *lsm = UNKNOWN_STR;
-#if defined(HAVE_APPARMOR)
+#if defined (HAVE_APPARMOR)
 	if (aa_is_enabled ())
 		lsm = "AppArmor";
 #endif
-#if defined(HAVE_SELINUX)
+#if defined (HAVE_SELINUX)
 	if (is_selinux_enabled ())
 		lsm = "SELinux";
 #endif
@@ -3202,12 +3213,12 @@ show_linux_security_module_context (void)
 	char   *context = NULL;
 	char   *mode = NULL;
 
-#if defined(HAVE_APPARMOR)
+#if defined (HAVE_APPARMOR)
 	if (aa_is_enabled ())
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
 #endif
-#if defined(HAVE_SELINUX)
+#if defined (HAVE_SELINUX)
 	if (is_selinux_enabled ())
 		if (getpidcon (user.pid, &context) < 0)
 			die ("failed to query SELinux context");
@@ -3232,11 +3243,13 @@ show_linux_cgroups (void)
 	char buffer[1024];
 	size_t len;
 
-	f = fopen (file, "r");
-	if (! f)
-		return;
-
 	header ("cgroup(linux)");
+
+	f = fopen (file, "r");
+	if (! f) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
 
 	while (fgets (buffer, sizeof (buffer), f)) {
 		len = strlen (buffer);
@@ -3262,18 +3275,12 @@ dump_linux_proc_fds (void)
 	header ("fds (linux/proc)");
 
 	dir = opendir (prefix_path);
-	if (!dir)
-	{
-		saved_errno = errno;
-		show ("failed to open '%s'"
-				" (errno=%d [%s])",
-				prefix_path,
-				saved_errno, strerror (saved_errno));
-		exit (EXIT_FAILURE);
+	if (! dir) {
+		show ("%s", UNKNOWN_STR);
+		return;
 	}
 
-	while ((ent=readdir (dir)) != NULL)
-	{
+	while ((ent=readdir (dir)) != NULL) {
 		int fd;
 
 		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
@@ -3321,6 +3328,7 @@ show_oom (void)
 	char     path[PATH_MAX];
 	size_t   len;
 	int      ret;
+	int      seen = FALSE;
 
 	header ("oom(linux)");
 
@@ -3333,6 +3341,8 @@ show_oom (void)
 		if (! f)
 			continue;
 
+		seen = TRUE;
+
 		while (fgets (buffer, sizeof (buffer), f)) {
 			len = strlen (buffer);
 			buffer[len-1] = '\0';
@@ -3341,6 +3351,9 @@ show_oom (void)
 
 		fclose (f);
 	}
+
+	if (! seen)
+		show ("%s", UNKNOWN_STR);
 }
 
 char *
@@ -3406,8 +3419,10 @@ get_root (char *root, size_t len)
 	assert (root);
 
 	bytes = readlink (self, root, len);
-	assert (bytes != -1);
-	root[bytes] = '\0';
+	if (bytes < 0)
+		sprintf (root, UNKNOWN_STR);
+	else
+		root[bytes] = '\0';
 }
 
 void
