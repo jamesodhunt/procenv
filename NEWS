@@ -1,3 +1,9 @@
+0.23	2013-05-31
+
+	* Tolerate Linux environments where /proc is not mounted.
+	* Fix kFreeBSD detection and add support for IBM SystemZ
+	  environments.
+
 0.22	2013-05-17
 
 	* Added --platform option which contains some information that
