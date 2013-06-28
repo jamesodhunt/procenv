@@ -13,6 +13,7 @@
   output format.
 - uptime (using utmp)?
 - text/data/bss/stack details (end(3), sbrk(2))
+- mincore(2)?
 - add program arguments to show_misc().
 - add process arguments to show_proc_branch()?
 - sort output of show_mounts().
