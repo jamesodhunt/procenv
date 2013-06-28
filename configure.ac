@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(procenv, 0.23, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.24, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2013 James Hunt <james.hunt@ubuntu.com>
  and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
@@ -51,5 +51,9 @@ AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 
 # Other checks
 
-AM_INIT_AUTOMAKE
+# automake-1.13 defaults to running tests in parallel. As a consequence,
+# it also disables verbose output meaning that procenv output is not
+# visible in build logs. Therefore, force old behaviour.
+AM_INIT_AUTOMAKE([serial-tests])
+
 AC_OUTPUT(Makefile src/Makefile)

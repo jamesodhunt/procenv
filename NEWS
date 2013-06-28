@@ -1,3 +1,8 @@
+0.24	2013-06-28
+
+	* Packaging update for automake-1.13 to ensure procenv output
+	  available in build logs.
+
 0.23	2013-05-31
 
 	* Tolerate Linux environments where /proc is not mounted.

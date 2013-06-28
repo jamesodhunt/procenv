@@ -1,3 +1,9 @@
+2013-06-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Force old serial test behaviour (specifically
+	  for automake-1.13 and above) to ensure test output is visible in
+	  build logs.
+
 2013-05-31  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:
