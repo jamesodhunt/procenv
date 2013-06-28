@@ -51,5 +51,9 @@ AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 
 # Other checks
 
-AM_INIT_AUTOMAKE
+# automake-1.13 defaults to running tests in parallel. As a consequence,
+# it also disables verbose output meaning that procenv output is not
+# visible in build logs. Therefore, force old behaviour.
+AM_INIT_AUTOMAKE([serial-tests])
+
 AC_OUTPUT(Makefile src/Makefile)
