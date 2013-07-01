@@ -1,8 +1,10 @@
 procenv (0.24-1) unstable; urgency=low
 
   * New upstream release.
+  * Update for standards version 3.9.4 and to resolve lintian
+    illegal-runtime-test-name warning.
 
- -- James Hunt <james.hunt@ubuntu.com>  Fri, 28 Jun 2013 09:15:27 +0100
+ -- James Hunt <james.hunt@ubuntu.com>  Mon, 01 Jul 2013 14:31:40 +0100
 
 procenv (0.23-1) unstable; urgency=low
 
