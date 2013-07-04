@@ -308,8 +308,13 @@ specified.
 \& # Show limits
 \& procenv \-l
 \&
-\& # Send compiler information to syslog (note the order of the options)
+\& # Send compiler information to syslog (note the order of the options).
 \& procenv \-\-output=syslog \-\-compiler
+\&
+\& # Run a command ('mycmd --arg1 --foo=bar') without creating a new
+\& # process, but have procenv run first and log its output to a
+\& # regular file.
+\& exec procenv \-\-file=/tmp/procenv.log --exec -- mycmd --arg1 --foo=bar
 \&
 \& # The following kernel command-line snippet will cause procenv to
 \& # write output to first serial tty device and then execute init(8)

@@ -1,3 +1,7 @@
+2013-07-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Add a new --exec example.
+
 2013-06-28  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac: Force old serial test behaviour (specifically
