@@ -1,3 +1,10 @@
+procenv (0.24-2) UNRELEASED; urgency=low
+
+  * debian/control: Add build-depends on automake >= 1.12 for
+    'serial-tests' used in configure.ac
+
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 10 Jul 2013 08:42:02 +0100
+
 procenv (0.24-1) unstable; urgency=low
 
   * New upstream release.
