@@ -43,6 +43,22 @@
 #include <locale.h>
 #include <pthread.h>
 
+/* FIXME: Android testing */
+#if 1
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME "procenv"
+#endif
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.24"
+#endif
+
+#ifndef PACKAGE_STRING
+#define PACKAGE_STRING PACKAGE_NAME
+#endif
+
+#endif /* FIXME */
+
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
 	|| defined (__OpenBSD__)
@@ -53,6 +69,10 @@
 #define PROCENV_LINUX
 #endif
 
+#if defined (PROCENV_LINUX) && defined (__BIONIC__)
+#define PROCENV_ANDROID
+#endif
+
 #ifdef __GNU__
 #define PROCENV_HURD
 #endif
@@ -61,9 +81,17 @@
 #define PROCENV_ARCH_X86
 #endif
 
+#if defined PROCENV_ANDROID
+/* major(3) / minor(3) */
+#include <sys/sysmacros.h>
+#endif
+
 #if defined (PROCENV_LINUX)
 #include <mntent.h>
+/* FIXME */
+#if 0
 #include <execinfo.h>
+#endif
 #include <sys/inotify.h>
 #include <sys/prctl.h>
 
@@ -433,7 +461,11 @@ void show_env (void);
 void show_rlimits (void);
 void show_rusage (void);
 void dump_sysconf (void);
+
+#ifndef PROCENV_ANDROID
 void show_confstrs (void);
+#endif
+
 void dump_priorities (void);
 void show_mounts (ShowMountType what);
 void get_user_info (void);
@@ -449,8 +481,12 @@ void dump_meta (void);
 char *get_os (void);
 char *get_arch (void);
 void dump_platform (void);
+
+#ifndef PROCENV_ANDROID
 int libs_callback (struct dl_phdr_info *info, size_t size, void *data);
 void show_libs (void);
+#endif
+
 int get_indent (void);
 void show_clocks (void);
 void show_timezone (void);

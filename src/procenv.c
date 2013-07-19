@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright © 2012 James Hunt.
+ * Copyright  2012-2013 James Hunt.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -180,18 +180,22 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_CLK_TCK),
 	mk_posix_sysconf_map_entry (COLL_WEIGHTS_MAX),
 	mk_posix_sysconf_map_entry (EXPR_NEST_MAX),
+#if defined (_SC_HOST_NAME_MAX)
 	mk_posix_sysconf_map_entry (HOST_NAME_MAX),
+#endif
 	mk_posix_sysconf_map_entry (LINE_MAX),
 	mk_posix_sysconf_map_entry (LOGIN_NAME_MAX),
 	mk_posix_sysconf_map_entry (OPEN_MAX),
 	mk_posix_sysconf_map_entry (PAGESIZE),
 	mk_posix_sysconf_map_entry (RE_DUP_MAX),
 	mk_posix_sysconf_map_entry (STREAM_MAX),
+#if defined (_SC_SYMLOOP_MAX)
 	mk_posix_sysconf_map_entry (SYMLOOP_MAX),
+#endif
 	mk_posix_sysconf_map_entry (TTY_NAME_MAX),
 	mk_posix_sysconf_map_entry (TZNAME_MAX),
 	{ _SC_VERSION, "_POSIX_VERSION(_SC_VERSION)" },
-#ifdef _SC_POSIX2_C_DEV
+#if defined (_SC_POSIX2_C_DEV)
 	mk_posix_sysconf_map_entry (POSIX2_C_DEV),
 #endif
 	mk_posix_sysconf_map_entry (BC_BASE_MAX),
@@ -215,15 +219,25 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_NPROCESSORS_CONF),
 	mk_sysconf_map_entry (_SC_NPROCESSORS_ONLN),
 
+#if defined (_SC_ADVISORY_INFO)
 	mk_posixopt_sysconf_map_entry (ADVISORY_INFO),
+#endif
 	mk_posixopt_sysconf_map_entry (ASYNCHRONOUS_IO),
+#if defined (_SC_BARRIERS)
 	mk_posixopt_sysconf_map_entry (BARRIERS),
+#endif
 #if defined (_POSIX_CHOWN_RESTRICTED)
 	mk_sysconf_map_entry (_POSIX_CHOWN_RESTRICTED),
 #endif
+#if defined (_SC_CLOCK_SELECTION)
 	mk_posixopt_sysconf_map_entry (CLOCK_SELECTION),
+#endif
+#if defined (_SC_CPUTIME)
 	mk_posixopt_sysconf_map_entry (CPUTIME),
+#endif
+#if defined (_SC_FILE_LOCKING)
 	mk_posixopt_sysconf_map_entry (FILE_LOCKING),
+#endif
 	mk_posixopt_sysconf_map_entry (FSYNC),
 	mk_posixopt_sysconf_map_entry (JOB_CONTROL),
 	mk_posixopt_sysconf_map_entry (MAPPED_FILES),
@@ -231,43 +245,77 @@ struct procenv_map sysconf_map[] = {
 	mk_posixopt_sysconf_map_entry (MEMLOCK_RANGE),
 	mk_posixopt_sysconf_map_entry (MEMORY_PROTECTION),
 	mk_posixopt_sysconf_map_entry (MESSAGE_PASSING),
+#if defined (_SC_MONOTONIC_CLOCK)
 	mk_posixopt_sysconf_map_entry (MONOTONIC_CLOCK),
+#endif
 #ifdef _SC_MULTI_PROCESS
 	mk_posixopt_sysconf_map_entry (MULTI_PROCESS),
 #endif
 	mk_posixopt_sysconf_map_entry (PRIORITIZED_IO),
 	mk_posixopt_sysconf_map_entry (PRIORITY_SCHEDULING),
+#if defined (_POSIX_RAW_SOCKETS)
 	mk_sysconf_map_entry (_POSIX_RAW_SOCKETS),
+#endif
+#if defined (_SC_READER_WRITER_LOCKS)
 	mk_posixopt_sysconf_map_entry (READER_WRITER_LOCKS),
+#endif
 	mk_posixopt_sysconf_map_entry (REALTIME_SIGNALS),
+#if defined (_SC_REGEXP)
 	mk_posixopt_sysconf_map_entry (REGEXP),
+#endif
 	mk_posixopt_sysconf_map_entry (SAVED_IDS),
 	mk_posixopt_sysconf_map_entry (SEMAPHORES),
 	mk_posixopt_sysconf_map_entry (SHARED_MEMORY_OBJECTS),
+#if defined (_SC_SHELL)
 	mk_posixopt_sysconf_map_entry (SHELL),
+#endif
+#if defined (_SC_SPAWN)
 	mk_posixopt_sysconf_map_entry (SPAWN),
+#endif
+#if defined (_SC_SPIN_LOCKS)
 	mk_posixopt_sysconf_map_entry (SPIN_LOCKS),
+#endif
+#if defined (_SC_SPORADIC_SERVER)
 	mk_posixopt_sysconf_map_entry (SPORADIC_SERVER),
+#endif
 	mk_posixopt_sysconf_map_entry (SYNCHRONIZED_IO),
 	mk_posixopt_sysconf_map_entry (THREAD_ATTR_STACKSIZE),
+#if defined (_SC_THREAD_CPUTIME)
 	mk_posixopt_sysconf_map_entry (THREAD_CPUTIME),
+#endif
 	mk_posixopt_sysconf_map_entry (THREAD_PRIO_INHERIT),
 	mk_posixopt_sysconf_map_entry (THREAD_PRIO_PROTECT),
 	mk_posixopt_sysconf_map_entry (THREAD_PRIORITY_SCHEDULING),
+#if defined (_SC_THREAD_PROCESS_SHARED)
 	mk_posixopt_sysconf_map_entry (THREAD_PROCESS_SHARED),
+#endif
 	mk_posixopt_sysconf_map_entry (THREAD_SAFE_FUNCTIONS),
+#if defined (_SC_THREAD_SPORADIC_SERVER)
 	mk_posixopt_sysconf_map_entry (THREAD_SPORADIC_SERVER),
+#endif
 	mk_posixopt_sysconf_map_entry (THREADS),
+#if defined (_SC_TIMEOUTS)
 	mk_posixopt_sysconf_map_entry (TIMEOUTS),
+#endif
 	mk_posixopt_sysconf_map_entry (TIMERS),
+#if defined (_SC_TRACE)
 	mk_posixopt_sysconf_map_entry (TRACE),
+#endif
+#if defined (_SC_TRACE_EVENT_FILTER)
 	mk_posixopt_sysconf_map_entry (TRACE_EVENT_FILTER),
+#endif
+#if defined (_SC_TRACE_INHERIT)
 	mk_posixopt_sysconf_map_entry (TRACE_INHERIT),
+#endif
+#if defined (_SC_TRACE_LOG)
 	mk_posixopt_sysconf_map_entry (TRACE_LOG),
+#endif
 #ifdef _SC_TYPED_MEMORY_OBJECT
 	mk_posixopt_sysconf_map_entry (TYPED_MEMORY_OBJECT),
 #endif
+#if defined (_POSIX_VDISABLE)
 	mk_sysconf_map_entry (_POSIX_VDISABLE),
+#endif
 	mk_sysconf_map_entry (_XOPEN_CRYPT),
 	mk_sysconf_map_entry (_XOPEN_LEGACY),
 #if defined (_XOPEN_REALTIME)
@@ -382,7 +430,7 @@ struct procenv_map scheduler_map[] = {
 	mk_map_entry (SCHED_OTHER),
 	mk_map_entry (SCHED_FIFO),
 	mk_map_entry (SCHED_RR),
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) && ! defined (PROCENV_ANDROID)
 	mk_map_entry (SCHED_BATCH),
 #ifdef SCHED_IDLE
 	mk_map_entry (SCHED_IDLE),
@@ -819,6 +867,7 @@ dump_sysconf (void)
 	}
 }
 
+#ifndef PROCENV_ANDROID
 void
 show_confstrs (void)
 {
@@ -832,6 +881,7 @@ show_confstrs (void)
 #endif
 	show_confstr (_CS_PATH);
 }
+#endif
 
 void
 get_misc (void)
@@ -937,11 +987,21 @@ dump_user (void)
 
 	show ("login name: '%s'", user.login ? user.login : "");
 
+#if defined (PROCENV_ANDROID)
+	/* No gecos on Android. In fact it doesn't actually use the
+	 * passwd database, but meh.
+	 */
+	show ("passwd: name='%s', dir='%s', shell='%s'",
+			user.passwd.pw_name,
+			user.passwd.pw_dir,
+			user.passwd.pw_shell);
+#else
 	show ("passwd: name='%s', gecos='%s', dir='%s', shell='%s'",
 			user.passwd.pw_name,
 			user.passwd.pw_gecos,
 			user.passwd.pw_dir,
 			user.passwd.pw_shell);
+#endif
 	show_all_groups ();
 }
 
@@ -978,8 +1038,6 @@ dump_misc (void)
 	show_cpu ();
 	dump_priorities ();
 	show ("memory page size: %d bytes", getpagesize ());
-
-
 
 #if defined (PROCENV_LINUX)
 #ifdef LINUX_VERSION_CODE
@@ -1046,10 +1104,17 @@ dump_fds (void)
 			char *name = NULL;
 
 			if (is_tty) {
+#if ! defined (PROCENV_ANDROID)
 				name = ttyname (fd);
+#endif
 				show ("fd %d: terminal=%s ('%s')", fd,
 						is_tty ? YES_STR : NO_STR,
-						name ? name : NA_STR);
+#if ! defined (PROCENV_ANDROID)
+						name ? name : NA_STR
+#else
+						UNKNOWN_STR
+#endif
+						);
 			} else {
 				show ("fd %d: terminal=%s", fd, NO_STR);
 			}
@@ -1135,7 +1200,11 @@ get_user_info (void)
 	user.login = getlogin ();
 	user.pgroup = getpgrp ();
 
+#if defined (PROCENV_ANDROID)
+	sprintf (user.ctrl_terminal, "/dev/tty");
+#else
 	ctermid (user.ctrl_terminal);
+#endif
 
 	/* Get a reference to the controlling terminal
 	 * in case all standard fds are redirected.
@@ -1445,18 +1514,18 @@ show_stat (void)
 	show ("group id (gid): %d ('%s')", st.st_gid, get_group_name (st.st_uid));
 	show ("size: %lu bytes (%lu 512-byte blocks)", st.st_size, st.st_blocks);
 
-	if (! ctime_r (&st.st_atime, formatted_time))
+	if (! ctime_r ((time_t *)&st.st_atime, formatted_time))
 		die ("failed to format atime");
 	formatted_time[ strlen (formatted_time)-1] = '\0';
 	show ("atime: %lu (%s)", st.st_atime, formatted_time);
 
 
-	if (! ctime_r (&st.st_mtime, formatted_time))
+	if (! ctime_r ((time_t *)&st.st_mtime, formatted_time))
 		die ("failed to format mtime");
 	formatted_time[ strlen (formatted_time)-1] = '\0';
 	show ("mtime: %lu (%s)", st.st_mtime, formatted_time);
 
-	if (! ctime_r (&st.st_ctime, formatted_time))
+	if (! ctime_r ((time_t *)&st.st_ctime, formatted_time))
 		die ("failed to format ctime");
 	formatted_time[ strlen (formatted_time)-1] = '\0';
 	show ("ctime: %lu (%s)", st.st_ctime, formatted_time);
@@ -1465,7 +1534,7 @@ show_stat (void)
 long
 get_kernel_bits (void)
 {
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) && ! defined (PROCENV_ANDROID)
 	long value;
 
 	errno = 0;
@@ -1489,10 +1558,14 @@ dump (void)
 #endif
 	show_clocks ();
 	show_compiler ();
+#ifndef PROCENV_ANDROID
 	show_confstrs ();
+#endif
 	show_env ();
 	dump_fds ();
+#ifndef PROCENV_ANDROID
 	show_libs ();
+#endif
 	show_locale ();
 	show_rlimits ();
 	dump_misc ();
@@ -1883,6 +1956,7 @@ show_proc_branch (void)
 }
 
 #if defined (PROCENV_BSD)
+/* Who would have thought handling PIDs was so tricky? */
 void
 show_bsd_proc_branch (void)
 {
@@ -1892,9 +1966,10 @@ show_bsd_proc_branch (void)
 	kvm_t               *kvm;
 	struct kinfo_proc   *procs;
 	struct kinfo_proc   *p;
-	pid_t                self, current;
+	pid_t                self, current, first;
 	int                  done = FALSE;
 	char                *str;
+	pid_t                ultimate_parent = 0;
 
 	str = strdup ("ancestry: ");
 	assert (str);
@@ -1909,21 +1984,89 @@ show_bsd_proc_branch (void)
 	if (! procs)
 		die ("failed to get process info");
 
+	/* Calculate the lowest PID number which gives us the ultimate
+	 * parent of all processes.
+	 *
+	 * On BSD sytems, normally PID 0 ('[kernel]') is the ultimate
+	 * parent rather than PID 1 ('init').
+	 *
+	 * However, this doesn't work in a BSD jail since in that
+	 * environment:
+	 *
+	 * - there is no init process visible.
+	 * - there is no kernel thread visible.
+	 * - the ultimate parent PID will either by 1 (the "invisible"
+	 *   init process) or 'n' where 'n' is a PID>1 which is also
+	 *   "invisible" (since it lives outside the jail in the host
+	 *   environment).
+	 *
+	 * Confused yet?
+	 */
+
+	p = &procs[0];
+	ultimate_parent = p->ki_pid;
+
+	for (i = 1; i < count; i++) {
+		p = &procs[i];
+		if (p->ki_pid < ultimate_parent)
+			ultimate_parent = p->ki_pid;
+	}
+
 	while (! done) {
-		for (i = 0; i < count; i++) {
+		for (i = 0; i < count && !done; i++) {
 			p = &procs[i];
 
 			if (p->ki_pid == current) {
-				if (current == 0) {
-					/* ultimate parent == PID 0 == '[kernel]' */
+				if (misc.in_jail) {
+					struct kinfo_proc   *p2;
+					int                  ppid_found = FALSE;
+					int                  j;
+
+					/* Determine if the parent PID
+					 * actually exists within the
+					 * jail.
+					 */
+					for (j = 0; j < count; j++) {
+						p2 =  &procs[j];
+
+						if (p2->ki_pid == p->ki_ppid) {
+							ppid_found = TRUE;
+							break;
+						}
+					}
+
+					if (p->ki_ppid == 1 || (p->ki_ppid && ! ppid_found)) {
+						/* Found the "last" PID (whose parent is either
+						 * the "invisible init" or which exists outside the jail)
+						 * so record it and hop out.
+						 */
+						appendf (&str, "%d ('%s') %d (%s)",
+								(int)current, p->ki_comm,
+								p->ki_ppid, UNKNOWN_STR);
+						done = TRUE;
+						break;
+					} else {
+						/* Found a valid parent pid */
+						appendf (&str, "%d ('%s'), ",
+								(int)current, p->ki_comm);
+					}
+
+				} else if (! ultimate_parent && current == ultimate_parent) {
+
+					/* Found the "last" PID so record it and hop out */
 					appendf (&str, "%d ('%s')",
 							(int)current, p->ki_comm);
 					done = TRUE;
 					break;
+
 				} else {
+
+					/* Found a valid parent pid */
 					appendf (&str, "%d ('%s'), ",
 							(int)current, p->ki_comm);
 				}
+
+				/* Move on */
 				current = p->ki_ppid;
 			}
 		}
@@ -2344,7 +2487,7 @@ show_tty_attrs (void)
 	struct winsize  size;
 	int             ret;
 	int             fds[4] = { -1, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
-	int             i;
+	size_t          i;
 
 	fds[0] = user.tty_fd;
 
@@ -2365,7 +2508,6 @@ show_tty_attrs (void)
 		}
 	}
 
-out_of_ideas:
 	show ("%s", NA_STR);
 	return;
 
@@ -2710,6 +2852,7 @@ get_arch (void)
 	return UNKNOWN_STR;
 }
 
+#ifndef PROCENV_ANDROID
 int
 libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 {
@@ -2726,6 +2869,7 @@ show_libs (void)
 
 	dl_iterate_phdr (libs_callback, NULL);
 }
+#endif
 
 void
 show_clocks (void)
@@ -3269,7 +3413,6 @@ dump_linux_proc_fds (void)
 	char *prefix_path = "/proc/self/fd";
 	char path[MAXPATHLEN];
 	char link[MAXPATHLEN];
-	int saved_errno;
 	ssize_t len;
 
 	header ("fds (linux/proc)");
@@ -3584,25 +3727,25 @@ check_envvars (void)
 }
 
 void
-get_major_minor (const char *path, int *major, int *minor)
+get_major_minor (const char *path, int *_major, int *_minor)
 {
 	struct stat  st;
 
 	assert (path);
-	assert (major);
-	assert (minor);
+	assert (_major);
+	assert (_minor);
 
 	if (stat (path, &st) < 0) {
 		/* Don't fail as this query may be for a mount which the
 		 * user does not have permission to check.
 		 */
 		warn ("unable to stat path '%s'", path);
-		*major = *minor = -1;
+		*_major = *_minor = -1;
 		return;
 	}
 
-	*major = major (st.st_dev);
-	*minor = minor (st.st_dev);
+	*_major = major (st.st_dev);
+	*_minor = minor (st.st_dev);
 }
 
 /**
@@ -3635,7 +3778,6 @@ get_path (const char *argv0)
 		char    cwd[PATH_MAX];
 		size_t  bytes;
 		size_t  len;
-		int     ret;
 
 		memset (cwd, '\0', sizeof (cwd));
 
@@ -3706,7 +3848,12 @@ show_threads (void)
 	show ("thread stack size: %lu bytes",
 			(unsigned long int)stack_size);
 
+#if defined (PROCENV_ANDROID)
+	ret = 0;
+	scope = pthread_attr_getscope (&attr);
+#else
 	ret = pthread_attr_getscope (&attr, &scope);
+#endif
 	show ("thread scope: %s",
 			ret != 0 ? UNKNOWN_STR :
 			scope == PTHREAD_SCOPE_SYSTEM ? "PTHREAD_SCOPE_SYSTEM"
@@ -3731,6 +3878,7 @@ show_threads (void)
 	else
 		show ("thread scheduler priority: %d", param.sched_priority);
 
+#ifndef PROCENV_ANDROID
 	ret = pthread_attr_getinheritsched (&attr, &inherit_sched);
 	show ("thread inherit scheduler: %s",
 			ret != 0 ? UNKNOWN_STR :
@@ -3739,6 +3887,7 @@ show_threads (void)
 			: "PTHREAD_EXPLICIT_SCHED");
 
 	show ("thread concurrency: %d", pthread_getconcurrency ());
+#endif
 }
 
 char *
@@ -3894,7 +4043,9 @@ main (int  argc,
 			break;
 
 		case 'b':
+#ifndef PROCENV_ANDROID
 			show_libs ();
+#endif
 			break;
 
 		case 'c':
@@ -3951,7 +4102,9 @@ main (int  argc,
 			break;
 
 		case 'n':
+#ifndef PROCENV_ANDROID
 			show_confstrs ();
+#endif
 			break;
 
 		case 'o':
@@ -3961,6 +4114,7 @@ main (int  argc,
 			break;
 
 		case 'p':
+			get_misc ();
 			dump_user ();
 			break;
 
