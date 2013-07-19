@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2012-11-29" "User Commands"
+.TH PROCENV "1" "2013-07-16" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -308,8 +308,13 @@ specified.
 \& # Show limits
 \& procenv \-l
 \&
-\& # Send compiler information to syslog (note the order of the options)
+\& # Send compiler information to syslog (note the order of the options).
 \& procenv \-\-output=syslog \-\-compiler
+\&
+\& # Run a command ('mycmd --arg1 --foo=bar') without creating a new
+\& # process, but have procenv run first and log its output to a
+\& # regular file.
+\& exec procenv \-\-file=/tmp/procenv.log --exec -- mycmd --arg1 --foo=bar
 \&
 \& # The following kernel command-line snippet will cause procenv to
 \& # write output to first serial tty device and then execute init(8)
@@ -332,7 +337,7 @@ Kees Cook
 .RB < kees@ubuntu.com > "" "."
 .\"
 .SH COPYRIGHT
-Copyright \(co 2012 James Hunt
+Copyright \(co 2012-2013 James Hunt
 .RB < james.hunt@ubuntu.com >
 and
 Kees Cook
