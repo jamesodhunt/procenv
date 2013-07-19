@@ -1,3 +1,15 @@
+2013-07-19  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/man/procenv.1: Updated date and year.
+	* src/procenv.c:
+	  - show_bsd_proc_branch(): Fix to work in BSD jails: these entities are
+	    bizarre in that they have no init process, and a processes parent
+	    may actually be a process running *outside* of the jail... and as a
+	    result, all you can know about it is its PID.
+	  - Various hacks to work in the decidedly un-bionic Android
+	    environment.
+	* Android.mk: Makefile for Android.
+
 2013-07-04  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: Add a new --exec example.
