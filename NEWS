@@ -1,3 +1,8 @@
+0.25	2013-07-19
+
+	* Fixed bug where procenv would hang in a FreeBSD jail.
+	* Port to Android.
+
 0.24	2013-06-28
 
 	* Packaging update for automake-1.13 to ensure procenv output
