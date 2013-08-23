@@ -2117,7 +2117,7 @@ show_mounts (ShowMountType what)
 }
 
 const char *
-get_net_family_name (int family)
+get_net_family_name (sa_family_t family)
 {
 	switch (family) {
 #if defined (PROCENV_LINUX)
@@ -2151,7 +2151,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	char                *flags = NULL;
 	char                *extended_flags = NULL;
 	unsigned short       ext_flags = 0;
-	int                  family;
+	sa_family_t          family;
 	char                 address[NI_MAXHOST];
 	int                  mtu = 0;
 
@@ -2216,19 +2216,49 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	free (str);
 }
 
+/*
+ * BSD returns an additional AF_LINK ifaddrs containing the
+ * actual link-layer MAC address for each interface.
+ *
+ * Linux does the same but with one additional AF_PACKET family / interface.
+ *
+ * This is somewhat noisome since for BSD we need to cache the MAC addresses
+ * such that they can be retrieved when the _next_ ifaddrs structure
+ * appears for the *same* interface, but we only want to
+ * display the non-AF_LINK elements *unless* they refer
+ * to an interface with no associated address.
+ *
+ * The situation for Linux is similar but we only care
+ * about AF_PACKET entries for interfaces that have no
+ * associated address since we can extract the MAC
+ * address using an ioctl (rather than considering the
+ * AF_PACKET element).
+ *
+ * The strategy therefore is to:
+ *
+ * 1) Cache all AF_LINK/AF_PACKET elements.
+ * 2) Once an element arrives that matches an interface
+ *    name found in the cache, use that as necessary (extra
+ *    the MAC for BSD, NOP for Linux), then free that cache
+ *    element.
+ * 3) Having processed all entries, if any entries are
+ * left in the cache, they must refer to interfaces that
+ * have no address, so display them.
+ *
+ * FIXME:
+ *
+ * Note the implicit assumption that the AF_LINK/AF_PACKET entries
+ * will appear _before_ the corresponding entry containing address details
+ * for the interface in the output of getifaddrs(): observations suggests
+ * this _seems_ to be the case, but is not documented as being guaranteed.
+ *
+ */
 void
 show_network (void)
 {
 	struct ifaddrs      *if_addrs;
 	struct ifaddrs      *ifa;
-	char                 address[NI_MAXHOST];
-	char                 netmask[NI_MAXHOST];
-	char                *str = NULL;
 	char                *mac_address = NULL;
-	int                  mtu = 0;
-	char                *flags = NULL;
-	char                *extended_flags = NULL;
-	unsigned short       ext_flags = 0;
 	struct network_map  *head = NULL;
 	struct network_map  *node = NULL;
 	struct network_map  *tmp = NULL;
@@ -2252,46 +2282,8 @@ show_network (void)
 		if (! ifa->ifa_addr)
 			continue;
 
-
 		family = ifa->ifa_addr->sa_family;
 
-		/*
-		 * BSD returns an additional AF_LINK ifaddrs containing the
-		 * actual link-layer MAC address for each interface.
-		 *
-		 * Linux does the same but with one additional AF_PACKET family / interface.
-		 *
-		 * This is somewhat noisome since for BSD we need to cache the MAC addresses
-		 * such that they can be retrieved when the _next_ ifaddrs structure
-		 * appears for the *same* interface, but we only want to
-		 * display the non-AF_LINK elements *unless* they refer
-		 * to an interface with no associated address.
-		 *
-		 * The situation for Linux is similar but we only care
-		 * about AF_PACKET entries for interfaces that have no
-		 * associated address since we can extract the MAC
-		 * address using an ioctl (rather than considering the
-		 * AF_PACKET element).
-		 *
-		 * The strategy therefore is to:
-		 *
-		 * 1) Cache all AF_LINK/AF_PACKET elements.
-		 * 2) Once an element arrives that matches an interface
-		 *    name found in the cache, use that as necessary (extra
-		 *    the MAC for BSD, NOP for Linux), then free that cache
-		 *    element.
-		 * 3) Having processed all entries, if any entries are
-		 * left in the cache, they must refer to interfaces that
-		 * have no address, so display them.
-		 *
-		 * FIXME:
-		 *
-		 * Note the implicit assumption that the AF_LINK/AF_PACKET entries
-		 * will appear _before_ the corresponding entry containing address details
-		 * for the interface in the output of getifaddrs(): observations suggests
-		 * this _seems_ to be the case, but is not documented as being guaranteed.
-		 *
-		 */
 		if (family == PROCENV_LINK_LEVEL_FAMILY) {
 
 			/* Add link level interface details to the cache */
@@ -2331,14 +2323,14 @@ show_network (void)
 		 * address.
 		 */
 
-		/* Search for the MAC address in that cached AF_LINK info */
+		/* Search for an entry corresponding to the interface in the cache */
 		for (node = head->next; node && node->ifaddr.ifa_name; node = node->next) {
 			if (! strcmp (node->ifaddr.ifa_name, ifa->ifa_name)) {
 
 				/* Save */
 				mac_address = node->mac_address
 					? strdup (node->mac_address)
-					: node->mac_address;
+					: NULL;
 
 				/* Unlink existing node as it has now served its purpose */
 				node->prev->next = node->next;
@@ -2354,15 +2346,17 @@ show_network (void)
 			}
 		}
 
+		/* Display the interface (which must have an associated address) */
 		show_network_if (ifa, mac_address);
-		if (mac_address)
+		if (mac_address) {
 			free (mac_address);
-
+			mac_address = NULL;
+		}
 	}
 
-	freeifaddrs (if_addrs);
-
-	/* Destroy the cached mac address list */
+	/* Destroy the cache, displaying any interfaces not previously displayed.
+	 * These by definition cannot have addresses assigned to them.
+	 */
 	for (node = head->next; node && node->ifaddr.ifa_name; node = tmp) {
 
 		tmp = node->next;
@@ -2376,6 +2370,7 @@ show_network (void)
 	}
 
 	free (head);
+	freeifaddrs (if_addrs);
 }
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)

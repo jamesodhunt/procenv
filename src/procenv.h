@@ -569,7 +569,7 @@ bool is_big_endian (void);
 char * get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
 void show_data_model (void);
-const char *get_net_family_name (int family);
+const char *get_net_family_name (sa_family_t family);
 void show_network (void);
 void show_network_if (const struct ifaddrs *ifa, const char *mac_address);
 void get_network_name (const struct sockaddr *address, int family, char *name);
