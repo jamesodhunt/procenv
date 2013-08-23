@@ -70,7 +70,7 @@ int selected_option = 0;
 /**
  * indent:
  *
- * Number of spaces to indent output
+ * Number of spaces to indent output.
  **/
 int indent = 0;
 
@@ -87,6 +87,12 @@ const char *program_name;
  * Arguments used for re-exec'ing ourselves.
  **/
 char **exec_args = NULL;
+
+/**
+ * Copy of argv and argc used by show_arguments().
+ **/
+char **argvp = NULL;
+int argvc = 0;
 
 struct procenv_user     user;
 struct procenv_misc     misc;
@@ -125,7 +131,7 @@ struct mntopt_map {
 	{ MNT_SYNCHRONOUS  , "synchronous" },
 	{ MNT_UNION        , "union" },
 
-	{ 0, NULL },
+	{ 0, NULL }
 };
 #endif
 
@@ -134,7 +140,9 @@ struct procenv_map output_map[] = {
 	{ OUTPUT_STDERR , "stderr" },
 	{ OUTPUT_STDOUT , "stdout" },
 	{ OUTPUT_SYSLOG , "syslog" },
-	{ OUTPUT_TERM   , "terminal" }
+	{ OUTPUT_TERM   , "terminal" },
+
+	{ 0, NULL }
 };
 
 struct baud_speed baud_speeds[] = {
@@ -161,6 +169,67 @@ struct baud_speed baud_speeds[] = {
     /* terminator */
     { 0, NULL }
 };
+
+struct if_flag_map {
+	unsigned int  flag;
+	char         *name;
+} if_flag_map[] = {
+	mk_map_entry (IFF_UP),
+	mk_map_entry (IFF_BROADCAST),
+	mk_map_entry (IFF_DEBUG),
+	mk_map_entry (IFF_LOOPBACK),
+	mk_map_entry (IFF_POINTOPOINT),
+	mk_map_entry (IFF_RUNNING),
+	mk_map_entry (IFF_NOARP),
+	mk_map_entry (IFF_PROMISC),
+
+#if defined (PROCENV_LINUX)
+	mk_map_entry (IFF_NOTRAILERS),
+#endif
+
+	mk_map_entry (IFF_ALLMULTI),
+
+#if defined (PROCENV_LINUX)
+	mk_map_entry (IFF_MASTER),
+	mk_map_entry (IFF_SLAVE),
+#endif
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	mk_map_entry (IFF_SIMPLEX),
+#endif
+
+	mk_map_entry (IFF_MULTICAST),
+
+#if defined (PROCENV_LINUX)
+	mk_map_entry (IFF_PORTSEL),
+	mk_map_entry (IFF_AUTOMEDIA),
+	mk_map_entry (IFF_DYNAMIC),
+	mk_map_entry (IFF_LOWER_UP),
+	mk_map_entry (IFF_DORMANT),
+	mk_map_entry (IFF_ECHO),
+#endif
+
+	{ 0, NULL }
+};
+
+#if defined (PROCENV_LINUX)
+struct if_extended_flag_map {
+	unsigned int  flag;
+	char         *name;
+} if_extended_flag_map[] = {
+	mk_map_entry (IFF_802_1Q_VLAN),
+	mk_map_entry (IFF_EBRIDGE),
+	mk_map_entry (IFF_SLAVE_INACTIVE),
+	mk_map_entry (IFF_MASTER_8023AD),
+	mk_map_entry (IFF_MASTER_ALB),
+	mk_map_entry (IFF_BONDING),
+	mk_map_entry (IFF_SLAVE_NEEDARP),
+	mk_map_entry (IFF_ISATAP),
+
+	{ 0, NULL }
+};
+#endif
+
 
 /* Really, every single sysconf variable should be ifdef'ed since it
  * may not exist on a particular system, but that makes the code look
@@ -391,6 +460,15 @@ struct procenv_map signal_map[] = {
 	mk_map_entry (SIGXCPU),
 	mk_map_entry (SIGXFSZ),
 
+#if defined (PROCENV_BSD) || defined (PROCENV_HURD)
+	mk_map_entry (SIGEMT),
+	mk_map_entry (SIGINFO),
+#endif
+
+#if defined (PROCENV_HURD)
+	mk_map_entry (SIGLOST),
+#endif
+
 	{ 0, NULL },
 };
 
@@ -456,6 +534,7 @@ usage (void)
 	show ("Options:");
 	show ("");
 	show ("  -a, --meta          : Display meta details.");
+	show ("  -A, --arguments     : Display program arguments.");
 	show ("  -b, --libs          : Display library details.");
 	show ("  -c, --cgroup[s]     : Display cgroup details (Linux only).");
 	show ("  -d, --compiler      : Display compiler details.");
@@ -472,14 +551,15 @@ usage (void)
 	show ("  -L, --locale        : Display locale details.");
 	show ("  -m, --mount[s]      : Display mount details.");
 	show ("  -n, --confstr       : Display confstr details.");
+	show ("  -N, --network       : Display network details.");
 	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
-	show ("  --output=<type>     : Send output to alternative location. Type can be one of:");
+	show ("  --output=<type>     : Send output to alternative location. <type> can be one of:");
 	show ("");
-	show ("                      file     # send output to a file.");
-	show ("                      stderr   # write to standard error.");
-	show ("                      stdout   # write to standard output (default).");
-	show ("                      syslog   # write to the system log file.");
-	show ("                      terminal # write to terminal.");
+	show ("                      file     : Send output to a file.");
+	show ("                      stderr   : Write to standard error.");
+	show ("                      stdout   : Write to standard output (default).");
+	show ("                      syslog   : Write to the system log file.");
+	show ("                      terminal : Write to terminal.");
 	show ("");
 	show ("  -p, --proc[ess]     : Display process details.");
 	show ("  -P, --platform      : Display platform details.");
@@ -558,9 +638,6 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 
 	assert (fmt);
 
-	buffer = strdup ("");
-	assert (buffer);
-
 	if (indent)
 		appendf (&buffer, "%*s", indent, " ");
 
@@ -592,7 +669,7 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 		ret = write (user.tty_fd, buffer, strlen (buffer));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to terminal\n");
-			exit (EXIT_FAILURE);
+			goto error;
 		}
 		break;
 
@@ -605,14 +682,14 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 			if (output_fd < 0) {
 				fprintf (stderr, "ERROR: failed to open file '%s'\n",
 						output_file);
-				exit (EXIT_FAILURE);
+				goto error;
 			}
 		}
 		ret = write (output_fd, buffer, strlen (buffer));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to file '%s'\n",
 					output_file);
-			exit (EXIT_FAILURE);
+			goto error;
 		}
 		break;
 
@@ -751,6 +828,8 @@ show_signals (void)
 		die ("failed to query signal mask");
 
 	for (i = 1; i <= NUM_SIGNALS; i++) {
+		const char *signal_name;
+		const char *signal_desc;
 
 		blocked = 0;
 		ignored = 0;
@@ -771,9 +850,12 @@ show_signals (void)
 		else if (rc)
 			blocked = 1;
 
+		signal_name = get_signal_name (i);
+		signal_desc = strsignal (i);
+
 		show ("%s ('%s', %d): blocked=%s, ignored=%s",
-				get_signal_name (i),
-				strsignal (i),
+				signal_name ? signal_name : UNKNOWN_STR,
+				signal_desc ? signal_desc : UNKNOWN_STR,
 				i,
 				blocked ? YES_STR : NO_STR,
 				ignored ? YES_STR : NO_STR);
@@ -905,25 +987,21 @@ get_misc (void)
  * Check if specified file descriptor is attached to a _console_
  * device (physical or virtual).
  *
- * Note that ptys are NOT consoles :)
+ * Notes:
+ *   - ptys are NOT consoles :)
+ *   - running inside screen/tmux will report not running on console.
  *
  * Returns: TRUE if @fd is attached to a console, else FALSE.
- *
- * FIXME: how can this be determined for BSD?
  **/
 int
 is_console (int fd)
 {
-#if defined (PROCENV_LINUX)
-	struct vt_mode vt;
-	int ret;
+	struct vt_mode  vt;
+	int             ret;
 
-	ret = ioctl (0, VT_GETMODE, &vt);
+	ret = ioctl (fd, VT_GETMODE, &vt);
 
 	return !ret;
-#else
-	return FALSE;
-#endif
 }
 
 void
@@ -954,12 +1032,8 @@ dump_user (void)
 	show ("has controlling terminal: %s",
 			has_ctty () ? YES_STR : NO_STR);
 
-#if defined (PROCENV_LINUX)
 	show ("on console: %s",
 			is_console (user.tty_fd) ? YES_STR : NO_STR);
-#else
-	show ("on console: %s", UNKNOWN_STR);
-#endif
 
 	show ("real user id (uid): %d ('%s')",
 			user.uid,
@@ -1243,6 +1317,11 @@ append (char **str, const char *new)
     assert (str);
     assert (new);
 
+    if (! *str)
+	    *str = strdup ("");
+
+    assert (*str);
+
     /* +1 for terminating nul */
     total = strlen (*str) + 1;
 
@@ -1266,6 +1345,11 @@ appendf (char **str, const char *fmt, ...)
     assert (str);
     assert (fmt);
 
+    if (! *str)
+	    *str = strdup ("");
+
+    assert (*str);
+
     va_start (ap, fmt);
 
     if (vasprintf (&new, fmt, ap) < 0) {
@@ -1286,6 +1370,11 @@ appendva (char **str, const char *fmt, va_list ap)
 
     assert (str);
     assert (fmt);
+
+    if (! *str)
+	    *str = strdup ("");
+
+    assert (*str);
 
     if (vasprintf (&new, fmt, ap) < 0) {
         perror ("vasprintf");
@@ -1449,6 +1538,19 @@ dump_meta (void)
 }
 
 void
+show_arguments (void)
+{
+	int i;
+
+	header ("arguments");
+
+	show ("count: %u", argvc);
+
+	for (i = 0; i < argvc; i++)
+		show ("argv[%d]='%s'", i, argvp[i]);
+}
+
+void
 show_stat (void)
 {
 	struct stat  st;
@@ -1551,6 +1653,7 @@ void
 dump (void)
 {
 	dump_meta ();
+	show_arguments ();
 
 #if defined (PROCENV_LINUX)
 	show_capabilities ();
@@ -1566,10 +1669,11 @@ dump (void)
 #ifndef PROCENV_ANDROID
 	show_libs ();
 #endif
-	show_locale ();
 	show_rlimits ();
+	show_locale ();
 	dump_misc ();
 	show_mounts (SHOW_ALL);
+	show_network ();
 #if defined (PROCENV_LINUX)
 	show_oom ();
 #endif
@@ -1592,14 +1696,210 @@ dump (void)
 	show_tty_attrs ();
 	dump_uname ();
 }
+void
+get_network_address (const struct sockaddr *address, int family, char *name)
+{
+	int  ret;
+
+	assert (address);
+	assert (name);
+
+	memset (name, '\0', NI_MAXHOST);
+
+	ret = getnameinfo (address,
+			(family == AF_INET)
+			? sizeof (struct sockaddr_in)
+			: sizeof (struct sockaddr_in6),
+			(char *)name, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+	if (ret) {
+		switch (ret) {
+		case EAI_NONAME:
+		case EAI_FAMILY:
+			sprintf ((char *)name, "%s", NA_STR);
+			break;
+		default:
+			sprintf ((char *)name, "%s", UNKNOWN_STR);
+			break;
+		}
+	}
+
+	assert (name[NI_MAXHOST-1] == '\0');
+}
+
+char *
+decode_if_flags (unsigned int flags)
+{
+	char *str = NULL;
+	struct if_flag_map *p;
+	int first = TRUE;
+
+	for (p = if_flag_map; p && p->name; p++) {
+		if (flags & p->flag) {
+			appendf (&str, "%s%s",
+					first ? "" : ",",
+					p->name);
+			first = FALSE;
+		}
+	}
+
+	return str;
+}
+
+const char *
+get_ipv6_scope_name (uint32_t scope)
+{
+	switch (scope) {
+		case 0x0:
+		case 0xf:
+			return "reserved";
+			break;
+
+		case 0x1:
+			return "interface-local";
+			break;
+
+		case 0x2:
+			return "link-local";
+			break;
+
+		case 0x4:
+			return "admin-local";
+			break;
+
+		case 0x5:
+			return "site-local";
+			break;
+
+		case 0x8:
+			return "organization-local";
+			break;
+
+		case 0xe:
+			return "global";
+			break;
+	}
+
+	return UNKNOWN_STR;
+}
+
+int
+get_mtu (const struct ifaddrs *ifaddr)
+{
+	int            sock;
+	struct ifreq   ifr;
+	int            request = SIOCGIFMTU;
+
+	assert (ifaddr);
+
+	/* We need to create a socket to query an interfaces mac
+	 * address. Don't ask me why...
+	 */
+	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (sock < 0)
+		return -1;
+
+	memset (&ifr, 0, sizeof (struct ifreq));
+	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
+
+	if (ioctl (sock, request, &ifr) < 0)
+		goto out;
+out:
+	close (sock);
+
+	return ifr.ifr_mtu;
+}
+
+/*
+ *
+ * Returns: IEEE-802 format MAC address, or NULL on error.
+ */
+char *
+get_mac_address (const struct ifaddrs *ifaddr)
+{
+	int            sock;
+	struct ifreq   ifr;
+	unsigned char *data = NULL;
+	char          *mac_address = NULL;
+	int            i;
+	int            valid = 0;
 
 #if defined (PROCENV_LINUX)
+	int            request = SIOCGIFHWADDR;
+#endif
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	struct sockaddr_dl *link_layer;
+#endif
+	assert (ifaddr);
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
+#else
+
+	/* We need to create a socket to query an interfaces mac
+	 * address. Don't ask me why...
+	 */
+	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (sock < 0)
+		return NULL;
+
+	memset (&ifr, 0, sizeof (struct ifreq));
+	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
+
+	if (ioctl (sock, request, &ifr) < 0)
+		goto out;
+#endif
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	data = LLADDR (link_layer);
+#else
+	data = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+#endif
+
+	for (i = 0; i < 6; i++) {
+		if (data[i]) {
+			valid = 1;
+			break;
+		}
+	}
+
+	/* MAC comprised of all zeros cannot be valid */
+	if (! valid)
+		goto out;
+
+	/* A formatted MAC address comprises 6x 2-byte groups, separated
+	 * by 5 colons with an additional byte for the string terminator.
+	 */
+	mac_address = calloc ((6*2) + 5 + 1, sizeof (char));
+	if (! mac_address)
+		goto out;
+
+	sprintf (mac_address, "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
+			data[0],
+			data[1],
+			data[2],
+			data[3],
+			data[4],
+			data[5]);
+
+out:
+	close (sock);
+	return mac_address;
+}
+
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void
 show_linux_mounts (ShowMountType what)
 {
-	FILE *mtab;
-	struct mntent *mnt;
-	int major, minor;
+	FILE            *mtab;
+	struct mntent   *mnt;
+	struct statvfs   fs;
+	unsigned int     major = 0;
+	unsigned int     minor = 0;
+	int              have_stats;
 
 	mtab = fopen (MOUNTS, "r");
 
@@ -1609,19 +1909,80 @@ show_linux_mounts (ShowMountType what)
 	}
 
 	while ((mnt = getmntent (mtab))) {
+		char *str = NULL;
+		have_stats = TRUE;
+
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
+			unsigned multiplier = 0;
+			fsblkcnt_t blocks;
+			fsblkcnt_t bfree;
+			fsblkcnt_t bavail;
+			fsblkcnt_t used_blocks;
+			fsblkcnt_t used_files;
+
+			if (statvfs (mnt->mnt_dir, &fs) < 0) {
+				have_stats = FALSE;
+			} else {
+				multiplier = fs.f_bsize / DF_BLOCK_SIZE;
+
+				blocks = fs.f_blocks * multiplier;
+				bfree = fs.f_bfree * multiplier;
+				bavail = fs.f_bavail * multiplier;
+				used_blocks = blocks - bfree;
+				used_files = fs.f_files - fs.f_ffree;
+			}
+
 			get_major_minor (mnt->mnt_dir,
 					&major,
 					&minor);
-			show ("fsname='%s', dir='%s', type='%s', "
-					"opts='%s', "
-					"dev=(major:%d, minor:%d)",
-					mnt->mnt_fsname,
-					mnt->mnt_dir,
-					mnt->mnt_type,
-					mnt->mnt_opts,
-					major,
-					minor);
+			appendf (&str,
+				"fsname='%s', dir='%s', type='%s', "
+				"opts='%s', "
+				"dev=(major:%u, minor:%u), "
+				"dump_freq=%d, fsck_passno=%d, ",
+				mnt->mnt_fsname,
+				mnt->mnt_dir,
+				mnt->mnt_type,
+				mnt->mnt_opts,
+				major, minor,
+				mnt->mnt_freq, mnt->mnt_passno);
+
+			if (have_stats) {
+				appendf (&str, 
+				"fsid=%.*x, "
+				"optimal_block_size=%lu, "
+				"%d-byte blocks (total=%lu, used=%lu, free=%lu, available=%lu), "
+				"files/inodes (total=%lu, used=%lu, free=%lu)",
+				sizeof (fs.f_fsid),
+				fs.f_fsid,
+				fs.f_bsize,
+				DF_BLOCK_SIZE,
+				blocks,
+				used_blocks,
+				bfree,
+				bavail,
+				fs.f_files,
+				used_files,
+				fs.f_ffree);
+			} else {
+				appendf (&str, 
+				"fsid=%s, "
+				"optimal_block_size=%s, "
+				"%d-byte blocks (total=%s, used=%s, free=%s, available=%s), "
+				"files/inodes (total=%s, free=%s)",
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR,
+				UNKNOWN_STR);
+			}
+
+			show (str);
+			free (str);
 		}
 
 		if (what == SHOW_ALL || what == SHOW_PATHCONF)
@@ -1630,6 +1991,50 @@ show_linux_mounts (ShowMountType what)
 
 	fclose (mtab);
 }
+#endif
+
+#if defined (PROCENV_LINUX)
+char *
+decode_extended_if_flags (const char *interface, unsigned short *flags)
+{
+	int                           sock;
+	struct ifreq                  ifr;
+	int                           first = TRUE;
+	char                         *str = NULL;
+	struct if_extended_flag_map  *p;
+
+	assert (interface);
+	assert (flags);
+
+	/* We need to create a socket to query an interfaces mac
+	 * address. Don't ask me why...
+	 */
+	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (sock < 0)
+		return NULL;
+
+	memset (&ifr, 0, sizeof (struct ifreq));
+	strncpy (ifr.ifr_name, interface, IFNAMSIZ-1);
+
+	if (ioctl (sock, SIOCGIFPFLAGS, &ifr) < 0)
+		goto out;
+
+	*flags = ifr.ifr_flags;
+
+	for (p = if_extended_flag_map; p && p->name; p++) {
+		if (*flags & p->flag) {
+			appendf (&str, "%s%s",
+					first ? "" : ",",
+					p->name);
+			first = FALSE;
+		}
+	}
+out:
+	close (sock);
+	return str;
+}
+
 
 /**
  * linux_kernel_version:
@@ -1702,13 +2107,275 @@ show_mounts (ShowMountType what)
 {
 	header ("mounts");
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_linux_mounts (what);
 #endif
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	show_bsd_mounts (what);
 #endif
+}
+
+const char *
+get_net_family_name (int family)
+{
+	switch (family) {
+#if defined (PROCENV_LINUX)
+		case AF_PACKET:
+			return "AF_PACKET";
+			break;
+#endif
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+		case AF_LINK:
+			return "AF_LINK";
+			break;
+#endif
+
+		case AF_INET:
+			return "AF_INET";
+			break;
+
+		case AF_INET6:
+			return "AF_INET6";
+			break;
+	}
+
+	return UNKNOWN_STR;
+}
+
+void
+show_network_if (const struct ifaddrs *ifa, const char *mac_address)
+{
+	char                *str = NULL;
+	char                *flags = NULL;
+	char                *extended_flags = NULL;
+	unsigned short       ext_flags = 0;
+	int                  family;
+	char                 address[NI_MAXHOST];
+	int                  mtu = 0;
+
+	assert (ifa);
+
+	family = ifa->ifa_addr->sa_family;
+
+	flags = decode_if_flags (ifa->ifa_flags);
+
+#if defined (PROCENV_LINUX)
+	extended_flags = decode_extended_if_flags (ifa->ifa_name, &ext_flags);
+#endif
+	appendf (&str, "interface %s: family=%s (0x%x), "
+			"flags=0x%x (%s), extended_flags=0x%x (%s)",
+			ifa->ifa_name,
+		        get_net_family_name (family),
+			family,
+			ifa->ifa_flags,
+			flags ? flags : UNKNOWN_STR,
+			ext_flags,
+			extended_flags ? extended_flags : NA_STR);
+	if (flags)
+		free (flags);
+
+	if (extended_flags)
+		free (extended_flags);
+
+	mtu = get_mtu (ifa);
+
+	appendf (&str, ", mac=%s", mac_address ? mac_address : NA_STR);
+	if (mtu > 0) {
+		appendf (&str, ", mtu=%d", mtu);
+	} else {
+		appendf (&str, ", mtu=%s", UNKNOWN_STR);
+	}
+
+	get_network_address (ifa->ifa_addr, family, address);
+	appendf (&str, ", address=%s", address);
+
+	if (ifa->ifa_netmask)
+		get_network_address (ifa->ifa_netmask, family, address);
+	appendf (&str, ", netmask=%s", ifa->ifa_netmask ? address : NA_STR);
+
+	if (family != PROCENV_LINK_LEVEL_FAMILY) {
+		if ((ifa->ifa_flags & IFF_BROADCAST) && ifa->ifa_broadaddr) {
+			get_network_address (ifa->ifa_broadaddr, family, address);
+
+			appendf (&str, ", broadcast=%s", ifa->ifa_broadaddr ? address : NA_STR);
+		}
+	} else {
+		appendf (&str, ", broadcast=%s", NA_STR);
+	}
+
+	if (ifa->ifa_flags & IFF_POINTOPOINT && ifa->ifa_dstaddr) {
+
+		get_network_address (ifa->ifa_dstaddr, family, address);
+
+		appendf (&str, ", point-to-point=%s", address);
+	}
+
+	show (str);
+	free (str);
+}
+
+void
+show_network (void)
+{
+	struct ifaddrs      *if_addrs;
+	struct ifaddrs      *ifa;
+	char                 address[NI_MAXHOST];
+	char                 netmask[NI_MAXHOST];
+	char                *str = NULL;
+	char                *mac_address = NULL;
+	int                  mtu = 0;
+	char                *flags = NULL;
+	char                *extended_flags = NULL;
+	unsigned short       ext_flags = 0;
+	struct network_map  *head = NULL;
+	struct network_map  *node = NULL;
+	struct network_map  *tmp = NULL;
+
+	header ("network");
+
+	/* Query all network interfaces */
+	if (getifaddrs (&if_addrs) < 0) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
+
+	/* Construct an initial node for the cache */
+	head = calloc (1, sizeof (struct network_map));
+	assert (head);
+
+	/* Iterate over all network interfaces */
+	for (ifa = if_addrs; ifa; ifa = ifa->ifa_next) {
+		int family;
+
+		if (! ifa->ifa_addr)
+			continue;
+
+
+		family = ifa->ifa_addr->sa_family;
+
+		/*
+		 * BSD returns an additional AF_LINK ifaddrs containing the
+		 * actual link-layer MAC address for each interface.
+		 *
+		 * Linux does the same but with one additional AF_PACKET family / interface.
+		 *
+		 * This is somewhat noisome since for BSD we need to cache the MAC addresses
+		 * such that they can be retrieved when the _next_ ifaddrs structure
+		 * appears for the *same* interface, but we only want to
+		 * display the non-AF_LINK elements *unless* they refer
+		 * to an interface with no associated address.
+		 *
+		 * The situation for Linux is similar but we only care
+		 * about AF_PACKET entries for interfaces that have no
+		 * associated address since we can extract the MAC
+		 * address using an ioctl (rather than considering the
+		 * AF_PACKET element).
+		 *
+		 * The strategy therefore is to:
+		 *
+		 * 1) Cache all AF_LINK/AF_PACKET elements.
+		 * 2) Once an element arrives that matches an interface
+		 *    name found in the cache, use that as necessary (extra
+		 *    the MAC for BSD, NOP for Linux), then free that cache
+		 *    element.
+		 * 3) Having processed all entries, if any entries are
+		 * left in the cache, they must refer to interfaces that
+		 * have no address, so display them.
+		 *
+		 * FIXME:
+		 *
+		 * Note the implicit assumption that the AF_LINK/AF_PACKET entries
+		 * will appear _before_ the corresponding entry containing address details
+		 * for the interface in the output of getifaddrs(): observations suggests
+		 * this _seems_ to be the case, but is not documented as being guaranteed.
+		 *
+		 */
+		if (family == PROCENV_LINK_LEVEL_FAMILY) {
+
+			/* Add link level interface details to the cache */
+			mac_address = get_mac_address (ifa);
+
+			node = calloc (1, sizeof (struct network_map));
+			assert (node);
+
+			/* Conveniently, an ifaddrs contains a bunch of
+			 * pointers and some flags.
+			 *
+			 * Since all those pointers are valid until we
+			 * call freeifaddrs(), all we need to do is copy
+			 * the flags since the memcpy will copy the
+			 * pointers addresses for us :)
+			 */
+			memcpy (&node->ifaddr, ifa, sizeof (struct ifaddrs));
+			node->ifaddr.ifa_flags = ifa->ifa_flags;
+
+			/* Since we've already formatted the MAC
+			 * address, we'll cache that too.
+			 */
+			node->mac_address = mac_address;
+			mac_address = NULL;
+
+			/* prepend */
+			node->next = head->next;
+			if (head->next)
+				head->next->prev = node;
+			node->prev = head;
+			head->next = node;
+
+			continue;
+		}
+
+		/* From now on, we're only looking at interfaces with an
+		 * address.
+		 */
+
+		/* Search for the MAC address in that cached AF_LINK info */
+		for (node = head->next; node && node->ifaddr.ifa_name; node = node->next) {
+			if (! strcmp (node->ifaddr.ifa_name, ifa->ifa_name)) {
+
+				/* Save */
+				mac_address = node->mac_address
+					? strdup (node->mac_address)
+					: node->mac_address;
+
+				/* Unlink existing node as it has now served its purpose */
+				node->prev->next = node->next;
+				if (node->next)
+					node->next->prev = node->prev;
+
+				/* Destroy */
+				if (node->mac_address)
+					free (node->mac_address);
+				free (node);
+
+				break;
+			}
+		}
+
+		show_network_if (ifa, mac_address);
+		if (mac_address)
+			free (mac_address);
+
+	}
+
+	freeifaddrs (if_addrs);
+
+	/* Destroy the cached mac address list */
+	for (node = head->next; node && node->ifaddr.ifa_name; node = tmp) {
+
+		tmp = node->next;
+
+		show_network_if (&node->ifaddr, node->mac_address);
+
+		/* Destroy */
+		if (node->mac_address)
+			free (node->mac_address);
+		free (node);
+	}
+
+	free (head);
 }
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
@@ -1767,10 +2434,17 @@ get_bsd_mount_opts (uint64_t flags)
 void
 show_bsd_mounts (ShowMountType what)
 {
-	int             count;
-	struct statfs  *mounts;
-	struct statfs  *mnt;
-	int             i;
+	int               count;
+	struct statfs    *mounts;
+	struct statfs    *mnt;
+	unsigned int      major = 0;
+	unsigned int      minor = 0;
+	int               i;
+	unsigned          multiplier = 0;
+	statfs_int_type   blocks;
+	statfs_int_type   bfree;
+	statfs_int_type   bavail;
+	statfs_int_type   used;
 
 	/* Note that returned memory cannot be freed (by us) */
 	count = getmntinfo (&mounts, MNT_WAIT);
@@ -1789,12 +2463,47 @@ show_bsd_mounts (ShowMountType what)
 					mnt->f_mntonname);
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			show ("fsname='%s', dir='%s', type='%s', opts='%s'",
+
+			get_major_minor (mnt->f_mntonname,
+					&major,
+					&minor);
+
+			multiplier = mnt->f_bsize / DF_BLOCK_SIZE;
+			blocks = mnt->f_blocks * multiplier;
+			bfree = mnt->f_bfree * multiplier;
+			bavail = mnt->f_bavail * multiplier;
+			used = blocks - bfree;
+
+			show ("fsname='%s', dir='%s', type='%s', "
+					"opts='%s', "
+					"dev=(major:%u, minor:%u), "
+					"fsid=%.*x%.*x, "
+					"optimal_block_size=%" statfs_int_fmt ", "
+					"%d-byte blocks (total=%" statfs_int_fmt ", "
+					"used=%" statfs_int_fmt ", free=%" statfs_int_fmt ", available=%" statfs_int_fmt "), "
+					"files/inodes (total=%" statfs_int_fmt ", free=%" statfs_int_fmt ")",
 					mnt->f_mntfromname,
 					mnt->f_mntonname,
 					mnt->f_fstypename,
-					opts);
+					opts,
+					major, minor,
+
+					/* Always zero on BSD? */
+					sizeof (mnt->f_fsid.val[0]),
+					mnt->f_fsid.val[0],
+					sizeof (mnt->f_fsid.val[1]),
+					mnt->f_fsid.val[1],
+
+					mnt->f_bsize,
+					DF_BLOCK_SIZE,
+					blocks,
+					used,
+					bfree,
+					bavail,
+					mnt->f_files,
+					mnt->f_ffree);
 		}
+
 		if (what == SHOW_ALL || what == SHOW_PATHCONF)
 			show_pathconfs (what, mnt->f_mntonname);
 		mnt++;
@@ -1802,6 +2511,7 @@ show_bsd_mounts (ShowMountType what)
 		free (opts);
 	}
 }
+
 #endif
 
 void
@@ -3078,8 +3788,11 @@ show_compiler (void)
 	header ("compiler");
 	show ("name: %s", name);
 	show ("version: %s", version);
-	show ("compile date: %s", __DATE__);
-	show ("compile time: %s", __TIME__);
+	show ("compile date (__DATE__): %s", __DATE__);
+	show ("compile time (__TIME__): %s", __TIME__);
+	show ("translation unit (__FILE__): %s", __FILE__);
+	show ("base file (__BASE_FILE__): %s", __BASE_FILE__);
+	show ("timestamp (__TIMESTAMP__): %s", __TIMESTAMP__);
 
 #ifdef __STRICT_ANSI__
 	show ("__STRICT_ANSI__: %s", DEFINED_STR);
@@ -3727,7 +4440,7 @@ check_envvars (void)
 }
 
 void
-get_major_minor (const char *path, int *_major, int *_minor)
+get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 {
 	struct stat  st;
 
@@ -3740,7 +4453,7 @@ get_major_minor (const char *path, int *_major, int *_minor)
 		 * user does not have permission to check.
 		 */
 		warn ("unable to stat path '%s'", path);
-		*_major = *_minor = -1;
+		*_major = *_minor = 0;
 		return;
 	}
 
@@ -3942,8 +4655,8 @@ show_data_model (void)
 #undef DATA_MODEL
 
 int
-main (int  argc,
-		char *argv[])
+main (int    argc,
+      char  *argv[])
 {
 	int    option;
 	int    long_index;
@@ -3951,6 +4664,7 @@ main (int  argc,
 
 	struct option long_options[] = {
 		{"meta"         , no_argument, NULL, 'a'},
+		{"arguments"    , no_argument, NULL, 'A'},
 		{"libs"         , no_argument, NULL, 'b'},
 		{"cgroup"       , no_argument, NULL, 'c'},
 		{"cgroups"      , no_argument, NULL, 'c'},
@@ -3969,6 +4683,7 @@ main (int  argc,
 		{"mount"        , no_argument, NULL, 'm'},
 		{"mounts"       , no_argument, NULL, 'm'},
 		{"confstr"      , no_argument, NULL, 'n'},
+		{"network"      , no_argument, NULL, 'N'},
 		{"oom"          , no_argument, NULL, 'o'},
 		{"proc"         , no_argument, NULL, 'p'},
 		{"process"      , no_argument, NULL, 'p'},
@@ -3997,6 +4712,8 @@ main (int  argc,
 	};
 
 	program_name = argv[0];
+	argvp = argv;
+	argvc = argc;
 
 	/* Check before command-line options, since the latter
 	 * must take priority.
@@ -4007,7 +4724,7 @@ main (int  argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"abcdefghijklLmnopPqrstTuUvwxyz",
+				"aAbcdefghijklLmnNopPqrstTuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -4040,6 +4757,10 @@ main (int  argc,
 
 		case 'a':
 			dump_meta ();
+			break;
+
+		case 'A':
+			show_arguments ();
 			break;
 
 		case 'b':
@@ -4105,6 +4826,10 @@ main (int  argc,
 #ifndef PROCENV_ANDROID
 			show_confstrs ();
 #endif
+			break;
+
+		case 'N':
+			show_network ();
 			break;
 
 		case 'o':
@@ -4191,16 +4916,20 @@ main (int  argc,
 	if (reexec && ! exec_args && optind >= argc)
 		die ("must specify atleast one argument with '--exec'");
 
-	dump ();
-
-	cleanup ();
-
+	/* Prepare for re-exec */
 	if (reexec) {
 		if (! exec_args) {
 			argv += optind;
 			exec_args = argv;
 		}
+	}
 
+	dump ();
+
+	cleanup ();
+
+	/* Perform re-exec */
+	if (reexec) {
 		execvp (exec_args[0], exec_args);
 		die ("failed to re-exec %s", exec_args[0]);
 	}
