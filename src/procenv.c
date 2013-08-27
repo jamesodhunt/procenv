@@ -980,6 +980,7 @@ get_misc (void)
 #endif
 }
 
+#if !defined (PROCENV_HURD)
 /**
  * is_console:
  * @fd: open file descriptor.
@@ -1003,11 +1004,11 @@ is_console (int fd)
 
 	return !ret;
 }
+#endif
 
 void
 dump_user (void)
 {
-
 	header ("process");
 
 	show ("process id (pid): %d", user.pid);
@@ -1032,8 +1033,12 @@ dump_user (void)
 	show ("has controlling terminal: %s",
 			has_ctty () ? YES_STR : NO_STR);
 
+#if defined (PROCENV_HURD)
+	show ("on console: %s", UNKNOWN_STR);
+#else
 	show ("on console: %s",
 			is_console (user.tty_fd) ? YES_STR : NO_STR);
+#endif
 
 	show ("real user id (uid): %d ('%s')",
 			user.uid,
@@ -1174,8 +1179,8 @@ dump_fds (void)
 
 	for (fd = 0; fd < max; fd++) {
 		if (fd_valid (fd)) {
-			int is_tty = isatty (fd);
-			char *name = NULL;
+			int    is_tty = isatty (fd);
+			char  *name = NULL;
 
 			if (is_tty) {
 #if ! defined (PROCENV_ANDROID)
@@ -1183,17 +1188,13 @@ dump_fds (void)
 #endif
 				show ("fd %d: terminal=%s ('%s')", fd,
 						is_tty ? YES_STR : NO_STR,
-#if ! defined (PROCENV_ANDROID)
-						name ? name : NA_STR
-#else
-						UNKNOWN_STR
-#endif
-						);
+						name ? name : NA_STR);
 			} else {
 				show ("fd %d: terminal=%s", fd, NO_STR);
 			}
 		}
 	}
+
 #if defined (PROCENV_LINUX)
 	dump_linux_proc_fds ();
 #endif
@@ -1706,21 +1707,25 @@ get_network_address (const struct sockaddr *address, int family, char *name)
 
 	memset (name, '\0', NI_MAXHOST);
 
-	ret = getnameinfo (address,
-			(family == AF_INET)
-			? sizeof (struct sockaddr_in)
-			: sizeof (struct sockaddr_in6),
-			(char *)name, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-	if (ret) {
-		switch (ret) {
-		case EAI_NONAME:
-		case EAI_FAMILY:
-			sprintf ((char *)name, "%s", NA_STR);
-			break;
-		default:
-			sprintf ((char *)name, "%s", UNKNOWN_STR);
-			break;
+	if (family == AF_INET || family == AF_INET6) {
+		ret = getnameinfo (address,
+				(family == AF_INET)
+				? sizeof (struct sockaddr_in)
+				: sizeof (struct sockaddr_in6),
+				(char *)name, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+		if (ret) {
+			switch (ret) {
+			case EAI_NONAME:
+			case EAI_FAMILY:
+				sprintf ((char *)name, "%s", NA_STR);
+				break;
+			default:
+				sprintf ((char *)name, "%s", UNKNOWN_STR);
+				break;
+			}
 		}
+	} else {
+		sprintf ((char *)name, "%s", NA_STR);
 	}
 
 	assert (name[NI_MAXHOST-1] == '\0');
@@ -1817,20 +1822,21 @@ out:
 char *
 get_mac_address (const struct ifaddrs *ifaddr)
 {
-	int            sock;
-	struct ifreq   ifr;
-	unsigned char *data = NULL;
+	char          *data = NULL;
 	char          *mac_address = NULL;
 	int            i;
-	int            valid = 0;
+	int            valid = FALSE;
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	struct sockaddr_dl *link_layer;
+#else
+	struct ifreq   ifr;
+	int            sock = -1;
+#endif
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	int            request = SIOCGIFHWADDR;
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-	struct sockaddr_dl *link_layer;
-#endif
 	assert (ifaddr);
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
@@ -1855,13 +1861,15 @@ get_mac_address (const struct ifaddrs *ifaddr)
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	data = LLADDR (link_layer);
 #else
-	data = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+	data = (char *)ifr.ifr_hwaddr.sa_data;
 #endif
 
-	for (i = 0; i < 6; i++) {
-		if (data[i]) {
-			valid = 1;
-			break;
+	if (data) {
+		for (i = 0; i < 6; i++) {
+			if (data[i]) {
+				valid = TRUE;
+				break;
+			}
 		}
 	}
 
@@ -1869,23 +1877,29 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	if (! valid)
 		goto out;
 
-	/* A formatted MAC address comprises 6x 2-byte groups, separated
-	 * by 5 colons with an additional byte for the string terminator.
+	/* An IEEE-802 formatted MAC address comprises 6x 2-byte groups,
+	 * separated by 5 colons with an additional byte for the string
+	 * terminator.
 	 */
 	mac_address = calloc ((6*2) + 5 + 1, sizeof (char));
 	if (! mac_address)
 		goto out;
 
 	sprintf (mac_address, "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
-			data[0],
-			data[1],
-			data[2],
-			data[3],
-			data[4],
-			data[5]);
+			(unsigned char)data[0],
+			(unsigned char)data[1],
+			(unsigned char)data[2],
+			(unsigned char)data[3],
+			(unsigned char)data[4],
+			(unsigned char)data[5]);
 
 out:
+
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+	/* NOP */
+#else
 	close (sock);
+#endif
 	return mac_address;
 }
 
@@ -2181,7 +2195,13 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	mtu = get_mtu (ifa);
 
+#if defined (PROCENV_HURD)
+	/* No AF_LINK/AF_PACKET on Hurd atm */
+	appendf (&str, ", mac=%s", UNKNOWN_STR);
+#else
 	appendf (&str, ", mac=%s", mac_address ? mac_address : NA_STR);
+#endif
+
 	if (mtu > 0) {
 		appendf (&str, ", mtu=%d", mtu);
 	} else {
@@ -2195,6 +2215,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 		get_network_address (ifa->ifa_netmask, family, address);
 	appendf (&str, ", netmask=%s", ifa->ifa_netmask ? address : NA_STR);
 
+#if !defined (PROCENV_HURD)
 	if (family != PROCENV_LINK_LEVEL_FAMILY) {
 		if ((ifa->ifa_flags & IFF_BROADCAST) && ifa->ifa_broadaddr) {
 			get_network_address (ifa->ifa_broadaddr, family, address);
@@ -2202,8 +2223,11 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 			appendf (&str, ", broadcast=%s", ifa->ifa_broadaddr ? address : NA_STR);
 		}
 	} else {
+#endif
 		appendf (&str, ", broadcast=%s", NA_STR);
+#if !defined (PROCENV_HURD)
 	}
+#endif
 
 	if (ifa->ifa_flags & IFF_POINTOPOINT && ifa->ifa_dstaddr) {
 
@@ -2245,13 +2269,11 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
  * left in the cache, they must refer to interfaces that
  * have no address, so display them.
  *
- * FIXME:
- *
- * Note the implicit assumption that the AF_LINK/AF_PACKET entries
- * will appear _before_ the corresponding entry containing address details
- * for the interface in the output of getifaddrs(): observations suggests
- * this _seems_ to be the case, but is not documented as being guaranteed.
- *
+ * XXX: Note the implicit assumption that the AF_LINK/AF_PACKET entries
+ * will appear _before_ the corresponding entry containing address
+ * details for the interface in the output of getifaddrs(): observations
+ * suggests this _seems_ to be the case, but is not documented as being
+ * guaranteed.
  */
 void
 show_network (void)
@@ -2277,11 +2299,14 @@ show_network (void)
 
 	/* Iterate over all network interfaces */
 	for (ifa = if_addrs; ifa; ifa = ifa->ifa_next) {
+#if !defined (PROCENV_HURD)
 		int family;
+#endif
 
 		if (! ifa->ifa_addr)
 			continue;
 
+#if !defined (PROCENV_HURD)
 		family = ifa->ifa_addr->sa_family;
 
 		if (family == PROCENV_LINK_LEVEL_FAMILY) {
@@ -2318,6 +2343,7 @@ show_network (void)
 
 			continue;
 		}
+#endif
 
 		/* From now on, we're only looking at interfaces with an
 		 * address.
@@ -2380,7 +2406,6 @@ get_bsd_mount_opts (uint64_t flags)
 {
 	struct mntopt_map  *opt;
 	char               *str = NULL;
-	int                 first = TRUE;
 	size_t              len = 0;
 	size_t              total = 0;
 	int                 count = 0;
@@ -2535,11 +2560,13 @@ const char *
 container_type (void)
 {
 	struct stat  statbuf;
-	dev_t        expected;
 	char         buffer[1024];
 	FILE        *f;
+#if defined (PROCENV_LINUX)
+	dev_t        expected;
 
 	expected = makedev (5, 1);
+#endif
 
 	if (stat ("/dev/console", &statbuf) < 0)
 		goto out;
@@ -2671,7 +2698,7 @@ show_bsd_proc_branch (void)
 	kvm_t               *kvm;
 	struct kinfo_proc   *procs;
 	struct kinfo_proc   *p;
-	pid_t                self, current, first;
+	pid_t                self, current;
 	int                  done = FALSE;
 	char                *str;
 	pid_t                ultimate_parent = 0;
@@ -3766,23 +3793,23 @@ show_ranges (void)
 void
 show_compiler (void)
 {
-	char *name;
-	char *version;
+	char *name = NULL;
+	char *version = NULL;
 
-#if defined (__GNUC__)
-	name = "GCC";
-	version = __VERSION__;
-#elif defined (__clang__)
-	name = "LLVM";
-	version = __clang_version__;
-#elif defined (__INTEL_COMPILER)
+#if defined (__INTEL_COMPILER)
 	name = "Intel";
 	version = __ICC;
+#elif defined (__clang__)
+	name = "Clang/LLVM";
+	version = __clang_version__;
+#elif defined (__GNUC__)
+	name = "GCC";
+	version = __VERSION__;
 #endif
 
 	header ("compiler");
-	show ("name: %s", name);
-	show ("version: %s", version);
+	show ("name: %s", name ? name : UNKNOWN_STR);
+	show ("version: %s", version ? version : UNKNOWN_STR);
 	show ("compile date (__DATE__): %s", __DATE__);
 	show ("compile time (__TIME__): %s", __TIME__);
 	show ("translation unit (__FILE__): %s", __FILE__);
@@ -4931,4 +4958,24 @@ main (int    argc,
 
 	exit (EXIT_SUCCESS);
 
+}
+
+char *
+get_user_name (uid_t uid)
+{
+	struct passwd *p;
+       
+	p = getpwuid (uid);
+
+	return p ? p->pw_name : NULL;
+}
+
+char *
+get_group_name (gid_t gid)
+{
+	struct group *g;
+	       
+	g = getgrgid (gid);
+
+	return g ? g->gr_name : NULL;
 }

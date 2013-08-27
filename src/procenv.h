@@ -287,14 +287,6 @@
 #define type_hex_width(type) \
 	(sizeof (type) * 2)
 
-#define get_group_name(gid) \
-({struct group *g = getgrgid (gid); \
- g ? g->gr_name : NULL;})
-
-#define get_user_name(uid) \
-({struct passwd *p = getpwuid (uid); \
- p ? p->pw_name : NULL;})
-
 #define show_clock_res(clock) \
 { \
 	struct timespec res; \
@@ -508,6 +500,8 @@ void show_env (void);
 void show_rlimits (void);
 void show_rusage (void);
 void dump_sysconf (void);
+char *get_user_name (gid_t gid);
+char *get_group_name (gid_t gid);
 
 #ifndef PROCENV_ANDROID
 void show_confstrs (void);
@@ -547,7 +541,11 @@ void show_compiler (void);
 void get_uname (void);
 void dump_uname (void);
 void show_all_groups (void);
+
+#if !defined (PROCENV_HURD)
 int is_console (int fd);
+#endif
+
 long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
