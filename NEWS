@@ -1,3 +1,14 @@
+0.26	2013-08-27
+
+	* Check to determine if running on a console now works for
+	  FreeBSD/kFreeBSD too.
+	* Added ability to show all arguments (-A/--arguments)
+	  (useful when using --exec).
+	* Added ability to display network details (-N/--network).
+	* Added BSD/Hurd-specific signals.
+	* Corrected output sort order.
+	* Mount details now include block, inode and fsck details.
+
 0.25	2013-07-19
 
 	* Fixed bug where procenv would hang in a FreeBSD jail.

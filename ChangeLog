@@ -1,3 +1,40 @@
+2013-08-23  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: 
+	* man/procenv.1:
+	  - Added -A/--arguments option.
+	  - Updated --mount to include reference to statfs.
+	  - Added -N/--network option.
+	  - Updated SEE ALSO section.
+	* src/procenv.c: 
+	  - Added support for BSD/Hurd signals: SIGEMT, SIGINFO, SIGLOST.
+	  - usage(): Use colon to separate output types from description for
+	    consistency.
+	  - is_console(): Enable for FreeBSD/kFreeBSD.
+	  - append(): Allocate space if str points to NULL.
+	  - appendf(): Allocate space if str points to NULL.
+	  - appendva(): Allocate space if str points to NULL.
+	  - dump():
+	    - Call show_network().
+	    - Call show_locale() *after* show_rlimits() for correct ordering.
+	  - show_linux_mounts(): Add block and inode details (LP: #1212728).
+	  - show_bsd_mounts(): Add block and inode details (LP: #1212728).
+	  - show_compiler():
+	    - Added __FILE__, __BASE_FILE__ and __TIMESTAMP__.
+	  - main():
+	    - Updates for -N/--network.
+	  - New functions:
+	    - show_arguments().
+	    - get_network_address().
+	    - decode_if_flags().
+	    - get_ipv6_scope_name() (unused).
+	    - get_mtu().
+	    - get_mac_address().
+	    - decode_extended_if_flags().
+	    - get_net_family_name().
+	    - show_network_if().
+	    - show_network().
+
 2013-07-19  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/man/procenv.1: Updated date and year.

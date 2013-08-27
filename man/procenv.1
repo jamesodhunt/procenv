@@ -21,9 +21,14 @@ procenv \- display process environment details
 Display details of the process environment in a parseable format.
 .\"
 .SH OPTIONS
+.\"
 .TP
 \fB\-a\fR, \fB\-\-meta\fR
 Display meta details.
+.\"
+.TP
+\fB\-A\fR, \fB\-\-arguments\fR
+Display program arguments.
 .\"
 .TP
 \fB\-b\fR, \fB\-\-libs\fR
@@ -118,7 +123,7 @@ See
 \fB\-m\fR, \fB\-\-mount[s]\fR
 Display mount details.
 See
-.BR getmntent (3) "" " (Linux) and " getmntinfo (3) "" " (BSD)."
+.BR getmntent (3) "" " and " statfs (2) "" " (Linux), and " getmntinfo (3) "" " (BSD)."
 .PP
 .\"
 .TP
@@ -126,6 +131,13 @@ See
 Display confstr details.
 See
 .BR confstr (5) "" .
+.PP
+.\"
+.TP
+\fB\-N\fR, \fB\-\-network\fR
+Display network details.
+See
+.BR getifaddrs (3) "" ", " getnameinfo (3) "" ", and " ioctl (2) " (Linux)" .
 .PP
 .\"
 .TP
@@ -363,6 +375,8 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR exec (P) "" ,
 .BR getconf (1) "" ,
 .BR groups (1) "" ,
+.BR ifconfig (8) "" ,
+.BR ip (9) "" ,
 .BR kill (1) "" ,
 .BR ldd (1) "" ,
 .BR locale (1) "" ,

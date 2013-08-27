@@ -42,6 +42,10 @@
 #include <sys/utsname.h>
 #include <locale.h>
 #include <pthread.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
 
 /* FIXME: Android testing */
 #if 1
@@ -86,12 +90,15 @@
 #include <sys/sysmacros.h>
 #endif
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 #include <mntent.h>
-/* FIXME */
-#if 0
-#include <execinfo.h>
+#include <sys/vfs.h>
+#include <sys/statvfs.h>
 #endif
+
+#if defined (PROCENV_LINUX)
+#include <linux/if.h>
+
 #include <sys/inotify.h>
 #include <sys/prctl.h>
 
@@ -179,6 +186,14 @@
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include <sys/ucred.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <netinet/in.h>
+#include <sys/consio.h>
+#endif
+
+#if defined (PROCENV_HURD)
+#include <net/if.h>
 #endif
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
@@ -205,6 +220,26 @@
 #define FALSE (!TRUE)
 #endif
 
+/* Network family for entries containing link-level interface
+ * details. These entries will be cached to allow MAC addresses
+ * to be extracted from them when displaying the corresponding
+ * higher-level network family entries for the interface in
+ * question.
+ */
+#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#define	PROCENV_LINK_LEVEL_FAMILY AF_LINK
+#elif defined (PROCENV_LINUX)
+#define PROCENV_LINK_LEVEL_FAMILY AF_PACKET
+#endif
+ 
+#if defined (PROCENV_BSD)
+#define statfs_int_type uint64_t
+#define statfs_int_fmt  PRIu64
+#elif defined (__FreeBSD_kernel__)
+#define statfs_int_type uint64_t
+#define statfs_int_fmt  "lu"
+#endif
+
 /* FIXME: gettext */
 #define _(str) str
 
@@ -227,6 +262,9 @@
 #define NUM_SIGNALS 32
 #endif
 
+/* Size of blocks we will show the user (as df(1) does) */
+#define DF_BLOCK_SIZE 1024
+
 /* If an indent is required, use this many spaces */
 #define INDENT 2
 
@@ -248,14 +286,6 @@
 
 #define type_hex_width(type) \
 	(sizeof (type) * 2)
-
-#define get_group_name(gid) \
-({struct group *g = getgrgid (gid); \
- g ? g->gr_name : NULL;})
-
-#define get_user_name(uid) \
-({struct passwd *p = getpwuid (uid); \
- p ? p->pw_name : NULL;})
 
 #define show_clock_res(clock) \
 { \
@@ -443,8 +473,17 @@ struct procenv_priority {
 	int user;
 };
 
+struct network_map {
+	struct ifaddrs   ifaddr;
+	char            *mac_address;
+
+	struct network_map *next;
+	struct network_map *prev;
+};
+
 void _show (const char *prefix, int indent, const char *fmt, ...);
 
+void header (const char *fmt, ...);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);
@@ -461,6 +500,8 @@ void show_env (void);
 void show_rlimits (void);
 void show_rusage (void);
 void dump_sysconf (void);
+char *get_user_name (gid_t gid);
+char *get_group_name (gid_t gid);
 
 #ifndef PROCENV_ANDROID
 void show_confstrs (void);
@@ -477,6 +518,7 @@ void show_proc_branch (void);
 void show_tty_attrs (void);
 const char * get_speed (speed_t speed);
 const char * get_signal_name (int signum);
+void show_arguments (void);
 void dump_meta (void);
 char *get_os (void);
 char *get_arch (void);
@@ -499,7 +541,11 @@ void show_compiler (void);
 void get_uname (void);
 void dump_uname (void);
 void show_all_groups (void);
+
+#if !defined (PROCENV_HURD)
 int is_console (int fd);
+#endif
+
 long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
@@ -512,15 +558,25 @@ int get_output_value (const char *name);
 void set_indent (void);
 void show_stat (void);
 void show_locale (void);
-void get_major_minor (const char *path, int *major, int *minor);
+void get_major_minor (const char *path,
+		unsigned int *_major,
+		unsigned int *_minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
 char * get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
 void show_data_model (void);
-
+const char *get_net_family_name (sa_family_t family);
+void show_network (void);
+void show_network_if (const struct ifaddrs *ifa, const char *mac_address);
+void get_network_name (const struct sockaddr *address, int family, char *name);
+const char *get_ipv6_scope_name (uint32_t scope);
+char *get_mac_address (const struct ifaddrs *ifaddr);
+int get_mtu (const struct ifaddrs *ifaddr);
+char *decode_if_flags (unsigned int flags);
 #if defined (PROCENV_LINUX)
+char *decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_root (char *root, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void dump_linux_proc_fds (void);
@@ -529,7 +585,7 @@ void show_oom (void);
 void show_capabilities (void);
 void show_linux_security_module (void);
 void show_linux_security_module_context (void);
-void show_linux_mounts (ShowMountType what);
+void show_linux_network (void);
 void show_linux_proc_branch (void);
 void show_linux_prctl (void);
 void show_linux_cpu (void);
@@ -538,9 +594,14 @@ void show_linux_scheduler (void);
 bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */
 
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+void show_linux_mounts (ShowMountType what);
+#endif
+
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 char * get_bsd_mount_opts (uint64_t flags);
 void show_bsd_mounts (ShowMountType what);
+void show_bsd_network (void);
 void get_bsd_misc (void);
 void show_bsd_proc_branch (void);
 void show_bsd_cpu (void);

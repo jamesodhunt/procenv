@@ -1,8 +1,8 @@
 # TODO
 
 - networking details
-  - getifaddrs(3)
-- add statfs(2)
+  - IPv6 scope_id.
+  - gateway.
 - add to show_sizeof():
   - intN_t group   
 - i18n (gettext)
