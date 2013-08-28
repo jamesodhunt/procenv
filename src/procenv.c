@@ -2275,6 +2275,18 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
  * suggests this _seems_ to be the case, but is not documented as being
  * guaranteed.
  */
+#ifdef PROCENV_ANDROID
+
+void
+show_network (void)
+{
+	header ("network");
+	/* Bionic isn't actually that bionic at all :( */
+	show ("%s", UNKNOWN_STR);
+}
+
+#else
+
 void
 show_network (void)
 {
@@ -2398,6 +2410,7 @@ show_network (void)
 	free (head);
 	freeifaddrs (if_addrs);
 }
+#endif
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 
@@ -3543,6 +3556,10 @@ get_arch (void)
 
 #ifdef __ia64__
 	return "IA64";
+#endif
+
+#ifdef __MIPSEL__
+	return "MIPSEL";
 #endif
 
 #ifdef __mips__

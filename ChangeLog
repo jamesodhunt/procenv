@@ -1,3 +1,9 @@
+2013-08-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_network(): Handle bionics lack of getifaddrs().
+	  - get_arch(): Don't identify MIPSEL as MIPS.
+
 2013-08-23  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: 
