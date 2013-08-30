@@ -3,6 +3,7 @@
 - networking details
   - IPv6 scope_id.
   - gateway.
+  - sort network interfaces.
 - add to show_sizeof():
   - intN_t group   
 - i18n (gettext)

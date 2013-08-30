@@ -1565,18 +1565,19 @@ show_stat (void)
 	assert (program_name);
 	assert (misc.cwd);
 
+	header ("stat");
+
 	tmp = get_path (program_name);
 	assert (tmp);
 
 	if (! realpath (tmp, real_path))
-		die ("unable to resolve path");
+		goto error;
 
 	free (tmp);
 
 	if (stat (real_path, &st) < 0)
-		die ("unable to stat path: '%s'", real_path);
+		goto error;
 
-	header ("stat");
 	show ("argv[0]: '%s'", program_name);
 	show ("real path: '%s'", real_path);
 	show ("dev: major=%u, minor=%u",
@@ -1632,6 +1633,11 @@ show_stat (void)
 		die ("failed to format ctime");
 	formatted_time[ strlen (formatted_time)-1] = '\0';
 	show ("ctime: %lu (%s)", st.st_ctime, formatted_time);
+
+	return;
+
+error:
+	show ("%s", UNKNOWN_STR);
 }
 
 long
@@ -1914,6 +1920,7 @@ show_linux_mounts (ShowMountType what)
 	unsigned int     major = 0;
 	unsigned int     minor = 0;
 	int              have_stats;
+	int              ret;
 
 	mtab = fopen (MOUNTS, "r");
 
@@ -1946,19 +1953,25 @@ show_linux_mounts (ShowMountType what)
 				used_files = fs.f_files - fs.f_ffree;
 			}
 
-			get_major_minor (mnt->mnt_dir,
+			ret = get_major_minor (mnt->mnt_dir,
 					&major,
 					&minor);
 			appendf (&str,
 				"fsname='%s', dir='%s', type='%s', "
-				"opts='%s', "
-				"dev=(major:%u, minor:%u), "
-				"dump_freq=%d, fsck_passno=%d, ",
+				"opts='%s', ",
 				mnt->mnt_fsname,
 				mnt->mnt_dir,
 				mnt->mnt_type,
-				mnt->mnt_opts,
-				major, minor,
+				mnt->mnt_opts);
+
+			if (ret) {
+				appendf (&str, "dev=(major:%u, minor:%u), ", major, minor);
+			} else {
+				appendf (&str, "dev=(major:%s, minor:%s), ", UNKNOWN_STR, UNKNOWN_STR);
+			}
+
+			appendf (&str,
+				"dump_freq=%d, fsck_passno=%d, ",
 				mnt->mnt_freq, mnt->mnt_passno);
 
 			if (have_stats) {
@@ -1986,7 +1999,7 @@ show_linux_mounts (ShowMountType what)
 				"files/inodes (total=%s, free=%s)",
 				UNKNOWN_STR,
 				UNKNOWN_STR,
-				UNKNOWN_STR,
+				DF_BLOCK_SIZE,
 				UNKNOWN_STR,
 				UNKNOWN_STR,
 				UNKNOWN_STR,
@@ -2478,6 +2491,7 @@ show_bsd_mounts (ShowMountType what)
 	statfs_int_type   bfree;
 	statfs_int_type   bavail;
 	statfs_int_type   used;
+	int               ret;
 
 	/* Note that returned memory cannot be freed (by us) */
 	count = getmntinfo (&mounts, MNT_WAIT);
@@ -2496,8 +2510,9 @@ show_bsd_mounts (ShowMountType what)
 					mnt->f_mntonname);
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
+			char *str = NULL;
 
-			get_major_minor (mnt->f_mntonname,
+			ret = get_major_minor (mnt->f_mntonname,
 					&major,
 					&minor);
 
@@ -2507,23 +2522,35 @@ show_bsd_mounts (ShowMountType what)
 			bavail = mnt->f_bavail * multiplier;
 			used = blocks - bfree;
 
-			show ("fsname='%s', dir='%s', type='%s', "
-					"opts='%s', "
-					"dev=(major:%u, minor:%u), "
+			appendf (&str,
+					"fsname='%s', dir='%s', type='%s', "
+					"opts='%s', ",
+					mnt->f_mntfromname,
+					mnt->f_mntonname,
+					mnt->f_fstypename,
+					opts);
+
+			if (ret) {
+				appendf (&str,
+					"dev=(major:%u, minor:%u), ",
+					major, minor);
+			} else {
+				appendf (&str,
+					"dev=(major:%s, minor:%s), ",
+					UNKNOWN_STR, UNKNOWN_STR);
+			}
+
+			appendf (&str,
 					"fsid=%.*x%.*x, "
 					"optimal_block_size=%" statfs_int_fmt ", "
 					"%d-byte blocks (total=%" statfs_int_fmt ", "
 					"used=%" statfs_int_fmt ", free=%" statfs_int_fmt ", available=%" statfs_int_fmt "), "
 					"files/inodes (total=%" statfs_int_fmt ", free=%" statfs_int_fmt ")",
-					mnt->f_mntfromname,
-					mnt->f_mntonname,
-					mnt->f_fstypename,
-					opts,
-					major, minor,
 
 					/* Always zero on BSD? */
 					sizeof (mnt->f_fsid.val[0]),
 					mnt->f_fsid.val[0],
+
 					sizeof (mnt->f_fsid.val[1]),
 					mnt->f_fsid.val[1],
 
@@ -2535,6 +2562,9 @@ show_bsd_mounts (ShowMountType what)
 					bavail,
 					mnt->f_files,
 					mnt->f_ffree);
+
+			show (str);
+			free (str);
 		}
 
 		if (what == SHOW_ALL || what == SHOW_PATHCONF)
@@ -4478,7 +4508,7 @@ check_envvars (void)
 	}
 }
 
-void
+int
 get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 {
 	struct stat  st;
@@ -4491,13 +4521,14 @@ get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 		/* Don't fail as this query may be for a mount which the
 		 * user does not have permission to check.
 		 */
-		warn ("unable to stat path '%s'", path);
 		*_major = *_minor = 0;
-		return;
+		return FALSE;
 	}
 
 	*_major = major (st.st_dev);
 	*_minor = minor (st.st_dev);
+
+	return TRUE;
 }
 
 /**
