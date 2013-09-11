@@ -46,6 +46,10 @@
 #include <sys/socket.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
 
 /* FIXME: Android testing */
 #if 1
@@ -209,6 +213,7 @@
 #define PROCENV_FILE_ENV   "PROCENV_FILE"
 #define PROCENV_EXEC_ENV   "PROCENV_EXEC"
 
+#define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024
 #define MOUNTS            "/proc/mounts"
 
@@ -277,6 +282,14 @@
 { \
 	_show ("WARNING", 0, __VA_ARGS__); \
 }
+
+#define bug(...) \
+{ \
+	_show ("BUG", 0, __VA_ARGS__); \
+	exit (EXIT_FAILURE); \
+}
+
+#define POINTER_SIZE (sizeof (void *))
 
 #define die(...) \
 { \
@@ -502,15 +515,21 @@ void show_rusage (void);
 void dump_sysconf (void);
 char *get_user_name (gid_t gid);
 char *get_group_name (gid_t gid);
+char *pid_to_name (pid_t pid);
 
 #ifndef PROCENV_ANDROID
 void show_confstrs (void);
 #endif
 
+void show_shared_mem (void);
+void show_semaphores (void);
+void show_msg_queues (void);
 void dump_priorities (void);
 void show_mounts (ShowMountType what);
 void get_user_info (void);
 void get_priorities (void);
+void format_time (const time_t *t, char *buffer, size_t len);
+char *format_perms (mode_t mode);
 void get_config (void);
 void get_config_from_env (void);
 void check_config (void);
@@ -573,6 +592,7 @@ const char *get_ipv6_scope_name (uint32_t scope);
 char *get_mac_address (const struct ifaddrs *ifaddr);
 int get_mtu (const struct ifaddrs *ifaddr);
 char *decode_if_flags (unsigned int flags);
+
 #if defined (PROCENV_LINUX)
 char *decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_root (char *root, size_t len);
@@ -590,6 +610,9 @@ void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 void show_linux_scheduler (void);
 bool linux_kernel_version (int major, int minor, int revision);
+void show_shared_mem_linux (void);
+void show_semaphores_linux (void);
+void show_msg_queues_linux (void);
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
@@ -604,5 +627,14 @@ void get_bsd_misc (void);
 void show_bsd_proc_branch (void);
 void show_bsd_cpu (void);
 #endif /* PROCENV_BSD + __FreeBSD_kernel__ */
+
+/* semctl(2) tells us _we_ must define this */
+union semun {
+	int val;
+	struct semid_ds *buf;     
+	unsigned short int *array;
+	struct seminfo *__buf;
+};
+
 
 #endif /* PROCENV_H */

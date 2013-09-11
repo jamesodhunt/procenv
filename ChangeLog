@@ -1,3 +1,17 @@
+2013-09-11  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added -E/--semaphores option.
+	  - Added -M/--message-queues option.
+	  - Added -S/--shared-memory option.
+	  - Added ref to ipcs(1).
+	* src/procenv.c:
+	  - Added support for displaying IPC resources (shared memory,
+	    semaphores and message queues) under Linux only at this
+	    stage.
+	  - New utility functions: format_time(), format_perms() and
+	    pid_to_name().
+
 2013-08-30  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

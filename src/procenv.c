@@ -1,3 +1,19 @@
+/* TODO:
+ * - FreeBSD support!
+ */
+
+
+/* FIXME: freebsd ipcs /data/svn/freebsd/head/usr.bin/ipcs/ipcs.c
+
+kd = kvm_openfiles(namelist, core, NULL, O_RDONLY, kvmoferr);
+
+kvm_nlist(kd, symbols)
+kget(X_MSGINFO, &msginfo, sizeof(msginfo));
+kget(X_SHMINFO, &shminfo, sizeof(shminfo));
+struct shmid_kernel *kxshmids;
+kget(X_SHMSEGS, kxshmids, kxshmids_len);
+*/
+
 /*--------------------------------------------------------------------
  * Description: Simple program to display information on process
  *              environment.
@@ -539,6 +555,7 @@ usage (void)
 	show ("  -c, --cgroup[s]     : Display cgroup details (Linux only).");
 	show ("  -d, --compiler      : Display compiler details.");
 	show ("  -e, --env[ironment] : Display environment variables.");
+	show ("  -E, --semaphores    : Display semaphore details.");
 	show ("  --exec              : Treat non-option arguments as program to execute.");
 	show ("  -f, --fds           : Display file descriptor details.");
 	show ("  --file=<file>       : Send output to <file> (implies --output=file).");
@@ -550,6 +567,7 @@ usage (void)
 	show ("  -l, --limits        : Display limits.");
 	show ("  -L, --locale        : Display locale details.");
 	show ("  -m, --mount[s]      : Display mount details.");
+	show ("  -M, --messagequeues : Display message queue details.");
 	show ("  -n, --confstr       : Display confstr details.");
 	show ("  -N, --network       : Display network details.");
 	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
@@ -566,6 +584,7 @@ usage (void)
 	show ("  -q, --time          : Display time details.");
 	show ("  -r, --range[s]      : Display range of data types.");
 	show ("  -s, --signal[s]     : Display signal details.");
+	show ("  -S, --sharedmemory  : Display shared memory details.");
 	show ("  -t, --tty           : Display terminal details.");
 	show ("  -T, --threads       : Display thread details.");
 	show ("  -u, --stat          : Display stat details.");
@@ -1556,8 +1575,8 @@ show_stat (void)
 {
 	struct stat  st;
 	char         real_path[PATH_MAX];
-	char         formatted_time[32];
-	char         modestr[10+1];
+	char         formatted_time[CTIME_BUFFER];
+	char        *modestr = NULL;
 	mode_t       perms;
 	int          i = 0;
 	char        *tmp = NULL;
@@ -1584,54 +1603,25 @@ show_stat (void)
 			major (st.st_dev), minor (st.st_dev));
 	show ("inode: %lu", (unsigned long int)st.st_ino);
 
-	memset (modestr, '\0', sizeof (modestr));
-
-	modestr[i++] = (S_ISLNK (st.st_mode & S_IFMT)) ? 'l' : '-';
-
-	perms = (st.st_mode & S_IRWXU);
-	modestr[i++] = (perms & S_IRUSR) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWUSR) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXUSR) ? 'x' : '-';
-
-	perms = (st.st_mode & S_IRWXG);
-	modestr[i++] = (perms & S_IRGRP) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWGRP) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXGRP) ? 'x' : '-';
-
-	perms = (st.st_mode & S_IRWXO);
-	modestr[i++] = (perms & S_IROTH) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWOTH) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXOTH) ? 'x' : '-';
-
+	modestr = format_perms (st.st_mode);
+	if (! modestr)
+		die ("failed to allocate space for permissions string");
 	perms = (st.st_mode &= ~S_IFMT);
-	if (perms & S_ISUID)
-		modestr[3] = 's';
-	if (perms & S_ISGID)
-		modestr[6] = 's';
-	if (perms & S_ISVTX)
-		modestr[9] = 't';
-
 	show ("permissions: %4.4o (%s)", perms, modestr);
+	free (modestr);
 
 	show ("hard links: %u", st.st_nlink);
 	show ("user id (uid): %d ('%s')", st.st_uid, get_user_name (st.st_uid));
 	show ("group id (gid): %d ('%s')", st.st_gid, get_group_name (st.st_uid));
 	show ("size: %lu bytes (%lu 512-byte blocks)", st.st_size, st.st_blocks);
 
-	if (! ctime_r ((time_t *)&st.st_atime, formatted_time))
-		die ("failed to format atime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
+	format_time (&st.st_atime, formatted_time, sizeof (formatted_time));
 	show ("atime: %lu (%s)", st.st_atime, formatted_time);
 
-
-	if (! ctime_r ((time_t *)&st.st_mtime, formatted_time))
-		die ("failed to format mtime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
+	format_time (&st.st_mtime, formatted_time, sizeof (formatted_time));
 	show ("mtime: %lu (%s)", st.st_mtime, formatted_time);
 
-	if (! ctime_r ((time_t *)&st.st_ctime, formatted_time))
-		die ("failed to format ctime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
+	format_time (&st.st_ctime, formatted_time, sizeof (formatted_time));
 	show ("ctime: %lu (%s)", st.st_ctime, formatted_time);
 
 	return;
@@ -1678,6 +1668,7 @@ dump (void)
 #endif
 	show_rlimits ();
 	show_locale ();
+	show_msg_queues ();
 	dump_misc ();
 	show_mounts (SHOW_ALL);
 	show_network ();
@@ -1685,6 +1676,9 @@ dump (void)
 	show_oom ();
 #endif
 	dump_platform ();
+	show_semaphores ();
+	show_shared_mem ();
+
 	dump_user ();
 	show_ranges ();
 
@@ -3971,7 +3965,7 @@ show_compiler (void)
 void
 show_time (void)
 {
-	char              formatted_time[32];
+	char              formatted_time[CTIME_BUFFER];
 	struct timespec   ts;
 	struct tm        *tm;
 
@@ -4733,52 +4727,48 @@ main (int    argc,
 	int    done = FALSE;
 
 	struct option long_options[] = {
-		{"meta"         , no_argument, NULL, 'a'},
-		{"arguments"    , no_argument, NULL, 'A'},
-		{"libs"         , no_argument, NULL, 'b'},
-		{"cgroup"       , no_argument, NULL, 'c'},
-		{"cgroups"      , no_argument, NULL, 'c'},
-		{"compiler"     , no_argument, NULL, 'd'},
-		{"env"          , no_argument, NULL, 'e'},
-		{"environment"  , no_argument, NULL, 'e'},
-		{"fds"          , no_argument, NULL, 'f'},
-		{"sizeof"       , no_argument, NULL, 'g'},
-		{"help"         , no_argument, NULL, 'h'},
-		{"misc"         , no_argument, NULL, 'i'},
-		{"uname"        , no_argument, NULL, 'j'},
-		{"clock"        , no_argument, NULL, 'k'},
-		{"clocks"       , no_argument, NULL, 'k'},
-		{"limits"       , no_argument, NULL, 'l'},
-		{"locale"       , no_argument, NULL, 'L'},
-		{"mount"        , no_argument, NULL, 'm'},
-		{"mounts"       , no_argument, NULL, 'm'},
-		{"confstr"      , no_argument, NULL, 'n'},
-		{"network"      , no_argument, NULL, 'N'},
-		{"oom"          , no_argument, NULL, 'o'},
-		{"proc"         , no_argument, NULL, 'p'},
-		{"process"      , no_argument, NULL, 'p'},
-		{"platform"     , no_argument, NULL, 'P'},
-		{"time"         , no_argument, NULL, 'q'},
-		{"range"        , no_argument, NULL, 'r'},
-		{"ranges"       , no_argument, NULL, 'r'},
-		{"signal"       , no_argument, NULL, 's'},
-		{"signals"      , no_argument, NULL, 's'},
-		{"tty"          , no_argument, NULL, 't'},
-		{"threads"      , no_argument, NULL, 'T'},
-		{"stat"         , no_argument, NULL, 'u'},
-		{"rusage"       , no_argument, NULL, 'U'},
-		{"version"      , no_argument, NULL, 'v'},
-		{"capabilities" , no_argument, NULL, 'w'},
-		{"pathconf"     , no_argument, NULL, 'x'},
-		{"sysconf"      , no_argument, NULL, 'y'},
-		{"timezone"     , no_argument, NULL, 'z'},
+		{"meta"            , no_argument, NULL, 'a'},
+		{"arguments"       , no_argument, NULL, 'A'},
+		{"libs"            , no_argument, NULL, 'b'},
+		{"cgroups"         , no_argument, NULL, 'c'},
+		{"compiler"        , no_argument, NULL, 'd'},
+		{"environment"     , no_argument, NULL, 'e'},
+		{"semaphores"      , no_argument, NULL, 'E'},
+		{"fds"             , no_argument, NULL, 'f'},
+		{"sizeof"          , no_argument, NULL, 'g'},
+		{"help"            , no_argument, NULL, 'h'},
+		{"misc"            , no_argument, NULL, 'i'},
+		{"uname"           , no_argument, NULL, 'j'},
+		{"clocks"          , no_argument, NULL, 'k'},
+		{"limits"          , no_argument, NULL, 'l'},
+		{"locale"          , no_argument, NULL, 'L'},
+		{"mounts"          , no_argument, NULL, 'm'},
+		{"message-queues"  , no_argument, NULL, 'M'},
+		{"confstr"         , no_argument, NULL, 'n'},
+		{"network"         , no_argument, NULL, 'N'},
+		{"oom"             , no_argument, NULL, 'o'},
+		{"process"         , no_argument, NULL, 'p'},
+		{"platform"        , no_argument, NULL, 'P'},
+		{"time"            , no_argument, NULL, 'q'},
+		{"ranges"          , no_argument, NULL, 'r'},
+		{"signals"         , no_argument, NULL, 's'},
+		{"shared-memory"   , no_argument, NULL, 'S'},
+		{"tty"             , no_argument, NULL, 't'},
+		{"threads"         , no_argument, NULL, 'T'},
+		{"stat"            , no_argument, NULL, 'u'},
+		{"rusage"          , no_argument, NULL, 'U'},
+		{"version"         , no_argument, NULL, 'v'},
+		{"capabilities"    , no_argument, NULL, 'w'},
+		{"pathconf"        , no_argument, NULL, 'x'},
+		{"sysconf"         , no_argument, NULL, 'y'},
+		{"timezone"        , no_argument, NULL, 'z'},
 
-		{"output"      , required_argument, NULL, 0},
-		{"file"        , required_argument, NULL, 0},
-		{"exec"        , no_argument      , NULL, 0},
+		{"output"          , required_argument, NULL, 0},
+		{"file"            , required_argument, NULL, 0},
+		{"exec"            , no_argument      , NULL, 0},
 
 		/* terminator */
-		{NULL, no_argument, NULL, 0}
+		{NULL              , no_argument      , NULL, 0}
 	};
 
 	program_name = argv[0];
@@ -4794,7 +4784,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcdefghijklLmnNopPqrstTuUvwxyz",
+				"aAbcdeEfghijklLmMnNopPqrsStTuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -4853,6 +4843,10 @@ main (int    argc,
 			show_env ();
 			break;
 
+		case 'E':
+			show_semaphores ();
+			break;
+
 		case 'f':
 			dump_fds ();
 			break;
@@ -4892,6 +4886,10 @@ main (int    argc,
 			show_mounts (SHOW_MOUNTS);
 			break;
 
+		case 'M':
+			show_msg_queues ();
+			break;
+
 		case 'n':
 #ifndef PROCENV_ANDROID
 			show_confstrs ();
@@ -4927,6 +4925,10 @@ main (int    argc,
 
 		case 's':
 			show_signals ();
+			break;
+
+		case 'S':
+			show_shared_mem ();
 			break;
 
 		case 't':
@@ -5026,4 +5028,490 @@ get_group_name (gid_t gid)
 	g = getgrgid (gid);
 
 	return g ? g->gr_name : NULL;
+}
+
+void
+show_shared_mem (void)
+{
+#ifdef PROCENV_LINUX
+	show_shared_mem_linux ();
+#else
+	/* FIXME */
+#endif
+}
+
+void
+show_semaphores (void)
+{
+#ifdef PROCENV_LINUX
+	show_semaphores_linux ();
+#else
+	/* FIXME */
+#endif
+}
+
+void
+show_msg_queues (void)
+{
+#ifdef PROCENV_LINUX
+	show_msg_queues_linux ();
+#else
+	/* FIXME */
+#endif
+}
+
+
+#if defined (PROCENV_LINUX)
+void
+show_shared_mem_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct shm_info   info;
+	struct shmid_ds   shmid_ds;
+	struct ipc_perm  *perm;
+	char              formatted_atime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	char              formatted_dtime[CTIME_BUFFER];
+	mode_t            perms;
+	char             *modestr = NULL;
+	int               locked = -1;
+	int               destroy = -1;
+	char             *cpid = NULL;
+	char             *lpid = NULL;
+
+	header ("shared memory");
+
+	max = shmctl (0, SHM_INFO, (struct shmid_ds *)&info);
+	if (max < 0) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
+
+	/* Display summary details */
+
+	show ("summary: segments=%u, pages=%lu, shm_rss=%lu, shm_swp=%lu",
+			info.used_ids,
+			info.shm_tot,
+			info.shm_rss,
+			info.shm_swp);
+
+	for (i = 0; i <= max; i++) {
+		id = shmctl (i, SHM_STAT, &shmid_ds);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &shmid_ds.shm_perm;
+
+		perms = (perm->mode &= ~S_IFMT);
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+#ifdef PROCENV_LINUX
+		locked = (perm->mode & SHM_LOCKED);
+		destroy = (perm->mode & SHM_DEST);
+#endif
+
+		format_time (&shmid_ds.shm_atime, formatted_atime, sizeof (formatted_atime));
+		format_time (&shmid_ds.shm_ctime, formatted_ctime, sizeof (formatted_ctime));
+		format_time (&shmid_ds.shm_dtime, formatted_dtime, sizeof (formatted_dtime));
+
+		cpid = pid_to_name (shmid_ds.shm_cpid);
+		lpid = pid_to_name (shmid_ds.shm_lpid);
+
+		show ("id=%d, key=0x%.*x, sequence=%u, permissions=%4.4o (%s), "
+				"create_pid=%d ('%s'), last_pid=%d ('%s'), "
+				"attachers=%lu, "
+				"uid=%u ('%s'), gid=%u ('%s'), euid=%u ('%s'), egid=%u ('%s'), "
+				"shm_segsz=%lu, "
+				"shm_atime=%lu (%s), shm_dtime=%lu (%s), shm_ctime=%lu (%s), "
+				"locked=%s, destroy=%s",
+				id,
+
+				/* pad out to max pointer size
+				 * represented in hex.
+				 */
+				POINTER_SIZE * 2,
+				perm->__key,
+
+				perm->__seq,
+
+				perm->mode,
+				modestr,
+
+				shmid_ds.shm_cpid,
+				cpid ? cpid : UNKNOWN_STR,
+
+				shmid_ds.shm_lpid,
+				lpid ? lpid : UNKNOWN_STR,
+
+				shmid_ds.shm_nattch,
+
+				perm->uid,
+				get_user_name (perm->uid),
+
+				perm->gid,
+				get_user_name (perm->gid),
+
+				perm->cuid,
+				get_user_name (perm->cuid),
+
+				perm->cgid,
+				get_user_name (perm->cgid),
+
+				shmid_ds.shm_segsz,
+
+				shmid_ds.shm_atime,
+				formatted_atime,
+
+				shmid_ds.shm_dtime,
+				formatted_dtime,
+
+				shmid_ds.shm_ctime,
+				formatted_ctime,
+
+				locked == 0
+					? NO_STR
+					: locked > 0
+					? YES_STR
+					: NA_STR,
+
+				destroy == 0
+					? NO_STR
+					: destroy > 0
+					? YES_STR
+					: NA_STR);
+		free (modestr);
+		if (cpid)
+			free (cpid);
+		if (lpid)
+			free (lpid);
+	}
+}
+
+void
+show_semaphores_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct semid_ds   semid_ds;
+	struct seminfo    info;
+	struct ipc_perm  *perm;
+	char              formatted_otime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	char             *modestr = NULL;
+	union semun       arg;
+
+	header ("semaphores");
+
+	max = semctl (0, 0, SEM_INFO, &info);
+	if (max < 0) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
+
+	show ("summary: semmap=%d, semmni=%d, semmns=%d, semmnu=%d, "
+			"semmsl=%d, semopm=%d, semume=%d, semusz=%d, semvmx=%d, semaem=%d",
+			info.semmap,
+			info.semmni,
+			info.semmns,
+			info.semmnu,
+			info.semmsl,
+			info.semopm,
+			info.semume,
+			info.semusz,
+			info.semvmx,
+			info.semaem);
+
+	for (i = 0; i <= max; i++) {
+		/* see semctl(2) */
+		arg.buf = (struct semid_ds *)&semid_ds;
+
+		id = semctl (i, 0, SEM_STAT, arg);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &semid_ds.sem_perm;
+
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+		/* May not have been set */
+		if (semid_ds.sem_otime)
+			format_time (&semid_ds.sem_otime, formatted_otime, sizeof (formatted_otime));
+		else
+			sprintf (formatted_otime, "%s", NA_STR);
+
+		format_time (&semid_ds.sem_ctime, formatted_ctime, sizeof (formatted_ctime));
+
+		show ("id=%d, key=0x%.*x, sequence=%u, permissions=%4.4o (%s), "
+				"uid=%u ('%s'), gid=%u ('%s'), euid=%u ('%s'), egid=%u ('%s'), "
+				"shm_otime=%lu (%s), shm_ctime=%lu (%s)",
+				id,
+
+				/* pad out to max pointer size
+				 * represented in hex.
+				 */
+				POINTER_SIZE * 2,
+				perm->__key,
+
+				perm->__seq,
+
+				perm->mode,
+				modestr,
+
+				perm->uid,
+				get_user_name (perm->uid),
+
+				perm->gid,
+				get_user_name (perm->gid),
+
+				perm->cuid,
+				get_user_name (perm->cuid),
+
+				perm->cgid,
+				get_user_name (perm->cgid),
+
+				semid_ds.sem_otime,
+				formatted_otime,
+
+				semid_ds.sem_ctime,
+				formatted_ctime);
+	}
+}
+
+void
+show_msg_queues_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct msginfo    info;
+	struct msqid_ds   msqid_ds;
+	struct ipc_perm  *perm;
+	char              formatted_stime[CTIME_BUFFER];
+	char              formatted_rtime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	mode_t            perms;
+	char             *modestr = NULL;
+	char             *lspid = NULL;
+	char             *lrpid = NULL;
+
+	header ("message queues");
+
+	max = msgctl (0, MSG_INFO, (struct msqid_ds  *)&info);
+	if (max < 0) {
+		show ("%s", UNKNOWN_STR);
+		return;
+	}
+
+	show ("summary: msgpool=%d, msgmap=%d, msgmax=%d, "
+			"msgmnb=%d, msgmni=%d, msgssz=%d, msgtql=%d, msgseg=%u",
+			info.msgpool,
+			info.msgmap,
+			info.msgmax,
+
+			info.msgmnb,
+			info.msgmni,
+			info.msgssz,
+			info.msgtql,
+			info.msgseg);
+
+	for (i = 0; i <= max; i++) {
+		id = msgctl (i, MSG_STAT, &msqid_ds);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &msqid_ds.msg_perm;
+
+		perms = (perm->mode &= ~S_IFMT);
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+
+		/* May not have been set */
+		if (msqid_ds.msg_stime)
+			format_time (&msqid_ds.msg_stime, formatted_stime, sizeof (formatted_stime));
+		else
+			sprintf (formatted_stime, "%s", NA_STR);
+
+		/* May not have been set */
+		if (msqid_ds.msg_rtime)
+			format_time (&msqid_ds.msg_rtime, formatted_rtime, sizeof (formatted_rtime));
+		else
+			sprintf (formatted_rtime, "%s", NA_STR);
+
+		/* May not have been set */
+		if (msqid_ds.msg_ctime)
+			format_time (&msqid_ds.msg_ctime, formatted_ctime, sizeof (formatted_ctime));
+		else
+			sprintf (formatted_ctime, "%s", NA_STR);
+
+		lspid = pid_to_name (msqid_ds.msg_lspid);
+		lrpid = pid_to_name (msqid_ds.msg_lrpid);
+
+		show ("id=%d, key=0x%.*x, sequence=%u, permissions=%4.4o (%s), "
+				"uid=%u ('%s'), gid=%u ('%s'), euid=%u ('%s'), egid=%u ('%s'), "
+				"msg_stime=%lu (%s), msg_rtime=%lu (%s), msg_ctime=%lu (%s), "
+				"queue_bytes(__msg_cbytes)=%lu, msg_qnum=%lu, msg_qbytes=%lu, "
+				"last msgsnd pid=%d (%s), last msgrcv pid=%d (%s)",
+				id,
+
+				/* pad out to max pointer size
+				 * represented in hex.
+				 */
+				POINTER_SIZE * 2,
+				perm->__key,
+
+				perm->__seq,
+
+				perm->mode,
+				modestr,
+
+				perm->uid,
+				get_user_name (perm->uid),
+
+				perm->gid,
+				get_user_name (perm->gid),
+
+				perm->cuid,
+				get_user_name (perm->cuid),
+
+				perm->cgid,
+				get_user_name (perm->cgid),
+
+				msqid_ds.msg_stime,
+				formatted_stime,
+
+				msqid_ds.msg_rtime,
+				formatted_rtime,
+
+				msqid_ds.msg_ctime,
+				formatted_ctime,
+
+				msqid_ds.__msg_cbytes,
+				msqid_ds.msg_qnum,
+				msqid_ds.msg_qbytes,
+
+				msqid_ds.msg_lspid,
+				lspid ? lspid : UNKNOWN_STR,
+
+				msqid_ds.msg_lrpid,
+				lrpid ? lrpid : UNKNOWN_STR);
+
+		free (modestr);
+		if (lspid)
+			free (lspid);
+		if (lrpid)
+			free (lrpid);
+	}
+}
+#endif /* PROCENV_LINUX */
+
+void
+format_time (const time_t *t, char *buffer, size_t len)
+{
+	char   *str = NULL;
+	size_t  l;
+
+	assert (t);
+	assert (buffer);
+
+	str = ctime (t);
+	if (! str)
+		die ("failed to format time");
+
+	l = strlen (str);
+
+	if (len < l)
+		bug ("buffer too small");
+
+	/* Ensure nul byte copied */
+	strncpy (buffer, str, l+1);
+
+	/* Overwrite NL */
+	buffer[strlen (buffer)-1] = '\0';
+}
+
+char *
+format_perms (mode_t mode)
+{
+	char    *modestr = NULL;
+	mode_t   perms;
+	int      i = 0;
+
+	/*
+	 * "-rwxrwxrwx" = 10+1 bytes.
+	 */
+	modestr = calloc ((1+3+3+3)+1, 1);
+
+	if (! modestr)
+		return NULL;
+
+	modestr[i++] = (S_ISLNK (mode & S_IFMT)) ? 'l' : '-';
+
+	perms = (mode & S_IRWXU);
+	modestr[i++] = (perms & S_IRUSR) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWUSR) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXUSR) ? 'x' : '-';
+
+	perms = (mode & S_IRWXG);
+	modestr[i++] = (perms & S_IRGRP) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWGRP) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXGRP) ? 'x' : '-';
+
+	perms = (mode & S_IRWXO);
+	modestr[i++] = (perms & S_IROTH) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWOTH) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXOTH) ? 'x' : '-';
+
+	perms = (mode &= ~S_IFMT);
+	if (perms & S_ISUID)
+		modestr[3] = 's';
+	if (perms & S_ISGID)
+		modestr[6] = 's';
+	if (perms & S_ISVTX)
+		modestr[9] = 't';
+
+	return modestr;
+}
+
+char *
+pid_to_name (pid_t pid)
+{
+	char   path[PATH_MAX];
+	char  *name = NULL;
+	FILE  *f = NULL;
+
+	sprintf (path, "/proc/%d/cmdline", (int)pid);
+
+	f = fopen (path, "r");
+	if (! f) 
+		goto out;
+
+	/* Reuse buffer */
+	if (! fgets (path, sizeof (path), f))
+		goto out;
+
+	/* Nul delimiting within /proc file will ensure we only get the
+	 * program name.
+	 */
+	append (&name, path);
+
+out:
+	if (f)
+		fclose (f);
+
+	return name;
 }
