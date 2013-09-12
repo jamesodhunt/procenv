@@ -1,3 +1,12 @@
+2013-09-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/Makefile.am: Updated for new check_all_args test.
+	* src/procenv.c:
+	  - dump(): Ensure correct output ordering.
+	  - Added "not implemented" stubs for FreeBSD IPC functions.
+	* src/tests/show_compiler_details: Don't hard-code 'gcc' - use 'cc'
+	  for maximum portability.
+
 2013-09-11  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1:

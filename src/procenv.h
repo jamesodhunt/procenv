@@ -248,17 +248,18 @@
 /* FIXME: gettext */
 #define _(str) str
 
-#define YES_STR          _("yes")
-#define NO_STR           _("no")
-#define NON_STR          _("non")
-#define NA_STR           _("n/a")
-#define UNKNOWN_STR      _("unknown")
-#define MAX_STR          _(" (max)")
-#define DEFINED_STR      _("defined")
-#define NOT_DEFINED_STR  _("not defined")
-#define BIG_STR          _("big")
-#define LITTLE_STR       _("little")
-#define PRIVILEGED_STR   _("privileged")
+#define YES_STR              _("yes")
+#define NO_STR               _("no")
+#define NON_STR              _("non")
+#define NA_STR               _("n/a")
+#define UNKNOWN_STR          _("unknown")
+#define MAX_STR              _(" (max)")
+#define DEFINED_STR          _("defined")
+#define NOT_DEFINED_STR      _("not defined")
+#define NOT_IMPLEMENTED_STR  _("[not implemented]")
+#define BIG_STR              _("big")
+#define LITTLE_STR           _("little")
+#define PRIVILEGED_STR       _("privileged")
 
 #if defined (PROCENV_BSD)
 		/* SIGTHL is hidden by default */
@@ -626,15 +627,22 @@ void show_bsd_network (void);
 void get_bsd_misc (void);
 void show_bsd_proc_branch (void);
 void show_bsd_cpu (void);
+void show_shared_mem_bsd (void);
+void show_semaphores_bsd (void);
+void show_msg_queues_bsd (void);
 #endif /* PROCENV_BSD + __FreeBSD_kernel__ */
 
-/* semctl(2) tells us _we_ must define this */
+#if defined (PROCENV_LINUX)
+/* semctl(2) on Linux tells us _we_ must define this */
+
 union semun {
 	int val;
 	struct semid_ds *buf;     
 	unsigned short int *array;
 	struct seminfo *__buf;
 };
+
+#endif
 
 
 #endif /* PROCENV_H */

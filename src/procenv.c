@@ -1578,7 +1578,6 @@ show_stat (void)
 	char         formatted_time[CTIME_BUFFER];
 	char        *modestr = NULL;
 	mode_t       perms;
-	int          i = 0;
 	char        *tmp = NULL;
 
 	assert (program_name);
@@ -1676,9 +1675,6 @@ dump (void)
 	show_oom ();
 #endif
 	dump_platform ();
-	show_semaphores ();
-	show_shared_mem ();
-
 	dump_user ();
 	show_ranges ();
 
@@ -1686,7 +1682,8 @@ dump (void)
 	 * as possible.
 	 */
 	show_rusage ();
-
+	show_semaphores ();
+	show_shared_mem ();
 	show_signals ();
 	show_sizeof ();
 	show_stat ();
@@ -2567,6 +2564,33 @@ show_bsd_mounts (ShowMountType what)
 
 		free (opts);
 	}
+}
+
+/* FIXME */
+void
+show_shared_mem_bsd (void)
+{
+	header ("shared memory");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
+}
+
+/* FIXME */
+void
+show_semaphores_bsd (void)
+{
+	header ("semaphores");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
+}
+
+/* FIXME */
+void
+show_msg_queues_bsd (void)
+{
+	header ("message queues");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
 }
 
 #endif
@@ -5036,7 +5060,7 @@ show_shared_mem (void)
 #ifdef PROCENV_LINUX
 	show_shared_mem_linux ();
 #else
-	/* FIXME */
+	show_shared_mem_bsd ();
 #endif
 }
 
@@ -5046,7 +5070,7 @@ show_semaphores (void)
 #ifdef PROCENV_LINUX
 	show_semaphores_linux ();
 #else
-	/* FIXME */
+	show_semaphores_bsd ();
 #endif
 }
 
@@ -5056,7 +5080,7 @@ show_msg_queues (void)
 #ifdef PROCENV_LINUX
 	show_msg_queues_linux ();
 #else
-	/* FIXME */
+	show_msg_queues_bsd ();
 #endif
 }
 
