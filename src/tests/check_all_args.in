@@ -1,0 +1,109 @@
+#!/bin/sh -e
+#---------------------------------------------------------------------
+# run procenv with every argument
+#---------------------------------------------------------------------
+
+# FIXME: needs build-dep on expat
+# FIXME: needs build-dep on perl
+# FIXME: test for --indent=
+# FIXME: test for --indent-char=
+
+die ()
+{
+	local msg="$*"
+	echo "ERROR: $msg" >&2
+	exit 1
+}
+
+msg ()
+{
+	local msg="$*"
+	echo "INFO: $msg"
+}
+
+# Use full path to build binary
+procenv="@abs_builddir@/procenv"
+
+[ -f "$procenv" ] || die "cannot find binary: $procenv"
+
+#---------------------------------------------------------------------
+msg "Ensure $procenv runs with no errors"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv 1>"$stdout" 2>"$stderr"
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+
+msg "Ensure all documented options produce output"
+$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
+	cut -d, -f1 | while read arg
+do
+	out=$(tempfile)
+	cmd="$procenv $arg"
+	msg "Running '$cmd"
+	eval '$cmd > "$out"'
+	[ -z "$out" ] && die "No output running '$cmd'"
+	rm "$out"
+done
+
+#---------------------------------------------------------------------
+msg "Ensure --file=<file> works"
+
+out=$(tempfile)
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv --file="$out" 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+[ -s "$out" ] || die "Expected output in file $out"
+
+rm "$out"
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+msg "Ensure --output=stdout works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv --output=stdout 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+msg "Ensure --output=stderr works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv --output=stderr 1>"$stdout" 2>"$stderr"
+
+[ -s "$stderr" ] || die "Expected stderr output in file $stderr"
+[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+msg "Ensure --exec works"
+
+str="hello world"
+out=$(tempfile)
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv --output=file --file="$out" \
+	--exec echo "$str" 1>"$stdout" 2>"$stderr"
+
+[ -s "$out" ] || die "Expected $procenv output in file $out"
+[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+result=$(cat "$stdout")
+
+[ "$result" != "$str" ] && die \
+	"Expected file $stdout to contain '$str', found '$result'"
+
+rm -f "$stdout" "$stderr" "$out"
+
+#---------------------------------------------------------------------

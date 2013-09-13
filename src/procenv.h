@@ -51,22 +51,6 @@
 #include <sys/sem.h>
 #include <sys/msg.h>
 
-/* FIXME: Android testing */
-#if 1
-#ifndef PACKAGE_NAME
-#define PACKAGE_NAME "procenv"
-#endif
-
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.24"
-#endif
-
-#ifndef PACKAGE_STRING
-#define PACKAGE_STRING PACKAGE_NAME
-#endif
-
-#endif /* FIXME */
-
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
 	|| defined (__OpenBSD__)
@@ -90,6 +74,18 @@
 #endif
 
 #if defined PROCENV_ANDROID
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME "procenv"
+#endif
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.24"
+#endif
+
+#ifndef PACKAGE_STRING
+#define PACKAGE_STRING PACKAGE_NAME
+#endif
+
 /* major(3) / minor(3) */
 #include <sys/sysmacros.h>
 #endif

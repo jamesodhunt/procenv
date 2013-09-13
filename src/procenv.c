@@ -571,7 +571,8 @@ usage (void)
 	show ("  -n, --confstr       : Display confstr details.");
 	show ("  -N, --network       : Display network details.");
 	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
-	show ("  --output=<type>     : Send output to alternative location. <type> can be one of:");
+	show ("  --output=<type>     : Send output to alternative location.");
+        show ("                        <type> can be one of:");
 	show ("");
 	show ("                      file     : Send output to a file.");
 	show ("                      stderr   : Write to standard error.");
@@ -597,8 +598,8 @@ usage (void)
 	show ("");
 	show ("Notes:");
 	show ("");
-	show ("  - If no option is specified, all details are displayed.");
-	show ("  - Only one option may be specified.");
+	show ("  - If no display option is specified, all details are displayed.");
+	show ("  - Only one display option may be specified.");
 	show ("");
 }
 
@@ -892,20 +893,33 @@ show_rlimits (void)
 	show_limit (RLIMIT_DATA);
 	show_limit (RLIMIT_FSIZE);
 
-	/* why can't we use this? */
-#if 0
-	show_limit (RLIMIT_RTTIME);
-#endif
 
 #if defined (PROCENV_LINUX)
+
+	if (LINUX_KERNEL_MMR (2, 6, 25)) {
+#if defined (RLIMIT_RTTIME)
+		show_limit (RLIMIT_RTTIME);
+#endif
+	}
 	show_limit (RLIMIT_LOCKS);
 #endif
 
 	show_limit (RLIMIT_MEMLOCK);
 
 #if defined (PROCENV_LINUX)
-	show_limit (RLIMIT_MSGQUEUE);
-	show_limit (RLIMIT_NICE);
+
+	if (LINUX_KERNEL_MMR (2, 6, 8)) {
+#if defined (RLIMIT_MSGQUEUE)
+		show_limit (RLIMIT_MSGQUEUE);
+#endif
+	}
+
+	if (LINUX_KERNEL_MMR (2, 6, 12)) {
+#if defined RLIMIT_NICE
+		show_limit (RLIMIT_NICE);
+#endif
+	}
+
 #endif
 
 	show_limit (RLIMIT_NOFILE);
@@ -916,13 +930,14 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTPRIO);
 #endif
 
-	/* FIXME */
-#if 0
-	show_limit (RLIMIT_RTTIME);
-#endif
-
 #if defined (PROCENV_LINUX)
+
+	if (LINUX_KERNEL_MMR (2, 6, 8)) {
+#if defined (RLIMIT_SIGPENDING)
 	show_limit (RLIMIT_SIGPENDING);
+#endif
+	}
+
 #endif
 
 	show_limit (RLIMIT_STACK);
