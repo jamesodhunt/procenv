@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <regex.h>
 
 /* FIXME: Android testing */
 #if 1
@@ -60,6 +61,18 @@
 #ifndef PACKAGE_STRING
 #define PACKAGE_STRING PACKAGE_NAME
 #endif
+
+/**
+ * PROCENV_FORMAT_VERSION:
+ *
+ * Version of output format.
+ *
+ * XXX: must be updated for every change.
+ **/
+
+#define PROCENV_FORMAT_VERSION 1
+
+#define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
 #endif /* FIXME */
 
@@ -131,7 +144,7 @@
 { \
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
-	show (#cap "=%s", ret < 0 \
+	entry (#cap, "%s", ret < 0 \
 			? NOT_DEFINED_STR \
 			: ret \
 			? YES_STR \
@@ -211,6 +224,7 @@
 
 #define PROCENV_BUFFER     1024
 #define MOUNTS            "/proc/mounts"
+#define ROOT_PATH         "/proc/self/root"
 
 #ifndef TRUE
 #define TRUE 1
@@ -265,24 +279,63 @@
 /* Size of blocks we will show the user (as df(1) does) */
 #define DF_BLOCK_SIZE 1024
 
-/* If an indent is required, use this many spaces */
-#define INDENT 2
+/* Default character to use for indent */
+#define DEFAULT_INDENT_CHAR ' '
+
+/* If an indent is required, use this many INDENT_CHARs by default */
+#define DEFAULT_INDENT_AMOUNT 2
 
 #define PROGRAM_AUTHORS "James Hunt <james.hunt@ubuntu.com>"
 
 #define show(...) _show ("", indent, __VA_ARGS__)
+
+/**
+ * showi:
+ *
+ * @_indent: additional indent amount,
+ * @fmt: printf-style format and optional arguments.
+ *
+ * Write indented message to appropriate output location.
+ **/
 #define showi(_indent, ...) _show ("", indent+_indent, __VA_ARGS__)
+
+/**
+ * _message:
+ * @prefix: Fixed message prefix,
+ * @fmt: printf-style format and optional arguments.
+ *
+ * Write unindented message to appropriate output location.
+ **/
+#define _message(prefix, ...) _show (prefix, 0, __VA_ARGS__)
 
 #define warn(...) \
 { \
-	_show ("WARNING", 0, __VA_ARGS__); \
+	_message ("WARNING",  __VA_ARGS__); \
 }
+
+#ifdef DEBUG
+/* for when running under GDB */
+#define die_finalise() raise (SIGUSR1)
+#else
+#define die_finalise() exit (EXIT_FAILURE)
+#endif
 
 #define die(...) \
 { \
-	_show ("ERROR", 0, __VA_ARGS__); \
-	exit (EXIT_FAILURE); \
+	_message ("ERROR", __VA_ARGS__); \
+	cleanup (); \
+	die_finalise (); \
 }
+
+#define common_assert() \
+	assert (doc); \
+	assert (indent >= 0)
+
+#define assert_not_reached() \
+	do { \
+		die ("%s:%d: Not reached assertion failed in %s", \
+			   __FILE__, __LINE__, __FUNCTION__); \
+	} while (0)
 
 #define type_hex_width(type) \
 	(sizeof (type) * 2)
@@ -290,14 +343,16 @@
 #define show_clock_res(clock) \
 { \
 	struct timespec res; \
+	section_open (#clock); \
 	if (clock_getres (clock, &res) < 0) \
-		show ("%s: resolution: %s", #clock, UNKNOWN_STR); \
+		entry ("resolution", "%s", UNKNOWN_STR); \
 	else \
-		show ("%s: resolution: %ld.%09lds", #clock, res.tv_sec, res.tv_nsec); \
+		entry ("resolution", "%ld.%09lds", res.tv_sec, res.tv_nsec); \
+	section_close (); \
 }
 
 #define show_const(t, flag, constant) \
-    show ("%s:%s=%d", #flag, #constant, !!(t.flag & constant))
+    entry (#constant, "%d", !!(t.flag & constant))
 
 /**
  * Show a terminal special characters attribute.
@@ -307,8 +362,7 @@
  * lock_status: struct termios representing lock status of @t.
  **/
 #define show_cc_tty(t, elem, lock_status) \
-    show ("  c_cc[%s]:0x%x%s", \
-	#elem, \
+    entry (#elem, "0x%x%s", \
 	t.c_cc[elem], \
 	lock_status.c_cc[elem] ? " (locked)" : "");
 
@@ -321,9 +375,8 @@
  * lock_status: struct termios representing lock status of @t.
  **/
 #define show_const_tty(t, flag, constant, lock_status) \
-	show ("%s:%s=%d%s", \
-		#flag, \
-		#constant, \
+	entry (#constant, \
+		"%d%s", \
 		!!(t.flag & constant), \
 		!!(lock_status.flag) ? " (locked)" : "")
 
@@ -333,9 +386,10 @@
 	errno = 0; \
 	conf = pathconf (path, name); \
 	if (conf == -1 && errno == 0) { \
-		die ("unable to query pathconf value for '%s'", #name); \
+	    entry (#name, "%s", UNKNOWN_STR); \
+	} else { \
+	    entry (#name, "%d", conf); \
 	} \
-	showi ((what == SHOW_ALL ? (indent * 2) : INDENT), "%s=%d", #name, conf); \
 }
 
 #define SPEED(s) \
@@ -358,37 +412,42 @@
 		die ("failed to allocate space for confstr"); \
 	} \
 	assert (confstr (s, buffer, len) == len); \
-	show ("%s: '%s'", #s, buffer); \
+	entry (#s, "'%s'", buffer); \
 	free (buffer); \
 }
 
-#define is_limit_max(l) \
-	((unsigned long int)l == ((unsigned long int)-1) ? MAX_STR : "")
+/* Note: param is ignored */
+#define limit_max(l) \
+	((unsigned long int)-1)
 
 #define show_limit(limit) \
 { \
 	struct rlimit tmp; \
+	\
 	if (getrlimit (limit, &tmp) < 0) { \
 		die ("failed to query rlimit '%s'", #limit); \
 	} \
-	show (#limit " (soft=%lu%s, hard=%lu%s)", \
-			(unsigned long int)tmp.rlim_cur, \
-			is_limit_max (tmp.rlim_cur), \
-			(unsigned long int)tmp.rlim_max, \
-			is_limit_max (tmp.rlim_max)); \
+	\
+	section_open (#limit); \
+	\
+	section_open ("soft"); \
+	entry ("current", "%lu", (unsigned long int)tmp.rlim_cur); \
+	entry ("max", "%lu", limit_max (limit)); \
+	section_close (); \
+	\
+	section_open ("hard"); \
+	entry ("current", "%lu", (unsigned long int)tmp.rlim_max); \
+	entry ("max", "%lu", limit_max (limit)); \
+	section_close (); \
+	\
+	section_close (); \
 }
 
 #define show_usage(rusage, name) \
-	show ("%s=%lu", #name, rusage.name)
+	entry (#name, "%lu", rusage.name)
 
 #define get_sysconf(s) \
  	sysconf (s)
-
-#define show_sysconf(s) \
-{ \
-	long value = get_sysconf (s); \
-	show (#s "=%ld", value); \
-}
 
 #define mk_posix_sysconf_map_entry(name) \
 	{_SC_ ## name, #name "(_SC_" #name ")" }
@@ -399,6 +458,17 @@
 #define mk_sysconf_map_entry(name) \
 	{name, #name }
 
+#define show_sizeof_type(type) \
+	entry (#type, "%lu byte%s", \
+			(unsigned long int)sizeof (type), \
+			sizeof (type) == 1 ? "" : "s")
+
+
+#define show_size(type) \
+	entry ("size", "%lu byte%s", \
+			(unsigned long int)sizeof (type), \
+			sizeof (type) == 1 ? "" : "s")
+
 typedef char bool;
 
 typedef enum {
@@ -406,6 +476,52 @@ typedef enum {
 	SHOW_MOUNTS,
 	SHOW_PATHCONF
 } ShowMountType;
+
+typedef enum {
+	OUTPUT_FORMAT_TEXT,
+	OUTPUT_FORMAT_JSON,
+	OUTPUT_FORMAT_XML
+} OutputFormat;
+
+typedef struct translate_map_entry {
+	char  from;
+	char *to;
+} TranslateMapEntry;
+
+typedef enum element_type {
+	ELEMENT_TYPE_ENTRY,
+	ELEMENT_TYPE_SECTION_OPEN,
+	ELEMENT_TYPE_SECTION_CLOSE,
+	ELEMENT_TYPE_CONTAINER_OPEN,
+	ELEMENT_TYPE_CONTAINER_CLOSE,
+	ELEMENT_TYPE_OBJECT_OPEN,
+	ELEMENT_TYPE_OBJECT_CLOSE,
+	ELEMENT_TYPE_NONE = -1
+} ElementType;
+
+typedef struct element {
+	ElementType type;
+
+	char *name;
+	char *value;
+
+	/* Optional array of name/value pairs associated with @name */
+	char **attributes;
+} Element;
+
+/*
+ * XXX: Gross magic number must equal the maximum number of entries in
+ * any particular OutputFormats translation table.
+ *
+ * This must be updated to reflect the maximum values in any
+ * TranslateMapEntry, plus 1.
+ */
+#define TRANSLATE_MAP_ENTRIES    (5+1)
+
+typedef struct translate_table {
+	OutputFormat output_format;
+	TranslateMapEntry map[TRANSLATE_MAP_ENTRIES];
+} TranslateTable;
 
 struct procenv_map {
 	int   num;
@@ -481,9 +597,41 @@ struct network_map {
 	struct network_map *prev;
 };
 
-void _show (const char *prefix, int indent, const char *fmt, ...);
+void master_header (char **doc);
+void master_footer (char **doc);
 
-void header (const char *fmt, ...);
+void header (const char *name);
+void footer (void);
+
+void object_open (int retain);
+void object_close (int retain);
+void section_open (const char *name);
+void section_close (void);
+
+void container_open (const char *name);
+void container_close (void);
+
+void entry (const char *name, const char *fmt, ...);
+void _show (const char *prefix, int indent, const char *fmt, ...);
+void _show_output (const char *string);
+
+int get_indent (void);
+void inc_indent (void);
+void dec_indent (void);
+void add_indent (char **doc);
+
+void change_element (ElementType new);
+void format_element (void);
+void format_text_element (void);
+void format_json_element (void);
+void format_xml_element (void);
+
+int encode_string (char **str);
+char *translate (const char *from);
+void compress (char **str);
+void chomp (char *str);
+
+void show_version (void);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);
@@ -494,12 +642,12 @@ void assert_cwd (void);
 void assert_chroot (void);
 void assert_user (void);
 void dump_options (void);
-void dump_user (void);
-void dump_misc (void);
+void show_proc (void);
+void show_misc (void);
 void show_env (void);
 void show_rlimits (void);
 void show_rusage (void);
-void dump_sysconf (void);
+void show_sysconf (void);
 char *get_user_name (gid_t gid);
 char *get_group_name (gid_t gid);
 
@@ -507,7 +655,7 @@ char *get_group_name (gid_t gid);
 void show_confstrs (void);
 #endif
 
-void dump_priorities (void);
+void show_priorities (void);
 void show_mounts (ShowMountType what);
 void get_user_info (void);
 void get_priorities (void);
@@ -519,17 +667,16 @@ void show_tty_attrs (void);
 const char * get_speed (speed_t speed);
 const char * get_signal_name (int signum);
 void show_arguments (void);
-void dump_meta (void);
+void show_meta (void);
 char *get_os (void);
 char *get_arch (void);
-void dump_platform (void);
+void show_platform (void);
 
 #ifndef PROCENV_ANDROID
 int libs_callback (struct dl_phdr_info *info, size_t size, void *data);
 void show_libs (void);
 #endif
 
-int get_indent (void);
 void show_clocks (void);
 void show_timezone (void);
 void show_time (void);
@@ -539,8 +686,10 @@ void show_sizeof (void);
 void show_ranges (void);
 void show_compiler (void);
 void get_uname (void);
-void dump_uname (void);
+void show_uname (void);
 void show_all_groups (void);
+void show_fds (void);
+void show_fds_generic (void);
 
 #if !defined (PROCENV_HURD)
 int is_console (int fd);
@@ -551,11 +700,12 @@ bool has_ctty (void);
 void show_cpu (void);
 void show_threads (void);
 void append (char **str, const char *new);
+void appendn (char **str, const char *new, size_t len);
 void appendf (char **str, const char *fmt, ...);
 void appendva (char **str, const char *fmt, va_list ap);
 void check_envvars (void);
 int get_output_value (const char *name);
-void set_indent (void);
+int get_output_format (const char *name);
 void show_stat (void);
 void show_locale (void);
 void get_major_minor (const char *path,
@@ -577,9 +727,9 @@ int get_mtu (const struct ifaddrs *ifaddr);
 char *decode_if_flags (unsigned int flags);
 #if defined (PROCENV_LINUX)
 char *decode_extended_if_flags (const char *interface, unsigned short *flags);
-void get_root (char *root, size_t len);
+void get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
-void dump_linux_proc_fds (void);
+void show_fds_linux (void);
 void show_linux_cgroups (void);
 void show_oom (void);
 void show_capabilities (void);
@@ -590,7 +740,6 @@ void show_linux_proc_branch (void);
 void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
-void show_linux_scheduler (void);
 bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */
 

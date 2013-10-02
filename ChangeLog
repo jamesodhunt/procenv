@@ -1,3 +1,21 @@
+2013-10-02  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added new options:
+	    - -C/--cpu.
+	    - --format.
+	    - --indent.
+	    - --indent-char.
+	    - --separator.
+	  - Removed bracketed partial option names since getopt_long(3) allows
+	    any unique partially named option.
+	* src/Makefile.am:
+	  - Added check_all_args test.
+	  - CFLAGS: Check for unused variables.
+	* src/procenv.c:
+	  - Added ability to produce output in either highly-structured text
+	    (default), JSON, or XML using the --format=<format> option.
+
 2013-08-23  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: 

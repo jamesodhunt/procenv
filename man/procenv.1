@@ -37,18 +37,23 @@ See
 .BR dl_iterate_phdr (3) "" .
 .\"
 .TP
-\fB\-c\fR, \fB\-\-cgroup[s]\fR
+\fB\-c\fR, \fB\-\-cgroups\fR
 Display cgroup details (Linux only).
 See
 .BR proc (5) "" .
-.HP
+.\"
+.TP
+\fB\-C\fR, \fB\-\-cpu\fR
+Display CPU and scheduler details.
+.\"
+.TP
 \fB\-d\fR, \fB\-\-compiler\fR
 Display compiler details.
 See
 .BR cpp (1) "" ", " cc (1) "" " and " feature_test_macros (7) "" " (Linux)."
 .\"
 .TP
-\fB\-e\fR, \fB\-\-env[ironment]\fR
+\fB\-e\fR, \fB\-\-environment\fR
 Display environment variables.
 See
 .BR environ (7) "" .
@@ -69,6 +74,21 @@ See
 .TP
 \fB\-\-file=\fR\fIFILE\fR
 Send output to file \fIFILE\fR (implies \fB\-\-output=file\fR).
+.PP
+.\"
+.TP
+\fB\-\-format=\fR\fIFORMAT\fR
+Specify output format.
+.I FORMAT
+may be one of:
+.RS
+.IP \(bu 4
+\fItext\fR (plain ASCII text [default]).
+.IP \(bu 4
+\fIjson\fR (JavaScript Object Notation).
+.IP \(bu 4
+\fIxml\fR (Extensible Markup Language).
+.RE
 .PP
 .\"
 .TP
@@ -96,13 +116,25 @@ See
 .BR getpagesize (2) "" .
 .\"
 .TP
+\fB\-\-indent\fR
+Number of indent characters to use for each indent
+(default=2).
+.\"
+.TP
+\fB\-\-indent\-char=\fR\fIc\fR
+Use character
+.I c
+for indenting
+(default=\(aq \(aq (space)).
+.\"
+.TP
 \fB\-j\fR, \fB\-\-uname\fR
 Display uname details.
 See
 .BR uname (2) "" .
 .\"
 .TP
-\fB\-k\fR, \fB\-\-clock[s]\fR
+\fB\-k\fR, \fB\-\-clocks\fR
 Display clock details.
 See
 .BR clock_getres (2) "" .
@@ -120,7 +152,7 @@ See
 .BR setlocale (3) "" " and " locale (7) "" .
 .\"
 .TP
-\fB\-m\fR, \fB\-\-mount[s]\fR
+\fB\-m\fR, \fB\-\-mounts\fR
 Display mount details.
 See
 .BR getmntent (3) "" " and " statfs (2) "" " (Linux), and " getmntinfo (3) "" " (BSD)."
@@ -165,7 +197,7 @@ Send output to alternative location. \fITYPE\fR can be one of:
 .PP
 .\"
 .TP
-\fB\-p\fR, \fB\-\-proc[ess]\fR
+\fB\-p\fR, \fB\-\-process\fR
 Display process details.
 See
 .BR getpid (2) "" ", "
@@ -200,18 +232,24 @@ See
 .PP
 .\"
 .TP
-\fB\-r\fR, \fB\-\-range[s]\fR
+\fB\-r\fR, \fB\-\-ranges\fR
 Display range of data types.
 See
 .BR limits.h (P) "" .
 .PP
 .\"
 .TP
-\fB\-s\fR, \fB\-\-signal[s]\fR
+\fB\-s\fR, \fB\-\-signals\fR
 Display signal details.
 See
 .BR sigaction (2) "" .
 .PP
+.\"
+.TP
+\fB\-\-separator=\fR\fIstr\fR
+Specify string
+.I str
+as alternate delimiter for text format output (default=\(aq: \(aq).
 .\"
 .TP
 \fB\-t\fR, \fB\-\-tty\fR
@@ -223,7 +261,7 @@ See
 .PP
 .\"
 .TP
-\fB\-T\fR, \fB\-\-thread[s]\fR
+\fB\-T\fR, \fB\-\-threads\fR
 Display thread details.
 See
 .BR pthread_attr_getstacksize (3) "" ", "
