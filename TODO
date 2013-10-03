@@ -1,28 +1,83 @@
 # TODO
 
-- networking details
+- Non-root queryable hdd attributes?
+- Create a versioned XML schema.
+- Restructure code into separate files.
+- Use weak symbols/VPATH to avoid ifdefs!
+- Display numeric values for all symbols?:
+	- limits (RLIMIT_AS)
+	- capabilities (CAP_CHOWN)
+	- clocks (CLOCK_REALTIME)
+	- pathconf (_PC_LINK_MAX)
+	- sysconf (ARG_MAX)
+	- etc
+  XXX: must be consistent with existing signals (SIGHUP, etc)!!
+- BUG: all numbers are displayed as strings in json output.
+- Add in ability to specify a platform restriction for certain details by modifying
+  section_open() and container_open() to accept string pairs like:
+
+  container_open (const char *name, int count, ...);
+                  |
+                  V
+  container_open (const char *name, 2, "restriction", "linux");
+- Add '--format=breadcrumbs' option to allow data to be displayed
+  in a text format making extracting the required value from the
+  highly-structured output trivial. For example, to extract the current
+  soft limit of RLIMIT_NOFILE is now slightly tricky since the '--output=text'
+  format looks like this:
+
+  RLIMIT_NOFILE:
+    soft:
+      current: 10240
+      max: 4294967295
+
+  Specifying '--format=breadcrumbs' would display it as:
+
+  limits:RLIMIT_NOFILE:
+  limits:RLIMIT_NOFILE:soft:current: 10240
+  limits:RLIMIT_NOFILE:soft:max: 4294967295
+  limits:RLIMIT_NOFILE:hard:current: 10240
+  limits:RLIMIT_NOFILE:hard:max: 4294967295
+  limits:RLIMIT_NPROC:
+    :
+    :
+
+  Implementation Details:
+
+  - New functions (that would operate on a global linked list):
+    - set_breadcrumb(const char *name);
+    - add_breadcrumb(const char *name);
+    - remove_breadcrumb(const char *name);
+    - clear_breadcrumbs(void);
+
+  - header(): call set_breadcrumb(name);
+  - footer(): call clear_breadcrumbs(name);
+  - section_open(): call add_breadcrumb(name);
+  - container_open(): call add_breadcrumb(name);
+  - section_close(): call remove_breadcrumb(name);
+  - container_close(): call remove_breadcrumb(name);
+- Networking details
   - IPv6 scope_id.
   - gateway.
-  - sort network interfaces.
+- Add to show_sizeof():
+  suseconds_t.
+- sort network interfaces.
 - add to show_sizeof():
   - intN_t group   
-- i18n (gettext)
-- don't hide any option that a particular O/S / arch doesn't
+- I18N (gettext)
+- Don't hide any option that a particular O/S / arch doesn't
   have: show the option with a value of `UNKNOWN_STR'.
-- allow data to be dumped in JSON and XML by implementing a keyvalue()
-  macro that replaces the existing calls to show() when used in the
-  context of dumping a key/value pair along with logic to change the
-  output format.
-- uptime (using utmp)?
-- text/data/bss/stack details (end(3), sbrk(2))
-- mincore(2)?
-- add program arguments to show_misc().
-- add process arguments to show_proc_branch()?
-- sort output of show_mounts().
-- use CPUID instruction to detect XEN environments?
+- Rework output code to use a cleaner stack-based approach.
+- Uptime (using utmp)?
+- Text/data/bss/stack details (end(3), sbrk(2))
+- Mincore(2)?
+- Add program arguments to show_misc().
+- Add process arguments to show_proc_branch()?
+- Sort output of show_mounts().
+- Use CPUID instruction to detect XEN environments?
   (http://libcpuid.sourceforge.net/)
-- use dlopen to probe for apparmor/selinux. This avoids having to depend
+- Use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
-- add in permissions for /dev/tty and fds 0-2 if they refer to devices.
+- Add in permissions for /dev/tty and fds 0-2 if they refer to devices.
 - ELF details.

@@ -1,7 +1,7 @@
 AM_CFLAGS = \
 	-pedantic \
-	-std=gnu99 
-	-Wall -O2 \
+	-std=gnu99 \
+	-Wall -Wunused -O2 \
 	-fstack-protector \
 	-Wformat -Werror=format-security
 
