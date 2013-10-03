@@ -1629,6 +1629,8 @@ show_proc (void)
 			is_console (user.tty_fd) ? YES_STR : NO_STR);
 #endif
 
+	section_open ("user");
+
 	entry ("real user id (uid)", "%d ('%s')",
 			user.uid,
 			get_user_name (user.uid));
@@ -1641,6 +1643,10 @@ show_proc (void)
 			user.suid,
 			get_user_name (user.suid));
 
+	section_close ();
+
+	section_open ("group");
+
 	entry ("real group id (gid)", "%d ('%s')",
 			user.gid,
 			get_group_name (user.gid));
@@ -1652,6 +1658,8 @@ show_proc (void)
 	entry ("saved set-group-id (sgid)", "%d ('%s')",
 			user.sgid,
 			get_group_name (user.sgid));
+
+	section_close ();
 
 	entry ("login name", "'%s'", user.login ? user.login : "");
 
@@ -2196,6 +2204,13 @@ show_meta (void)
 	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
 			PRIVILEGED_STR);
+
+	entry ("format-type", "%s",
+			output_format == OUTPUT_FORMAT_TEXT ? "text" :
+			output_format == OUTPUT_FORMAT_JSON ? "json" : 
+			output_format == OUTPUT_FORMAT_XML  ? "xml"  :
+			UNKNOWN_STR);
+
 	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
 
 	footer ();
@@ -4727,6 +4742,8 @@ show_compiler (void)
 	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
 	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
 
+	section_open ("feature test macros");
+
 #ifdef __STRICT_ANSI__
 	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
 #else
@@ -4829,7 +4846,9 @@ show_compiler (void)
 	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
-    footer ();
+	section_close ();
+
+	footer ();
 }
 
 void
