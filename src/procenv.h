@@ -46,6 +46,10 @@
 #include <sys/socket.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/msg.h>
 #include <regex.h>
 
 /* FIXME: Android testing */
@@ -99,6 +103,18 @@
 #endif
 
 #if defined PROCENV_ANDROID
+#ifndef PACKAGE_NAME
+#define PACKAGE_NAME "procenv"
+#endif
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.24"
+#endif
+
+#ifndef PACKAGE_STRING
+#define PACKAGE_STRING PACKAGE_NAME
+#endif
+
 /* major(3) / minor(3) */
 #include <sys/sysmacros.h>
 #endif
@@ -222,6 +238,7 @@
 #define PROCENV_FILE_ENV   "PROCENV_FILE"
 #define PROCENV_EXEC_ENV   "PROCENV_EXEC"
 
+#define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024
 #define MOUNTS            "/proc/mounts"
 #define ROOT_PATH         "/proc/self/root"
@@ -257,17 +274,18 @@
 /* FIXME: gettext */
 #define _(str) str
 
-#define YES_STR          _("yes")
-#define NO_STR           _("no")
-#define NON_STR          _("non")
-#define NA_STR           _("n/a")
-#define UNKNOWN_STR      _("unknown")
-#define MAX_STR          _(" (max)")
-#define DEFINED_STR      _("defined")
-#define NOT_DEFINED_STR  _("not defined")
-#define BIG_STR          _("big")
-#define LITTLE_STR       _("little")
-#define PRIVILEGED_STR   _("privileged")
+#define YES_STR              _("yes")
+#define NO_STR               _("no")
+#define NON_STR              _("non")
+#define NA_STR               _("n/a")
+#define UNKNOWN_STR          _("unknown")
+#define MAX_STR              _(" (max)")
+#define DEFINED_STR          _("defined")
+#define NOT_DEFINED_STR      _("not defined")
+#define NOT_IMPLEMENTED_STR  _("[not implemented]")
+#define BIG_STR              _("big")
+#define LITTLE_STR           _("little")
+#define PRIVILEGED_STR       _("privileged")
 
 #if defined (PROCENV_BSD)
 		/* SIGTHL is hidden by default */
@@ -319,6 +337,14 @@
 #else
 #define die_finalise() exit (EXIT_FAILURE)
 #endif
+
+#define bug(...) \
+{ \
+	_show ("BUG", 0, __VA_ARGS__); \
+	exit (EXIT_FAILURE); \
+}
+
+#define POINTER_SIZE (sizeof (void *))
 
 #define die(...) \
 { \
@@ -650,15 +676,22 @@ void show_rusage (void);
 void show_sysconf (void);
 char *get_user_name (gid_t gid);
 char *get_group_name (gid_t gid);
+char *pid_to_name (pid_t pid);
 
 #ifndef PROCENV_ANDROID
 void show_confstrs (void);
 #endif
 
 void show_priorities (void);
+void show_shared_mem (void);
+void show_semaphores (void);
+void show_msg_queues (void);
+void dump_priorities (void);
 void show_mounts (ShowMountType what);
 void get_user_info (void);
 void get_priorities (void);
+void format_time (const time_t *t, char *buffer, size_t len);
+char *format_perms (mode_t mode);
 void get_config (void);
 void get_config_from_env (void);
 void check_config (void);
@@ -708,9 +741,7 @@ int get_output_value (const char *name);
 int get_output_format (const char *name);
 void show_stat (void);
 void show_locale (void);
-void get_major_minor (const char *path,
-		unsigned int *_major,
-		unsigned int *_minor);
+int get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor);
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
@@ -725,6 +756,7 @@ const char *get_ipv6_scope_name (uint32_t scope);
 char *get_mac_address (const struct ifaddrs *ifaddr);
 int get_mtu (const struct ifaddrs *ifaddr);
 char *decode_if_flags (unsigned int flags);
+
 #if defined (PROCENV_LINUX)
 char *decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_canonical (const char *path, char *canonical, size_t len);
@@ -741,6 +773,9 @@ void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
+void show_shared_mem_linux (void);
+void show_semaphores_linux (void);
+void show_msg_queues_linux (void);
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
@@ -754,6 +789,22 @@ void show_bsd_network (void);
 void get_bsd_misc (void);
 void show_bsd_proc_branch (void);
 void show_bsd_cpu (void);
+void show_shared_mem_bsd (void);
+void show_semaphores_bsd (void);
+void show_msg_queues_bsd (void);
 #endif /* PROCENV_BSD + __FreeBSD_kernel__ */
+
+#if defined (PROCENV_LINUX)
+/* semctl(2) on Linux tells us _we_ must define this */
+
+union semun {
+	int val;
+	struct semid_ds *buf;     
+	unsigned short int *array;
+	struct seminfo *__buf;
+};
+
+#endif
+
 
 #endif /* PROCENV_H */

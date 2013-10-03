@@ -60,6 +60,9 @@
   - IPv6 scope_id.
   - gateway.
 - Add to show_sizeof():
+  suseconds_t.
+- sort network interfaces.
+- add to show_sizeof():
   - intN_t group   
 - I18N (gettext)
 - Don't hide any option that a particular O/S / arch doesn't

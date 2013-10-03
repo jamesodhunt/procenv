@@ -59,6 +59,12 @@ See
 .BR environ (7) "" .
 .\"
 .TP
+\fB\-E\fR, \fB\-\-semaphores\fR
+Display semaphore details.
+See
+.BR semctl (2) "" .
+.\"
+.TP
 \fB\-\-exec\fR
 Treat non-option arguments as program to execute after running
 \fBprocenv\fR.
@@ -159,6 +165,12 @@ See
 .PP
 .\"
 .TP
+\fB\-M\fR, \fB\-\-message\-queues\fR
+Display message queue details.
+See
+.BR msgctl (2) "" .
+.\"
+.TP
 \fB\-n\fR, \fB\-\-confstr\fR
 Display confstr details.
 See
@@ -250,6 +262,13 @@ See
 Specify string
 .I str
 as alternate delimiter for text format output (default=\(aq: \(aq).
+.\"
+.TP
+\fB\-S\fR, \fB\-\-shared\-memory\fR
+Display shared memory details.
+See
+.BR shmctl (2) "" .
+.PP
 .\"
 .TP
 \fB\-t\fR, \fB\-\-tty\fR
@@ -415,6 +434,7 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR groups (1) "" ,
 .BR ifconfig (8) "" ,
 .BR ip (9) "" ,
+.BR ipcs (1) "" ,
 .BR kill (1) "" ,
 .BR ldd (1) "" ,
 .BR locale (1) "" ,
