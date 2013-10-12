@@ -1,12 +1,15 @@
 AM_CFLAGS = \
 	-pedantic \
 	-std=gnu99 \
-	-Wall -Wunused -O2 \
+	-Wall -Wunused \
 	-fstack-protector \
 	-Wformat -Werror=format-security
 
 bin_PROGRAMS = procenv
-procenv_SOURCES = procenv.c procenv.h
+procenv_SOURCES = \
+	procenv.c procenv.h \
+	pr_list.c pr_list.h
+
 procenv_LDADD = -lrt
 procenv_CPPFLAGS =
 

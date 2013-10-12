@@ -5,8 +5,10 @@
 
 # FIXME: needs build-dep on expat
 # FIXME: needs build-dep on perl
+#
 # FIXME: test for --indent=
 # FIXME: test for --indent-char=
+# FIXME: test for --separator=
 
 die ()
 {
@@ -33,20 +35,6 @@ stdout=$(tempfile)
 stderr=$(tempfile)
 $procenv 1>"$stdout" 2>"$stderr"
 rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-
-msg "Ensure all documented options produce output"
-$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
-	cut -d, -f1 | while read arg
-do
-	out=$(tempfile)
-	cmd="$procenv $arg"
-	msg "Running '$cmd"
-	eval '$cmd > "$out"'
-	[ -z "$out" ] && die "No output running '$cmd'"
-	rm "$out"
-done
 
 #---------------------------------------------------------------------
 msg "Ensure --file=<file> works"
@@ -105,5 +93,107 @@ result=$(cat "$stdout")
 	"Expected file $stdout to contain '$str', found '$result'"
 
 rm -f "$stdout" "$stderr" "$out"
+
+#---------------------------------------------------------------------
+arg='--format=text'
+msg "Ensure '$arg' works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv $arg 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+xmlwf "$stdout"
+
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+arg='--format=crumb'
+msg "Ensure '$arg' works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv $arg 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+arg='--format=xml'
+msg "Ensure '$arg' works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv $arg 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+xmlwf "$stdout"
+
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+arg='--format=json'
+msg "Ensure '$arg' works"
+
+stdout=$(tempfile)
+stderr=$(tempfile)
+$procenv $arg 1>"$stdout" 2>"$stderr"
+
+[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+json_pp < "$stdout" >/dev/null
+
+rm -f "$stdout" "$stderr"
+
+#---------------------------------------------------------------------
+msg "Ensure all documented options produce output"
+$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
+	cut -d: -f1 | tr ',' '\n' | egrep -v -- '(-h|--help)' |\
+	while read arg
+do
+	stdout=$(tempfile)
+	stderr=$(tempfile)
+
+	# No format option
+	cmd="$procenv $arg"
+	msg "Running '$cmd'"
+	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+	rm -f "$stdout" "$stderr"
+
+	# Text format
+	cmd="$procenv --format=text $arg"
+	msg "Running '$cmd'"
+	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+	rm -f "$stdout" "$stderr"
+
+	# JSON format
+	cmd="$procenv --format=json $arg"
+	msg "Running '$cmd'"
+	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+	json_pp < "$stdout" >/dev/null
+	rm -f "$stdout" "$stderr"
+
+	# XML format
+	cmd="$procenv --format=xml $arg"
+	msg "Running '$cmd'"
+	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+	xmlwf "$stdout"
+	rm -f "$stdout" "$stderr"
+done
 
 #---------------------------------------------------------------------

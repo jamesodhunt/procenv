@@ -1,3 +1,32 @@
+2013-10-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add ability to disable optimisation for debugging.
+	* man/procenv.1:
+	  - SYNOPSIS: Added '--format=crumb'
+	  - ENVIRONMENT VARIABLES: Added 'PROCENV_FORMAT'.
+	  - NOTES: More details.
+	  - EXAMPLES: Two examples showing how to use '--format'.
+	* src/Makefile.am:
+	  - Remove hard-coded optimisation flag.
+	  - Add pr_list.[ch] sources.
+	* src/procenv.c:
+	  - Added 'crumb' format and supporting functions.
+	  - Removed horrid object-handling hacks since object_open()
+	    and object_close() are now sensible.
+	  - Added calls to object_open() and object_close() in various places
+	    for json array handling.
+	  - usage():
+	    - Fixed '--messages-queues' and '--shared-memory' to add missing
+	      intra-word dash.
+	    - Updated notes.
+	  - show_meta(): Use get_output_format_name() instead of hard-coded
+	    list.
+	  - show_stat(): Removed double header().
+	  - check_env_vars(): Update to handle 'PROCENV_FORMAT'.
+	* src/tests/check_all_args.in:
+	  - Test both short and long options.
+	  - Test 'crumb' format.
+
 2013-10-03  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

@@ -60,7 +60,7 @@ See
 .\"
 .TP
 \fB\-E\fR, \fB\-\-semaphores\fR
-Display semaphore details.
+Display semaphore details (not available on BSD).
 See
 .BR semctl (2) "" .
 .\"
@@ -91,10 +91,13 @@ may be one of:
 .IP \(bu 4
 \fItext\fR (plain ASCII text [default]).
 .IP \(bu 4
+\fIcrumb\fR ("breadcrumbs").
+.IP \(bu 4
 \fIjson\fR (JavaScript Object Notation).
 .IP \(bu 4
 \fIxml\fR (Extensible Markup Language).
 .RE
+The 'crumb' output format displays the data in a flattened
 .PP
 .\"
 .TP
@@ -166,7 +169,7 @@ See
 .\"
 .TP
 \fB\-M\fR, \fB\-\-message\-queues\fR
-Display message queue details.
+Display message queue details (not available on BSD).
 See
 .BR msgctl (2) "" .
 .\"
@@ -265,7 +268,7 @@ as alternate delimiter for text format output (default=\(aq: \(aq).
 .\"
 .TP
 \fB\-S\fR, \fB\-\-shared\-memory\fR
-Display shared memory details.
+Display shared memory details (not available on BSD).
 See
 .BR shmctl (2) "" .
 .PP
@@ -346,6 +349,11 @@ Alternative to \fB\-\-file\fR.
 .PP
 .\"
 .TP
+\fBPROCENV_FORMAT\fR
+Alternative to \fB\-\-format\fR.
+.PP
+.\"
+.TP
 \fBPROCENV_EXEC\fR
 Alternative to \fB\-\-exec\fR.
 .PP
@@ -360,15 +368,31 @@ Alternative to \fB\-\-output\fR.
 Options are considered in order, so \fB\-\-output\fR should
 precede any other option.
 .IP \(bu 4
-Excluding \fB\-\-exec\fR, \fB\-\-file\fR and \fB\-\-output\fR, up to one
-option may be provided.
+If no display option is specified, all details are displayed.
 .IP \(bu
-If no option that restricts output is provided, all available information is displayed.
+Only one display option may be specified.
 .IP \(bu
 Command-line options take priority over environment variables.
 .IP \(bu
+All indent-char values are literal except \(aq\\t\(aq which can be used
+to specify tab-indenting.
+.IP \(bu
+Specifying a visible indent-char is only (vaguely) meaningful for text output.
+.IP \(bu
 If \fB\-\-exec\fR is specified, atleast one non-option argument must also be
 specified.
+.IP \(bu
+Any long option name may be shortened as long as it remains unique.
+.IP \(bu
+The
+.I crumb
+output format is designed for easy parsing: it displays the data in a
+flattened format with each value on a separate line preceeded by all
+appropriate headings which are separated by the current separator.
+.IP \(bu
+The \fB\-\-message\-queues\fR, \fB\-\-semaphores\fR and 
+\fB\-\-shared\-memory\fR options are not available on BSD since although
+the values are queryable, there is no documented method to do so.
 .sp 1
 .\"
 .SH EXAMPLES
@@ -389,6 +413,12 @@ specified.
 \& # write output to first serial tty device and then execute init(8)
 \& # in debug mode to allow early boot environment to be examined.
 \& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
+\&
+\& # Display all data in JSON format
+\& procenv --format=json
+\&
+\& # Display resource limits in easily-parseable format
+\& procenv --format=crumb --limits
 .Ve
 .\"
 .SH LIMITATIONS

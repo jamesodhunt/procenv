@@ -52,6 +52,8 @@
 #include <sys/msg.h>
 #include <regex.h>
 
+#include <pr_list.h>
+
 /* FIXME: Android testing */
 #if 1
 #ifndef PACKAGE_NAME
@@ -77,6 +79,7 @@
 #define PROCENV_FORMAT_VERSION 1
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
+#define PROCENV_DEFAULT_CRUMB_SEPARATOR ':'
 
 #endif /* FIXME */
 
@@ -160,11 +163,13 @@
 { \
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
+	object_open (FALSE); \
 	entry (#cap, "%s", ret < 0 \
 			? NOT_DEFINED_STR \
 			: ret \
 			? YES_STR \
 			: NO_STR); \
+	object_close (FALSE); \
 }
 #else
 #define show_capability(cap)
@@ -235,6 +240,7 @@
 #endif
 
 #define PROCENV_OUTPUT_ENV "PROCENV_OUTPUT"
+#define PROCENV_FORMAT_ENV "PROCENV_FORMAT"
 #define PROCENV_FILE_ENV   "PROCENV_FILE"
 #define PROCENV_EXEC_ENV   "PROCENV_EXEC"
 
@@ -378,7 +384,9 @@
 }
 
 #define show_const(t, flag, constant) \
-    entry (#constant, "%d", !!(t.flag & constant))
+	object_open (FALSE); \
+    	entry (#constant, "%d", !!(t.flag & constant)); \
+	object_close (FALSE)
 
 /**
  * Show a terminal special characters attribute.
@@ -505,6 +513,7 @@ typedef enum {
 
 typedef enum {
 	OUTPUT_FORMAT_TEXT,
+	OUTPUT_FORMAT_CRUMB,
 	OUTPUT_FORMAT_JSON,
 	OUTPUT_FORMAT_XML
 } OutputFormat;
@@ -739,6 +748,7 @@ void appendva (char **str, const char *fmt, va_list ap);
 void check_envvars (void);
 int get_output_value (const char *name);
 int get_output_format (const char *name);
+const char *get_output_format_name (void);
 void show_stat (void);
 void show_locale (void);
 int get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor);
@@ -756,6 +766,10 @@ const char *get_ipv6_scope_name (uint32_t scope);
 char *get_mac_address (const struct ifaddrs *ifaddr);
 int get_mtu (const struct ifaddrs *ifaddr);
 char *decode_if_flags (unsigned int flags);
+void set_breadcrumb (const char *name);
+void add_breadcrumb (const char *name);
+void remove_breadcrumb (void);
+void clear_breadcrumbs (void);
 
 #if defined (PROCENV_LINUX)
 char *decode_extended_if_flags (const char *interface, unsigned short *flags);
@@ -773,10 +787,13 @@ void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
+#endif /* PROCENV_LINUX */
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void show_shared_mem_linux (void);
 void show_semaphores_linux (void);
 void show_msg_queues_linux (void);
-#endif /* PROCENV_LINUX */
+#endif /* PROCENV_LINUX || PROCENV_HURD */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void show_linux_mounts (ShowMountType what);

@@ -1,5 +1,7 @@
-/* TODO:
- * - FreeBSD support!
+/* FIXME:
+ *
+ * - Add env variables for SEPARATOR, INDENT, INDENT_CHAR.
+ *   (update man page and tests for env vars!)
  */
 
 
@@ -157,11 +159,11 @@ ElementType last_element = ELEMENT_TYPE_NONE;
 ElementType current_element = ELEMENT_TYPE_NONE;
 
 /**
- * in_container:
+ * crumb_list:
  *
- * TRUE if currently processing a container, else FALSE.
+ * List used to store breadcrumbs when OUTPUT_FORMAT_CRUMB being used.
  **/
-int in_container = FALSE;
+static PRList *crumb_list = NULL;
 
 struct procenv_user     user;
 struct procenv_misc     misc;
@@ -216,6 +218,7 @@ struct procenv_map output_map[] = {
 
 struct procenv_map output_format_map[] = {
 	{ OUTPUT_FORMAT_TEXT, "text" },
+	{ OUTPUT_FORMAT_CRUMB, "crumb" },
 	{ OUTPUT_FORMAT_JSON, "json" },
 	{ OUTPUT_FORMAT_XML, "xml" },
 
@@ -644,75 +647,83 @@ usage (void)
 	show ("");
 	show ("Options:");
 	show ("");
-	show ("  -a, --meta          : Display meta details.");
-	show ("  -A, --arguments     : Display program arguments.");
-	show ("  -b, --libs          : Display library details.");
-	show ("  -c, --cgroups       : Display cgroup details (Linux only).");
-	show ("  -C, --cpu           : Display CPU and scheduler details.");
-	show ("  -d, --compiler      : Display compiler details.");
-	show ("  -e, --environment   : Display environment variables.");
-	show ("  -E, --semaphores    : Display semaphore details.");
-	show ("  --exec              : Treat non-option arguments as program to execute.");
-	show ("  -f, --fds           : Display file descriptor details.");
-	show ("  --file=<file>       : Send output to <file> (implies --output=file).");
-	show ("  --format=<format>   : Specify output format. <format> can be one of:");
+	show ("  -a, --meta           : Display meta details.");
+	show ("  -A, --arguments      : Display program arguments.");
+	show ("  -b, --libs           : Display library details.");
+	show ("  -c, --cgroups        : Display cgroup details (Linux only).");
+	show ("  -C, --cpu            : Display CPU and scheduler details.");
+	show ("  -d, --compiler       : Display compiler details.");
+	show ("  -e, --environment    : Display environment variables.");
+	show ("  -E, --semaphores     : Display semaphore details.");
+	show ("  --exec               : Treat non-option arguments as program to execute.");
+	show ("  -f, --fds            : Display file descriptor details.");
+	show ("  --file=<file>        : Send output to <file> (implies --output=file).");
+	show ("  --format=<format>    : Specify output format. <format> can be one of:");
 	show ("");
-	show ("                        json     : JSON output.");
-	show ("                        text     : ASCII output (default).");
-	show ("                        xml      : XML output.");
+	show ("                         crumb    : ASCII 'breadcrumbs'");
+	show ("                         json     : JSON output.");
+	show ("                         text     : ASCII output (default).");
+	show ("                         xml      : XML output.");
 	show ("");
-	show ("  -g, --sizeof        : Display sizes of data types in bytes.");
-	show ("  -h, --help          : This help text.");
-	show ("  -i, --misc          : Display miscellaneous details.");
-	show ("  --indent            : Number of indent characters to use for each indent");
-	show ("                        (default=%d).", DEFAULT_INDENT_AMOUNT);
-	show ("  --indent-char=<c>   : Use character '<c>' for indenting");
-	show ("                        (default='%c').", DEFAULT_INDENT_CHAR);
-	show ("  -j, --uname         : Display uname details.");
-	show ("  -k, --clocks        : Display clock details.");
-	show ("  -l, --limits        : Display limits.");
-	show ("  -L, --locale        : Display locale details.");
-	show ("  -m, --mounts        : Display mount details.");
-	show ("  -M, --messagequeues : Display message queue details.");
-	show ("  -n, --confstr       : Display confstr details.");
-	show ("  -N, --network       : Display network details.");
-	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
-	show ("  --output=<type>     : Send output to alternative location.");
-	show ("                        <type> can be one of:");
+	show ("  -g, --sizeof         : Display sizes of data types in bytes.");
+	show ("  -h, --help           : This help text.");
+	show ("  -i, --misc           : Display miscellaneous details.");
+	show ("  --indent             : Number of indent characters to use for each indent");
+	show ("                         (default=%d).", DEFAULT_INDENT_AMOUNT);
+	show ("  --indent-char=<c>    : Use character '<c>' for indenting");
+	show ("                         (default='%c').", DEFAULT_INDENT_CHAR);
+	show ("  -j, --uname          : Display uname details.");
+	show ("  -k, --clocks         : Display clock details.");
+	show ("  -l, --limits         : Display limits.");
+	show ("  -L, --locale         : Display locale details.");
+	show ("  -m, --mounts         : Display mount details.");
+	show ("  -M, --message-queues : Display message queue details.");
+	show ("  -n, --confstr        : Display confstr details.");
+	show ("  -N, --network        : Display network details.");
+	show ("  -o, --oom            : Display out-of-memory manager details (Linux only)");
+	show ("  --output=<type>      : Send output to alternative location.");
+	show ("                         <type> can be one of:");
 	show ("");
-	show ("                        file     : Send output to a file.");
-	show ("                        stderr   : Write to standard error.");
-	show ("                        stdout   : Write to standard output (default).");
-	show ("                        syslog   : Write to the system log file.");
-	show ("                        terminal : Write to terminal.");
+	show ("                         file     : Send output to a file.");
+	show ("                         stderr   : Write to standard error.");
+	show ("                         stdout   : Write to standard output (default).");
+	show ("                         syslog   : Write to the system log file.");
+	show ("                         terminal : Write to terminal.");
 	show ("");
-	show ("  -p, --process       : Display process details.");
-	show ("  -P, --platform      : Display platform details.");
-	show ("  -q, --time          : Display time details.");
-	show ("  -r, --ranges        : Display range of data types.");
-	show ("  --separator=<str>   : Specify string '<str>' as alternate delimiter");
+	show ("  -p, --process        : Display process details.");
+	show ("  -P, --platform       : Display platform details.");
+	show ("  -q, --time           : Display time details.");
+	show ("  -r, --ranges         : Display range of data types.");
+	show ("  --separator=<str>    : Specify string '<str>' as alternate delimiter");
 	show ("                        for text format output (default='%s').",
 			PROCENV_DEFAULT_TEXT_SEPARATOR);
-	show ("  -s, --signals       : Display signal details.");
-	show ("  -S, --sharedmemory  : Display shared memory details.");
-	show ("  -t, --tty           : Display terminal details.");
-	show ("  -T, --threads       : Display thread details.");
-	show ("  -u, --stat          : Display stat details.");
-	show ("  -U, --rusage        : Display rusage details.");
-	show ("  -v, --version       : Display version details.");
-	show ("  -w, --capabilities  : Display capaibility details (Linux only).");
-	show ("  -x, --pathconf      : Display pathconf details.");
-	show ("  -y, --sysconf       : Display sysconf details.");
-	show ("  -z, --timezone      : Display timezone details.");
+	show ("  -s, --signals        : Display signal details.");
+	show ("  -S, --shared-memory  : Display shared memory details.");
+	show ("  -t, --tty            : Display terminal details.");
+	show ("  -T, --threads        : Display thread details.");
+	show ("  -u, --stat           : Display stat details.");
+	show ("  -U, --rusage         : Display rusage details.");
+	show ("  -v, --version        : Display version details.");
+	show ("  -w, --capabilities   : Display capaibility details (Linux only).");
+	show ("  -x, --pathconf       : Display pathconf details.");
+	show ("  -y, --sysconf        : Display sysconf details.");
+	show ("  -z, --timezone       : Display timezone details.");
 	show ("");
 	show ("Notes:");
 	show ("");
+	show ("  - Options are considered in order, so '--output' should");
+       	show ("    precede any other option.");
 	show ("  - If no display option is specified, all details are displayed.");
 	show ("  - Only one display option may be specified.");
 	show ("  - All indent-char values are literal except '\\t' which can be");
 	show ("    used to specify tab-indenting.");
 	show ("  - Specifying a visible indent-char is only (vaguely) meaningful");
 	show ("    for text output.");
+	show ("  - Any long option name may be shortened as long as it remains unique.");
+	show ("  - The 'crumb' output format is designed for easy parsing: it displays");
+	show ("    the data in a flattened format with each value on a separate line");
+	show ("    preceeded by all appropriate headings which are separated by the");
+	show ("    current separator.");
 	show ("");
 }
 
@@ -816,9 +827,6 @@ entry (const char *name, const char *fmt, ...)
 
 	common_assert ();
 
-	if (output_format == OUTPUT_FORMAT_JSON && in_container)
-		object_open (FALSE);
-
 	change_element (ELEMENT_TYPE_ENTRY);
 
 	encoded_name = strdup (name);
@@ -835,6 +843,22 @@ entry (const char *name, const char *fmt, ...)
 		die ("failed to encode value");
 
 	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB:
+		assert (crumb_list);
+
+		/* Add the bread crumbs */
+		PR_LIST_FOREACH (crumb_list, iter) {
+			char *crumb = (char *)iter->data;
+			appendf (&doc, "%s%c",
+					crumb,
+					PROCENV_DEFAULT_CRUMB_SEPARATOR);
+		}
+		appendf (&doc, "%s%c%s\n",
+				encoded_name,
+				PROCENV_DEFAULT_CRUMB_SEPARATOR,
+				encoded_value);
+		break;
 
 	case OUTPUT_FORMAT_TEXT:
 		appendf (&doc, "%s%s%s",
@@ -861,9 +885,6 @@ entry (const char *name, const char *fmt, ...)
 
 	free (encoded_name);
 	free (encoded_value);
-
-	if (output_format == OUTPUT_FORMAT_JSON && in_container)
-		object_close (FALSE);
 }
 
 /**
@@ -1010,6 +1031,7 @@ master_header (char **doc)
 
 	switch (output_format) {
 
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
 	case OUTPUT_FORMAT_TEXT:
 		/* NOP */
 		break;
@@ -1051,6 +1073,7 @@ master_footer (char **doc)
 
     switch (output_format) {
 
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
         case OUTPUT_FORMAT_TEXT:
             /* Tweak */
 	    append (doc, "\n");
@@ -1083,6 +1106,8 @@ master_footer (char **doc)
  * opening of the object will be invisible to the state machine, but
  * will still produce the required output.
  *
+ * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
+ *
  * Handle opening an object.
  **/
 void
@@ -1090,13 +1115,27 @@ object_open (int retain)
 {
 	common_assert ();
 
-	if (retain)
-		format_element ();
-	else
-		change_element (ELEMENT_TYPE_OBJECT_OPEN);
+	if (output_format == OUTPUT_FORMAT_JSON) {
+		if (retain) {
+			format_element ();
+		} else {
+			change_element (ELEMENT_TYPE_OBJECT_OPEN);
+		}
+	} else {
+		/* Objects are only required for handling JSON.  In
+		 * fact, they cause problems for other output formats
+		 * that do not have visible "objects" in that they cause
+		 * the state table to lose track of the previous element
+		 * since it is actually the previous-previous element
+		 * (as the pointless object is the previous element).
+		 * 
+		 * As such, ignore them.
+		 */
+	}
 
 	switch (output_format) {
 
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
 	case OUTPUT_FORMAT_TEXT:
 		/* NOP */
 		break;
@@ -1122,6 +1161,8 @@ object_open (int retain)
  * object closure will be invisible to the state machine, but will still
  * produce @retain: if TRUE, do not disrupt the current element.
  *
+ * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
+ *
  * Handle closing an object.
  **/
 void
@@ -1129,13 +1170,27 @@ object_close (int retain)
 {
 	common_assert ();
 
-	if (retain)
-		format_element ();
-	else
-		change_element (ELEMENT_TYPE_OBJECT_CLOSE);
+	if (output_format == OUTPUT_FORMAT_JSON) {
+		if (retain) {
+			format_element ();
+		} else {
+			change_element (ELEMENT_TYPE_OBJECT_CLOSE);
+		}
+	} else {
+		/* Objects are only required for handling JSON.  In
+		 * fact, they cause problems for other output formats
+		 * that do not have visible "objects" in that they cause
+		 * the state table to lose track of the previous element
+		 * since it is actually the previous-previous element
+		 * (as the pointless object is the previous element).
+		 * 
+		 * As such, ignore them.
+		 */
+	}
 
 	switch (output_format) {
 
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
 	case OUTPUT_FORMAT_TEXT:
 		/* NOP */
 		break;
@@ -1175,6 +1230,10 @@ section_open (const char *name)
 		appendf (&doc, "%s:", name);
 		break;
 
+	case OUTPUT_FORMAT_CRUMB:
+		add_breadcrumb (name);
+		break;
+
 	case OUTPUT_FORMAT_JSON:
 		appendf (&doc, "\"%s\" : {", name);
 		break;
@@ -1202,6 +1261,10 @@ section_close (void)
 		/* NOP */
 		break;
 
+	case OUTPUT_FORMAT_CRUMB:
+		remove_breadcrumb ();
+		break;
+		
 	case OUTPUT_FORMAT_JSON:
 		append (&doc, "}");
 		break;
@@ -1239,6 +1302,10 @@ container_open (const char *name)
 		appendf (&doc, "%s:", name);
 		break;
 
+	case OUTPUT_FORMAT_CRUMB:
+		add_breadcrumb (name);
+		break;
+
 	case OUTPUT_FORMAT_JSON:
 		appendf (&doc, "\"%s\" : [", name);
 		break;
@@ -1269,6 +1336,10 @@ container_close (void)
 
 	case OUTPUT_FORMAT_TEXT:
 		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		remove_breadcrumb ();
 		break;
 
 	case OUTPUT_FORMAT_JSON:
@@ -1362,7 +1433,6 @@ show_signals (void)
 	int               ignored;
 	sigset_t          old_sigset;
 	struct sigaction  act;
-	int               container_disabled = FALSE;
 
 	container_open ("signals");
 
@@ -1399,30 +1469,19 @@ show_signals (void)
 		signal_name = get_signal_name (i);
 		signal_desc = strsignal (i);
 
-		if (output_format == OUTPUT_FORMAT_JSON &&
-				in_container == TRUE) {
-			/* Nasty hack to produce valid JSON */
-			container_disabled = TRUE;
-			in_container = FALSE;
-			object_open (FALSE);
-		}
+		object_open (FALSE);
 
 		section_open (signal_name);
 
 		entry ("number", "%d", i);
-		entry ("description", "'%s'", signal_desc ? signal_desc : UNKNOWN_STR);
+		entry ("description", "'%s'",
+				signal_desc ? signal_desc : UNKNOWN_STR);
 		entry ("blocked", "%s", blocked ? YES_STR : NO_STR);
 		entry ("ignored", "%s", ignored ? YES_STR : NO_STR);
 
 		section_close ();
 
-		if (output_format == OUTPUT_FORMAT_JSON &&
-				container_disabled == TRUE) {
-			object_close (FALSE);
-
-			/* re-enable */
-			in_container = TRUE;
-		}
+		object_close (FALSE);
 	}
 
     container_close ();
@@ -1832,6 +1891,8 @@ show_fds_generic (void)
 #endif
 		appendf (&num, "%d", fd);
 
+		object_open (FALSE);
+
 		section_open (num);
 
 		entry ("terminal", "%s", is_tty ? YES_STR : NO_STR);
@@ -1839,6 +1900,8 @@ show_fds_generic (void)
 		entry ("device", "%s", name ? name : NA_STR);
 
 		section_close ();
+
+		object_close (FALSE);
 
 		free (num);
 	}
@@ -2175,6 +2238,11 @@ cleanup (void)
 	if (output == OUTPUT_SYSLOG)
 		closelog ();
 
+	if (output_format == OUTPUT_FORMAT_CRUMB) {
+		clear_breadcrumbs ();
+		free (crumb_list);
+	}
+
 	free (doc);
 }
 
@@ -2205,12 +2273,7 @@ show_meta (void)
 			user.euid ? _(NON_STR) "-" : "",
 			PRIVILEGED_STR);
 
-	entry ("format-type", "%s",
-			output_format == OUTPUT_FORMAT_TEXT ? "text" :
-			output_format == OUTPUT_FORMAT_JSON ? "json" : 
-			output_format == OUTPUT_FORMAT_XML  ? "xml"  :
-			UNKNOWN_STR);
-
+	entry ("format-type", "%s", get_output_format_name ());
 	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
 
 	footer ();
@@ -2232,7 +2295,12 @@ show_arguments (void)
 
 		appendf (&buffer, "argv[%d]", i);
 
+		object_open (FALSE);
+
 		entry (buffer, "%s", argvp[i]);
+
+		object_close (FALSE);
+
 		free (buffer);
 	}
 
@@ -2255,8 +2323,6 @@ show_stat (void)
 
 	assert (program_name);
 	assert (misc.cwd);
-
-	header ("stat");
 
 	tmp = get_path (program_name);
 	assert (tmp);
@@ -2622,7 +2688,9 @@ show_linux_mounts (ShowMountType what)
 	unsigned int     major = 0;
 	unsigned int     minor = 0;
 	int              have_stats;
+#if defined (PROCENV_LINUX)
 	char             canonical[PATH_MAX];
+#endif
 
 	common_assert ();
 
@@ -2662,9 +2730,10 @@ show_linux_mounts (ShowMountType what)
 
 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
 
+#if defined (PROCENV_LINUX)
 			get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
-
 			entry ("canonical", "'%s'", canonical);
+#endif
 
 			entry ("type", "'%s'", mnt->mnt_type);
 			entry ("options", "'%s'", mnt->mnt_opts);
@@ -4453,12 +4522,12 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 
 	object_open (FALSE);
 
-	container_open (name);
+	section_open (name);
 
 	entry ("path", "%s", path);
 	entry ("address", "%p", (void *)info->dlpi_addr);
 
-	container_close ();
+	section_close ();
 
 	object_close (FALSE);
 
@@ -5111,10 +5180,14 @@ show_linux_cgroups (void)
 		/* FIXME: should sort by hierarchy */
 		container_open (hierarchy);
 
+		object_open (FALSE);
+
 		/* FIXME: should split this on comma */
 		entry ("subsystems", "%s", subsystems);
 
 		entry ("path", "%s", path);
+
+		object_close (FALSE);
 
 		container_close ();
 
@@ -5139,7 +5212,6 @@ show_fds_linux (void)
 	char            path[MAXPATHLEN];
 	char            link[MAXPATHLEN];
 	ssize_t         len;
-	int             container_disabled = FALSE;
 
 	container_open ("file descriptors");
 
@@ -5177,13 +5249,7 @@ show_fds_linux (void)
 				continue;
 		}
 
-		if (output_format == OUTPUT_FORMAT_JSON &&
-				in_container == TRUE) {
-			/* Nasty hack to produce valid JSON */
-			container_disabled = TRUE;
-			in_container = FALSE;
-			object_open (FALSE);
-		}
+		object_open (FALSE);
 
 		section_open (num);
 
@@ -5193,13 +5259,7 @@ show_fds_linux (void)
 
 		section_close ();
 
-		if (output_format == OUTPUT_FORMAT_JSON &&
-				container_disabled == TRUE) {
-			object_close (FALSE);
-
-			/* re-enable */
-			in_container = TRUE;
-		}
+		object_close (FALSE);
 
 		free (num);
 	}
@@ -5432,6 +5492,22 @@ get_output_format (const char *name)
 	return -1;
 }
 
+const char *
+get_output_format_name (void)
+{
+	struct procenv_map *p;
+
+	for (p = output_format_map; p && p->name; p++) {
+		if (output_format == p->num)
+			return p->name;
+	}
+
+	bug ("invalid output format: %d", output_format);
+
+	/* compiler appeasement */
+	return NULL;
+}
+
 void
 check_envvars (void)
 {
@@ -5451,6 +5527,12 @@ check_envvars (void)
 		output_file = e;
 		output = OUTPUT_FILE;
 	}
+
+	e = getenv (PROCENV_FORMAT_ENV);
+	if (e && *e) {
+		output_format = get_output_format (e);
+	}
+
 	e = getenv (PROCENV_EXEC_ENV);
 	if (e && *e) {
 		char *tmp;
@@ -6090,6 +6172,7 @@ encode_string (char **str)
 
 	switch (output_format) {
 
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
 	case OUTPUT_FORMAT_TEXT:
 		/* Nothing to do */
 		ret = 0;
@@ -6127,6 +6210,7 @@ translate (const char *str)
 
 	assert (str);
 	assert (output_format != OUTPUT_FORMAT_TEXT);
+	assert (output_format != OUTPUT_FORMAT_CRUMB);
 
 	len = 1 + strlen (str);
 	start = str;
@@ -6213,11 +6297,6 @@ change_element (ElementType new)
 
 	current_element = new;
 
-	if (current_element == ELEMENT_TYPE_CONTAINER_OPEN)
-		in_container = TRUE;
-	if (current_element == ELEMENT_TYPE_CONTAINER_CLOSE)
-		in_container = FALSE;
-
 	format_element ();
 }
 
@@ -6228,6 +6307,10 @@ format_element (void)
 
 	case OUTPUT_FORMAT_TEXT:
 		format_text_element ();
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		/* NOP */
 		break;
 
 	case OUTPUT_FORMAT_JSON:
@@ -6255,7 +6338,6 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
 				append (&doc, "\n");
 				add_indent (&doc);
@@ -6280,7 +6362,6 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
 				append (&doc, "\n");
 				inc_indent ();
@@ -6303,7 +6384,6 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
 				append (&doc, "\n");
 				dec_indent ();
 				add_indent (&doc);
@@ -6329,7 +6409,6 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN:
 				append (&doc, "\n");
 				inc_indent ();
 				add_indent (&doc);
@@ -6363,49 +6442,6 @@ format_text_element (void)
 				add_indent (&doc);
 				break;
 
-				/* Format, but don't adjust indent */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN:
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_OPEN:
-				/* NOP */
-				break;
-
 			default:
 				assert_not_reached ();
 				break;
@@ -6421,9 +6457,11 @@ format_text_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+				add_indent (&doc);
+				break;
+
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				add_indent (&doc);
 				break;
 
 			default:
@@ -6537,15 +6575,10 @@ format_json_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN:
 				append (&doc, "\n");
 				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-				append (&doc, "\n");
-				dec_indent ();
 				add_indent (&doc);
 				break;
 
@@ -6674,6 +6707,7 @@ format_xml_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
 				append (&doc, "\n");
 				add_indent (&doc);
@@ -6728,6 +6762,11 @@ format_xml_element (void)
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
 				append (&doc, "\n");
 				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
 				add_indent (&doc);
 				break;
 
@@ -6832,9 +6871,14 @@ format_xml_element (void)
 		{
 			switch (current_element) {
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_SECTION_CLOSE:
 				/* NOP */
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+			case ELEMENT_TYPE_ENTRY:
+				append (&doc, "\n");
+				dec_indent ();
 				break;
 
 			default:
@@ -6999,9 +7043,11 @@ show_version (void)
 void
 show_shared_mem (void)
 {
-#ifdef PROCENV_LINUX
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_shared_mem_linux ();
-#else
+#endif
+
+#if defined (PROCENV_BSD)
 	show_shared_mem_bsd ();
 #endif
 }
@@ -7009,9 +7055,11 @@ show_shared_mem (void)
 void
 show_semaphores (void)
 {
-#ifdef PROCENV_LINUX
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_semaphores_linux ();
-#else
+#endif
+
+#if defined (PROCENV_BSD)
 	show_semaphores_bsd ();
 #endif
 }
@@ -7019,15 +7067,16 @@ show_semaphores (void)
 void
 show_msg_queues (void)
 {
-#ifdef PROCENV_LINUX
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_msg_queues_linux ();
-#else
+#endif
+#if defined (PROCENV_BSD)
 	show_msg_queues_bsd ();
 #endif
 }
 
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void
 show_shared_mem_linux (void)
 {
@@ -7065,6 +7114,8 @@ show_shared_mem_linux (void)
 
 	container_open ("segments");
 
+	object_open (FALSE);
+
 	for (i = 0; i <= max; i++) {
 		char *id_str = NULL;
 
@@ -7096,6 +7147,8 @@ show_shared_mem_linux (void)
 
 		container_open (id_str);
 		free (id_str);
+
+		object_open (FALSE);
 
 		/* pad out to max pointer size represented in hex.
 		 */
@@ -7139,6 +7192,8 @@ show_shared_mem_linux (void)
 					: destroy > 0 ? YES_STR
 					: NA_STR);
 
+		object_close (FALSE);
+
 		container_close ();
 
 		free (modestr);
@@ -7147,6 +7202,8 @@ show_shared_mem_linux (void)
 		if (lpid)
 			free (lpid);
 	}
+
+	object_close (FALSE);
 
 	container_close ();
 
@@ -7191,6 +7248,8 @@ show_semaphores_linux (void)
 
 	container_open ("set");
 
+	object_open (FALSE);
+
 	for (i = 0; i <= max; i++) {
 		char *id_str = NULL;
 
@@ -7222,6 +7281,8 @@ show_semaphores_linux (void)
 		container_open (id_str);
 		free (id_str);
 
+		object_open (FALSE);
+
 		/* pad out to max pointer size represented in hex.
 		 */
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
@@ -7249,8 +7310,12 @@ show_semaphores_linux (void)
 		entry ("last change (ctime)", "%lu (%s)", semid_ds.sem_ctime, formatted_ctime);
 		section_close ();
 
+		object_close (FALSE);
+
 		container_close ();
 	}
+
+	object_close (FALSE);
 
 	container_close ();
 
@@ -7295,6 +7360,8 @@ show_msg_queues_linux (void)
 
 	container_open ("sets");
 
+	object_open (FALSE);
+
 	for (i = 0; i <= max; i++) {
 		char *id_str = NULL;
 
@@ -7336,6 +7403,8 @@ show_msg_queues_linux (void)
 		container_open (id_str);
 		free (id_str);
 
+		object_open (FALSE);
+
 		/* pad out to max pointer size represented in hex */
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
 		entry ("sequence", "%u", perm->__seq);
@@ -7372,6 +7441,8 @@ show_msg_queues_linux (void)
 		entry ("last msgrcv pid", "%d (%s)", msqid_ds.msg_lrpid,
 				lrpid ? lrpid : UNKNOWN_STR);
 
+		object_close (FALSE);
+
 		container_close ();
 
 		free (modestr);
@@ -7381,12 +7452,14 @@ show_msg_queues_linux (void)
 			free (lrpid);
 	}
 
+	object_close (FALSE);
+
 	container_close ();
 
 out:
 	footer ();
 }
-#endif /* PROCENV_LINUX */
+#endif /* PROCENV_LINUX || PROCENV_HURD */
 
 void
 format_time (const time_t *t, char *buffer, size_t len)
@@ -7483,4 +7556,41 @@ out:
 		fclose (f);
 
 	return name;
+}
+
+
+void
+add_breadcrumb (const char *name)
+{
+	assert (name);
+
+	if (! crumb_list)
+		crumb_list = pr_list_new (NULL);
+
+	assert (crumb_list);
+
+	pr_list_prepend_str (crumb_list, name);
+}
+
+void
+remove_breadcrumb (void)
+{
+	PRList  *entry;
+
+	assert (crumb_list);
+
+	entry = pr_list_remove (crumb_list->prev);
+	assert (entry);
+
+	free ((char *)entry->data);
+	free (entry);
+}
+
+void
+clear_breadcrumbs (void)
+{
+	assert (crumb_list);
+
+	while (crumb_list->prev != crumb_list)
+		remove_breadcrumb ();
 }
