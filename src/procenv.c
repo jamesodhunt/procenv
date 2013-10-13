@@ -2086,11 +2086,6 @@ appendf (char **str, const char *fmt, ...)
     assert (str);
     assert (fmt);
 
-    if (! *str)
-	    *str = strdup ("");
-
-    assert (*str);
-
     va_start (ap, fmt);
 
     if (vasprintf (&new, fmt, ap) < 0) {
@@ -2100,8 +2095,12 @@ appendf (char **str, const char *fmt, ...)
 
     va_end (ap);
 
-    append (str, new);
-    free (new);
+    if (*str) {
+	    append (str, new);
+	    free (new);
+    } else {
+	    *str = new;
+    }
 }
 
 /* append @fmt and args to @str */
@@ -2113,18 +2112,17 @@ appendva (char **str, const char *fmt, va_list ap)
     assert (str);
     assert (fmt);
 
-    if (! *str)
-	    *str = strdup ("");
-
-    assert (*str);
-
     if (vasprintf (&new, fmt, ap) < 0) {
         perror ("vasprintf");
         exit (EXIT_FAILURE);
     }
 
-    append (str, new);
-    free (new);
+    if (*str) {
+	    append (str, new);
+	    free (new);
+    } else {
+	    *str = new;
+    }
 }
 
 void
@@ -5241,17 +5239,22 @@ show_fds_linux (void)
 
 		if (link[0] == '/') {
 
-			if (stat (link, &st) < 0)
+			if (stat (link, &st) < 0) {
+				free (num);
 				continue;
+			}
 
 			/* Ignore the last (invalid) entry */
-			if (S_ISDIR (st.st_mode))
+			if (S_ISDIR (st.st_mode)) {
+				free (num);
 				continue;
+			}
 		}
 
 		object_open (FALSE);
 
 		section_open (num);
+		free (num);
 
 		entry ("terminal", "%s", isatty (fd) ? YES_STR : NO_STR);
 		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
@@ -5260,8 +5263,6 @@ show_fds_linux (void)
 		section_close ();
 
 		object_close (FALSE);
-
-		free (num);
 	}
 
 	closedir (dir);
@@ -7293,6 +7294,7 @@ show_semaphores_linux (void)
 		section_open ("permissions");
 		entry ("octal", "%4.4o", perm->mode);
 		entry ("symbolic", "%s", modestr);
+		free (modestr);
 		section_close ();
 
 		section_open ("creator");
