@@ -3,13 +3,6 @@
 # run procenv with every argument
 #---------------------------------------------------------------------
 
-# FIXME: needs build-dep on expat
-# FIXME: needs build-dep on perl
-#
-# FIXME: test for --indent=
-# FIXME: test for --indent-char=
-# FIXME: test for --separator=
-
 die ()
 {
 	local msg="$*"

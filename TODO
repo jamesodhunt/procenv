@@ -1,6 +1,11 @@
 # TODO
 
+- Allow PROCENV_DEFAULT_CRUMB_SEPARATOR to be changed via cmdline.
 - Non-root queryable hdd attributes?
+- Tests:
+  - --indent=
+  - --indent-char=
+  - --separator=
 - Create a versioned XML schema.
 - Restructure code into separate files.
 - Use weak symbols/VPATH to avoid ifdefs!

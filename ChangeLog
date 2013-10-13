@@ -1,10 +1,22 @@
 2013-10-13  James Hunt  <james.hunt@ubuntu.com>
 
+	* TODO: Update.
+	* man/procenv.1: ENVIRONMENT VARIABLES:
+	  - Added PROCENV_INDENT, PROCENV_INDENT_CHAR and PROCENV_SEPARATOR.
+	* src/pr_list.c:
+	  - Fix issue in pr_list_append() and pr_list_prepend().
+	  - Added PR_LIST_FOREACH_STR() and PR_LIST_FOREACH_REV_STR() from
+	    pr_list.h.
+	  - pr_list_visitor_str(): New.
 	* src/procenv.c:
 	  - appendf(): Simplified and plugged a memory leak.
 	  - appendva(): Simplified and plugged a memory leak.
 	  - show_fds_linux(): Fixed memory leak.
 	  - show_semaphores_linux(): Fixed memory leak.
+	  - Comments.
+	  - cleanup(): Check crumb_list before clearing it.
+	  - check_envvars(): Added PROCENV_INDENT_ENV, PROCENV_INDENT_CHAR_ENV and
+	    PROCENV_SEPARATOR_ENV.
 
 2013-10-12  James Hunt  <james.hunt@ubuntu.com>
 

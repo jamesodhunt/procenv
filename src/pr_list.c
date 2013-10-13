@@ -2,6 +2,15 @@
 #include <string.h>
 #include <assert.h>
 
+/**
+ * pr_list_new:
+ *
+ * @data: data pointer to store in node.
+ *
+ * Create a new list entry.
+ *
+ * Returns: New PRList or NULL on error.
+ **/
 PRList *
 pr_list_new (void *data)
 {
@@ -19,6 +28,16 @@ pr_list_new (void *data)
 	return list;
 }
 
+/**
+ * pr_list_append:
+ *
+ * @list: list to operate on,
+ * @entry: new PRList to add.
+ *
+ * Add @entry after @list entry.
+ *
+ * Returns: Newly-added entry.
+ **/
 PRList *
 pr_list_append (PRList *list, PRList *entry)
 {
@@ -28,11 +47,23 @@ pr_list_append (PRList *list, PRList *entry)
 	entry->next = list->next;
 	entry->prev = list;
 
-	list->next->prev = list->next = entry;
+	if (list->next != list)
+		list->next->prev = entry;
+	list->next = entry;
 
 	return entry;
 }
 
+/**
+ * pr_list_prepend:
+ *
+ * @list: list to operate on,
+ * @entry: new PRList to add.
+ *
+ * Add @entry before @list entry.
+ *
+ * Returns: Newly-added entry.
+ **/
 PRList *
 pr_list_prepend (PRList *list, PRList *entry)
 {
@@ -42,12 +73,24 @@ pr_list_prepend (PRList *list, PRList *entry)
 	entry->next = list;
 	entry->prev = list->prev;
 
-	list->prev->next = list->prev = entry;
+	if (list->prev != list)
+		list->prev->next = entry;
+	list->prev = entry;
 
 	return entry;
 }
 
-/* Add @str to new @entry in @list. Returns @entry */
+/**
+ *
+ * pr_list_prepend_str:
+ *
+ * @list: list to operate on,
+ * @str: string value to add to new entry.
+ *
+ * Create entry containing @str and add it before @list.
+ *
+ * Returns: New entry.
+ **/
 PRList *
 pr_list_prepend_str (PRList *list, const char *str)
 {
@@ -68,6 +111,15 @@ pr_list_prepend_str (PRList *list, const char *str)
 	return entry;
 }
 
+/**
+ * pr_list_remove:
+ *
+ * @list: list to operate on.
+ *
+ * Remove @entry from its containing list.
+ *
+ * Returns: Removed entry.
+ **/
 PRList *
 pr_list_remove (PRList *entry)
 {
@@ -82,15 +134,14 @@ pr_list_remove (PRList *entry)
 	return entry;
 }
 
-#define PR_LIST_FOREACH_STR(list) \
-	pr_list_foreach_visit (list, pr_list_visitor_str)
-
-#define PR_LIST_FOREACH_REV_STR(list) \
-	pr_list_foreach_rev_visit (list, pr_list_visitor_str)
-
-/*
- * Visit each node in @list and pass it to @visitor.
- */
+/**
+ * pr_list_foreach_visit:
+ *
+ * @list: list to operate on,
+ * @visitor: function to run on every element on @list.
+ *
+ * Visit every entry in @list passing them to @visitor.
+ **/
 void
 pr_list_foreach_visit (PRList *list, PRListVisitor visitor)
 {
@@ -108,6 +159,14 @@ pr_list_foreach_visit (PRList *list, PRListVisitor visitor)
 	} while (p != list);
 }
 
+/**
+ * pr_list_foreach_rev_visit:
+ *
+ * @list: list to operate on,
+ * @visitor: function to run on every element on @list.
+ *
+ * Visit every entry in @list in reverse passing them to @visitor.
+ **/
 void
 pr_list_foreach_rev_visit (PRList *list, PRListVisitor visitor)
 {
@@ -123,4 +182,25 @@ pr_list_foreach_rev_visit (PRList *list, PRListVisitor visitor)
 
 		p = p->prev;
 	} while (p != list->prev);
+}
+
+/**
+ * pr_list_visitor_str:
+ *
+ * @entry: list entry to operate on.
+ *
+ * Display data in @entry as a string.
+ **/
+void
+pr_list_visitor_str (PRList *entry)
+{
+    assert (entry);
+
+    printf ("entry: addr=%p, prev=%p, next=%p, data=%p ('%s')\n",
+		    (void *)entry,
+		    (void *)entry->prev,
+		    (void *)entry->next,
+		    (void *)entry->data,
+		    entry->data ? (char *)entry->data : "");
+    fflush (NULL);
 }

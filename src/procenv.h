@@ -68,6 +68,8 @@
 #define PACKAGE_STRING PACKAGE_NAME
 #endif
 
+#endif /* FIXME */
+
 /**
  * PROCENV_FORMAT_VERSION:
  *
@@ -79,9 +81,9 @@
 #define PROCENV_FORMAT_VERSION 1
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
-#define PROCENV_DEFAULT_CRUMB_SEPARATOR ':'
 
-#endif /* FIXME */
+/* FIXME: make cmdline configurable */
+#define PROCENV_DEFAULT_CRUMB_SEPARATOR ':'
 
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
@@ -239,10 +241,14 @@
 #define PATH_MAX 4096
 #endif
 
-#define PROCENV_OUTPUT_ENV "PROCENV_OUTPUT"
-#define PROCENV_FORMAT_ENV "PROCENV_FORMAT"
-#define PROCENV_FILE_ENV   "PROCENV_FILE"
-#define PROCENV_EXEC_ENV   "PROCENV_EXEC"
+/* Environment Variables */
+#define PROCENV_OUTPUT_ENV        "PROCENV_OUTPUT"
+#define PROCENV_FORMAT_ENV        "PROCENV_FORMAT"
+#define PROCENV_FILE_ENV          "PROCENV_FILE"
+#define PROCENV_EXEC_ENV          "PROCENV_EXEC"
+#define PROCENV_INDENT_ENV        "PROCENV_INDENT"
+#define PROCENV_INDENT_CHAR_ENV   "PROCENV_INDENT_CHAR"
+#define PROCENV_SEPARATOR_ENV     "PROCENV_SEPARATOR"
 
 #define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024

@@ -1,21 +1,3 @@
-/* FIXME:
- *
- * - Add env variables for SEPARATOR, INDENT, INDENT_CHAR.
- *   (update man page and tests for env vars!)
- */
-
-
-/* FIXME: freebsd ipcs /data/svn/freebsd/head/usr.bin/ipcs/ipcs.c
-
-kd = kvm_openfiles(namelist, core, NULL, O_RDONLY, kvmoferr);
-
-kvm_nlist(kd, symbols)
-kget(X_MSGINFO, &msginfo, sizeof(msginfo));
-kget(X_SHMINFO, &shminfo, sizeof(shminfo));
-struct shmid_kernel *kxshmids;
-kget(X_SHMSEGS, kxshmids, kxshmids_len);
-*/
-
 /*--------------------------------------------------------------------
  * Description: Simple program to display information on process
  *              environment.
@@ -110,7 +92,7 @@ int selected_option = 0;
 /**
  * indent:
  *
- * Number of spaces to indent output.
+ * Current output indent value.
  **/
 int indent = 0;
 
@@ -2236,7 +2218,7 @@ cleanup (void)
 	if (output == OUTPUT_SYSLOG)
 		closelog ();
 
-	if (output_format == OUTPUT_FORMAT_CRUMB) {
+	if (output_format == OUTPUT_FORMAT_CRUMB && crumb_list) {
 		clear_breadcrumbs ();
 		free (crumb_list);
 	}
@@ -5532,6 +5514,25 @@ check_envvars (void)
 	e = getenv (PROCENV_FORMAT_ENV);
 	if (e && *e) {
 		output_format = get_output_format (e);
+	}
+
+	e = getenv (PROCENV_INDENT_ENV);
+	if (e && *e) {
+		indent_amount = atoi (e);
+	}
+
+	e = getenv (PROCENV_INDENT_CHAR_ENV);
+	if (e && *e) {
+		/* Special character handling */
+		if (! strcmp (e, "\\t"))
+			indent_char = '\t';
+		else
+			indent_char = *e;
+	}
+
+	e = getenv (PROCENV_SEPARATOR_ENV);
+	if (e && *e) {
+		text_separator = e;
 	}
 
 	e = getenv (PROCENV_EXEC_ENV);

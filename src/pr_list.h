@@ -22,10 +22,18 @@ PRList *pr_list_remove (PRList *entry);
 void pr_list_foreach_visit (PRList *list, PRListVisitor visitor);
 void pr_list_foreach_rev_visit (PRList *list, PRListVisitor visitor);
 
+void pr_list_visitor_str (PRList *entry);
+
 #define PR_LIST_FOREACH(list, iter) \
 	for (PRList *iter = (list)->next; iter != (list); iter = iter->next)
 
 #define PR_LIST_FOREACH_REV(list, iter) \
 	for (PRList *iter = (list)->prev; iter != (list); iter = iter->prev)
+
+#define PR_LIST_FOREACH_STR(list) \
+	pr_list_foreach_visit (list, pr_list_visitor_str)
+
+#define PR_LIST_FOREACH_REV_STR(list) \
+	pr_list_foreach_rev_visit (list, pr_list_visitor_str)
 
 #endif /* _PROCENV_LIST */
