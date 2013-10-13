@@ -1,3 +1,11 @@
+/* FIXME:
+ *
+ * - fix crumb output!!
+ *
+ * ;src/procenv --format=crumb --libs
+ * ;src/procenv --format=crumb --misc
+ */
+
 /*--------------------------------------------------------------------
  * Description: Simple program to display information on process
  *              environment.
@@ -5084,7 +5092,7 @@ show_linux_security_module (void)
 	if (is_selinux_enabled ())
 		lsm = "SELinux";
 #endif
-	entry ("Linux Security Module", "%s", lsm);
+	entry ("name", "%s", lsm);
 }
 
 void
@@ -5105,11 +5113,11 @@ show_linux_security_module_context (void)
 #endif
 	if (context) {
 		if (mode)
-			entry ("LSM context", "%s (%s)", context, mode);
+			entry ("context", "%s (%s)", context, mode);
 		else
-			entry ("LSM context", "%s", context);
+			entry ("context", "%s", context);
 	} else
-		entry ("LSM context", "%s", UNKNOWN_STR);
+		entry ("context", "%s", UNKNOWN_STR);
 
 	free (context);
 	free (mode);
