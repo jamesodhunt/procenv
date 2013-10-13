@@ -1,9 +1,10 @@
 2013-10-13  James Hunt  <james.hunt@ubuntu.com>
 
-	* appendf(): Simplified and plugged a memory leak.
-	* appendva(): Simplified and plugged a memory leak.
-	* show_fds_linux(): Fixed memory leak.
-	* show_semaphores_linux(): Fixed memory leak.
+	* src/procenv.c:
+	  - appendf(): Simplified and plugged a memory leak.
+	  - appendva(): Simplified and plugged a memory leak.
+	  - show_fds_linux(): Fixed memory leak.
+	  - show_semaphores_linux(): Fixed memory leak.
 
 2013-10-12  James Hunt  <james.hunt@ubuntu.com>
 
