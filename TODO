@@ -1,10 +1,12 @@
 # TODO
 
-- Allow PROCENV_DEFAULT_CRUMB_SEPARATOR to be changed via cmdline.
+- Introduce "value()" that can take a bare value. This will allow for
+  example mount options to be displayed in a container.
 - Non-root queryable hdd attributes?
 - Tests:
   - --indent=
   - --indent-char=
+  - --crumb-separator=
   - --separator=
 - Create a versioned XML schema.
 - Restructure code into separate files.

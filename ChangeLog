@@ -1,8 +1,20 @@
 2013-10-14  James Hunt  <james.hunt@ubuntu.com>
 
-	* src/procenv.c: Remove "(linux)" suffix from capabilities, cgroups
-	  and oom output: they are not displayed on other platforms, so the
-	  information is redundant.
+	* configure.ac: Add '--debug' option.
+	* man/procenv.1:
+	  - General tidy-up.
+	  - OPTIONS: Added '--crumb-separator'.
+	  - EXAMPLES: Added a few more.
+	  - LIMITATIONS: Updated.
+	* src/pr_list.c: Undo erroneous "fix" to pr_list_append() and
+	  pr_list_prepend().
+	* src/procenv.c:
+	  - Remove "(linux)" suffix from capabilities, cgroups and oom
+	    output: they are not displayed on other platforms, so the
+	    information is redundant.
+	  - Added '--crumb-separator'.
+	  - show_network_if(): Put flags in containeris rather than dumping as a
+	    comma-separated list.
 
 2013-10-13  James Hunt  <james.hunt@ubuntu.com>
 

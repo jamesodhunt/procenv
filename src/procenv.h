@@ -82,8 +82,7 @@
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
-/* FIXME: make cmdline configurable */
-#define PROCENV_DEFAULT_CRUMB_SEPARATOR ':'
+#define PROCENV_DEFAULT_CRUMB_SEPARATOR ":"
 
 #if defined (__FreeBSD__) \
 	|| defined (__NetBSD__) \
@@ -242,13 +241,14 @@
 #endif
 
 /* Environment Variables */
-#define PROCENV_OUTPUT_ENV        "PROCENV_OUTPUT"
-#define PROCENV_FORMAT_ENV        "PROCENV_FORMAT"
-#define PROCENV_FILE_ENV          "PROCENV_FILE"
-#define PROCENV_EXEC_ENV          "PROCENV_EXEC"
-#define PROCENV_INDENT_ENV        "PROCENV_INDENT"
-#define PROCENV_INDENT_CHAR_ENV   "PROCENV_INDENT_CHAR"
-#define PROCENV_SEPARATOR_ENV     "PROCENV_SEPARATOR"
+#define PROCENV_OUTPUT_ENV           "PROCENV_OUTPUT"
+#define PROCENV_FORMAT_ENV           "PROCENV_FORMAT"
+#define PROCENV_FILE_ENV             "PROCENV_FILE"
+#define PROCENV_EXEC_ENV             "PROCENV_EXEC"
+#define PROCENV_INDENT_ENV           "PROCENV_INDENT"
+#define PROCENV_INDENT_CHAR_ENV      "PROCENV_INDENT_CHAR"
+#define PROCENV_SEPARATOR_ENV        "PROCENV_SEPARATOR"
+#define PROCENV_CRUMB_SEPARATOR_ENV  "PROCENV_CRUMB_SEPARATOR"
 
 #define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024
@@ -771,14 +771,14 @@ void get_network_name (const struct sockaddr *address, int family, char *name);
 const char *get_ipv6_scope_name (uint32_t scope);
 char *get_mac_address (const struct ifaddrs *ifaddr);
 int get_mtu (const struct ifaddrs *ifaddr);
-char *decode_if_flags (unsigned int flags);
 void set_breadcrumb (const char *name);
 void add_breadcrumb (const char *name);
 void remove_breadcrumb (void);
 void clear_breadcrumbs (void);
 
 #if defined (PROCENV_LINUX)
-char *decode_extended_if_flags (const char *interface, unsigned short *flags);
+void decode_if_flags (unsigned int flags);
+void decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);

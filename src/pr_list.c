@@ -47,8 +47,7 @@ pr_list_append (PRList *list, PRList *entry)
 	entry->next = list->next;
 	entry->prev = list;
 
-	if (list->next != list)
-		list->next->prev = entry;
+	list->next->prev = entry;
 	list->next = entry;
 
 	return entry;
@@ -73,15 +72,13 @@ pr_list_prepend (PRList *list, PRList *entry)
 	entry->next = list;
 	entry->prev = list->prev;
 
-	if (list->prev != list)
-		list->prev->next = entry;
+	list->prev->next = entry;
 	list->prev = entry;
 
 	return entry;
 }
 
 /**
- *
  * pr_list_prepend_str:
  *
  * @list: list to operate on,

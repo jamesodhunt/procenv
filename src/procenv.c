@@ -1,11 +1,3 @@
-/* FIXME:
- *
- * - fix crumb output!!
- *
- * ;src/procenv --format=crumb --libs
- * ;src/procenv --format=crumb --misc
- */
-
 /*--------------------------------------------------------------------
  * Description: Simple program to display information on process
  *              environment.
@@ -73,6 +65,14 @@ const char *output_file = NULL;
  * value.
  **/
 const char *text_separator = PROCENV_DEFAULT_TEXT_SEPARATOR;
+
+/**
+ * crumb_separator:
+ *
+ * Separator used for text output format to separate a name from a
+ * value.
+ **/
+const char *crumb_separator = PROCENV_DEFAULT_CRUMB_SEPARATOR;
 
 /**
  * output_fd:
@@ -637,67 +637,70 @@ usage (void)
 	show ("");
 	show ("Options:");
 	show ("");
-	show ("  -a, --meta           : Display meta details.");
-	show ("  -A, --arguments      : Display program arguments.");
-	show ("  -b, --libs           : Display library details.");
-	show ("  -c, --cgroups        : Display cgroup details (Linux only).");
-	show ("  -C, --cpu            : Display CPU and scheduler details.");
-	show ("  -d, --compiler       : Display compiler details.");
-	show ("  -e, --environment    : Display environment variables.");
-	show ("  -E, --semaphores     : Display semaphore details.");
-	show ("  --exec               : Treat non-option arguments as program to execute.");
-	show ("  -f, --fds            : Display file descriptor details.");
-	show ("  --file=<file>        : Send output to <file> (implies --output=file).");
-	show ("  --format=<format>    : Specify output format. <format> can be one of:");
+	show ("  -a, --meta              : Display meta details.");
+	show ("  -A, --arguments         : Display program arguments.");
+	show ("  -b, --libs              : Display library details.");
+	show ("  -c, --cgroups           : Display cgroup details (Linux only).");
+	show ("  -C, --cpu               : Display CPU and scheduler details.");
+	show ("  --crumb-separator=<str> : Specify string '<str>' as alternate delimiter");
+	show ("                            for crumb format output (default='%s').",
+			PROCENV_DEFAULT_CRUMB_SEPARATOR);
+	show ("  -d, --compiler          : Display compiler details.");
+	show ("  -e, --environment       : Display environment variables.");
+	show ("  -E, --semaphores        : Display semaphore details.");
+	show ("  --exec                  : Treat non-option arguments as program to execute.");
+	show ("  -f, --fds               : Display file descriptor details.");
+	show ("  --file=<file>           : Send output to <file> (implies --output=file).");
+	show ("  --format=<format>       : Specify output format. <format> can be one of:");
 	show ("");
-	show ("                         crumb    : ASCII 'breadcrumbs'");
-	show ("                         json     : JSON output.");
-	show ("                         text     : ASCII output (default).");
-	show ("                         xml      : XML output.");
+	show ("                            crumb    : ASCII 'breadcrumbs'");
+	show ("                            json     : JSON output.");
+	show ("                            text     : ASCII output (default).");
+	show ("                            xml      : XML output.");
 	show ("");
-	show ("  -g, --sizeof         : Display sizes of data types in bytes.");
-	show ("  -h, --help           : This help text.");
-	show ("  -i, --misc           : Display miscellaneous details.");
-	show ("  --indent             : Number of indent characters to use for each indent");
-	show ("                         (default=%d).", DEFAULT_INDENT_AMOUNT);
-	show ("  --indent-char=<c>    : Use character '<c>' for indenting");
-	show ("                         (default='%c').", DEFAULT_INDENT_CHAR);
-	show ("  -j, --uname          : Display uname details.");
-	show ("  -k, --clocks         : Display clock details.");
-	show ("  -l, --limits         : Display limits.");
-	show ("  -L, --locale         : Display locale details.");
-	show ("  -m, --mounts         : Display mount details.");
-	show ("  -M, --message-queues : Display message queue details.");
-	show ("  -n, --confstr        : Display confstr details.");
-	show ("  -N, --network        : Display network details.");
-	show ("  -o, --oom            : Display out-of-memory manager details (Linux only)");
-	show ("  --output=<type>      : Send output to alternative location.");
-	show ("                         <type> can be one of:");
+	show ("  -g, --sizeof            : Display sizes of data types in bytes.");
+	show ("  -h, --help              : This help text.");
+	show ("  -i, --misc              : Display miscellaneous details.");
+	show ("  --indent                : Number of indent characters to use for each indent");
+	show ("                            (default=%d).", DEFAULT_INDENT_AMOUNT);
+	show ("  --indent-char=<c>       : Use character '<c>' for indenting");
+	show ("                            (default='%c').", DEFAULT_INDENT_CHAR);
+	show ("  -j, --uname             : Display uname details.");
+	show ("  -k, --clocks            : Display clock details.");
+	show ("  -l, --limits            : Display limits.");
+	show ("  -L, --locale            : Display locale details.");
+	show ("  -m, --mounts            : Display mount details.");
+	show ("  -M, --message-queues    : Display message queue details.");
+	show ("  -n, --confstr           : Display confstr details.");
+	show ("  -N, --network           : Display network details.");
+	show ("  -o, --oom               : Display out-of-memory manager details (Linux only)");
+	show ("  --output=<type>         : Send output to alternative location.");
+	show ("                            <type> can be one of:");
 	show ("");
-	show ("                         file     : Send output to a file.");
-	show ("                         stderr   : Write to standard error.");
-	show ("                         stdout   : Write to standard output (default).");
-	show ("                         syslog   : Write to the system log file.");
-	show ("                         terminal : Write to terminal.");
+	show ("                            file     : Send output to a file.");
+	show ("                            stderr   : Write to standard error.");
+	show ("                            stdout   : Write to standard output (default).");
+	show ("                            syslog   : Write to the system log file.");
+	show ("                            terminal : Write to terminal.");
 	show ("");
-	show ("  -p, --process        : Display process details.");
-	show ("  -P, --platform       : Display platform details.");
-	show ("  -q, --time           : Display time details.");
-	show ("  -r, --ranges         : Display range of data types.");
-	show ("  --separator=<str>    : Specify string '<str>' as alternate delimiter");
-	show ("                        for text format output (default='%s').",
+	show ("  -p, --process           : Display process details.");
+	show ("  -P, --platform          : Display platform details.");
+	show ("  -q, --time              : Display time details.");
+	show ("  -r, --ranges            : Display range of data types.");
+	show ("  --separator=<str>       : Specify string '<str>' as alternate delimiter");
+	show ("                            for text format output (default='%s').",
 			PROCENV_DEFAULT_TEXT_SEPARATOR);
-	show ("  -s, --signals        : Display signal details.");
-	show ("  -S, --shared-memory  : Display shared memory details.");
-	show ("  -t, --tty            : Display terminal details.");
-	show ("  -T, --threads        : Display thread details.");
-	show ("  -u, --stat           : Display stat details.");
-	show ("  -U, --rusage         : Display rusage details.");
-	show ("  -v, --version        : Display version details.");
-	show ("  -w, --capabilities   : Display capaibility details (Linux only).");
-	show ("  -x, --pathconf       : Display pathconf details.");
-	show ("  -y, --sysconf        : Display sysconf details.");
-	show ("  -z, --timezone       : Display timezone details.");
+	show ("  -s, --signals           : Display signal details.");
+	show ("  -S, --shared-memory     : Display shared memory details.");
+	show ("  -t, --tty               : Display terminal details.");
+	show ("  -T, --threads           : Display thread details.");
+	show ("  -u, --stat              : Display stat details.");
+	show ("  -U, --rusage            : Display rusage details.");
+	show ("  -v, --version           : Display version details.");
+	show ("  -w, --capabilities      : Display capaibility details (Linux only).");
+	show ("  -x, --pathconf          : Display pathconf details.");
+	show ("  -y, --sysconf           : Display sysconf details.");
+	show ("  -z, --timezone          : Display timezone details.");
 	show ("");
 	show ("Notes:");
 	show ("");
@@ -705,8 +708,9 @@ usage (void)
        	show ("    precede any other option.");
 	show ("  - If no display option is specified, all details are displayed.");
 	show ("  - Only one display option may be specified.");
-	show ("  - All indent-char values are literal except '\\t' which can be");
-	show ("    used to specify tab-indenting.");
+	show ("  - All values for '--indent-char' are literal except '\\t' which can be");
+	show ("    used to specify a tab character. The same is true for '--separator'");
+	show ("    and '--crumb-separator' but only if it is the first character specified.");
 	show ("  - Specifying a visible indent-char is only (vaguely) meaningful");
 	show ("    for text output.");
 	show ("  - Any long option name may be shortened as long as it remains unique.");
@@ -840,13 +844,13 @@ entry (const char *name, const char *fmt, ...)
 		/* Add the bread crumbs */
 		PR_LIST_FOREACH (crumb_list, iter) {
 			char *crumb = (char *)iter->data;
-			appendf (&doc, "%s%c",
+			appendf (&doc, "%s%s",
 					crumb,
-					PROCENV_DEFAULT_CRUMB_SEPARATOR);
+					crumb_separator);
 		}
-		appendf (&doc, "%s%c%s\n",
+		appendf (&doc, "%s%s%s\n",
 				encoded_name,
-				PROCENV_DEFAULT_CRUMB_SEPARATOR,
+				text_separator,
 				encoded_value);
 		break;
 
@@ -2493,23 +2497,18 @@ get_network_address (const struct sockaddr *address, int family, char *name)
 	assert (name[NI_MAXHOST-1] == '\0');
 }
 
-char *
+void
 decode_if_flags (unsigned int flags)
 {
-	char *str = NULL;
 	struct if_flag_map *p;
-	int first = TRUE;
 
 	for (p = if_flag_map; p && p->name; p++) {
 		if (flags & p->flag) {
-			appendf (&str, "%s%s",
-					first ? "" : ",",
-					p->name);
-			first = FALSE;
+			object_open (FALSE);
+			entry (p->name, "0x%x", p->flag);
+			object_close (FALSE);
 		}
 	}
-
-	return str;
 }
 
 const char *
@@ -2792,13 +2791,11 @@ show_linux_mounts (ShowMountType what)
 #endif
 
 #if defined (PROCENV_LINUX)
-char *
+void
 decode_extended_if_flags (const char *interface, unsigned short *flags)
 {
 	int                           sock;
 	struct ifreq                  ifr;
-	int                           first = TRUE;
-	char                         *str = NULL;
 	struct if_extended_flag_map  *p;
 
 	assert (interface);
@@ -2810,7 +2807,7 @@ decode_extended_if_flags (const char *interface, unsigned short *flags)
 	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
 	if (sock < 0)
-		return NULL;
+		return;
 
 	memset (&ifr, 0, sizeof (struct ifreq));
 	strncpy (ifr.ifr_name, interface, IFNAMSIZ-1);
@@ -2822,15 +2819,13 @@ decode_extended_if_flags (const char *interface, unsigned short *flags)
 
 	for (p = if_extended_flag_map; p && p->name; p++) {
 		if (*flags & p->flag) {
-			appendf (&str, "%s%s",
-					first ? "" : ",",
-					p->name);
-			first = FALSE;
+			object_open (FALSE);
+			entry (p->name, "0x%x", p->flag);
+			object_close (FALSE);
 		}
 	}
 out:
 	close (sock);
-	return str;
 }
 
 
@@ -2949,8 +2944,6 @@ get_net_family_name (sa_family_t family)
 void
 show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 {
-	char                *flags = NULL;
-	char                *extended_flags = NULL;
 	unsigned short       ext_flags = 0;
 	sa_family_t          family;
 	char                 address[NI_MAXHOST];
@@ -2961,23 +2954,41 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	family = ifa->ifa_addr->sa_family;
 
-	flags = decode_if_flags (ifa->ifa_flags);
-
-#if defined (PROCENV_LINUX)
-	extended_flags = decode_extended_if_flags (ifa->ifa_name, &ext_flags);
-#endif
-
 	section_open (ifa->ifa_name);
 
 	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
-	entry ("flags", "0x%x (%s)", ifa->ifa_flags, flags ? flags : UNKNOWN_STR);
-	entry ("extended flags", "0x%x (%s)", ext_flags, extended_flags ? extended_flags : NA_STR);
 
-	if (flags)
-		free (flags);
+	/*******************************/
+	
+	section_open ("flags");
 
-	if (extended_flags)
-		free (extended_flags);
+	entry ("value", "0x%x", ifa->ifa_flags);
+
+	container_open ("fields");
+
+	decode_if_flags (ifa->ifa_flags);
+
+	container_close ();
+
+	section_close ();
+
+	/*******************************/
+
+	section_open ("extended flags");
+
+	entry ("value", "0x%x", ext_flags);
+
+	container_open ("fields");
+
+#if defined (PROCENV_LINUX)
+	decode_extended_if_flags (ifa->ifa_name, &ext_flags);
+#endif
+
+	container_close ();
+
+	section_close ();
+
+	/*******************************/
 
 	mtu = get_mtu (ifa);
 
@@ -5543,6 +5554,14 @@ check_envvars (void)
 		text_separator = e;
 	}
 
+	e = getenv (PROCENV_CRUMB_SEPARATOR_ENV);
+	if (e && *e) {
+		if (! strcmp (e, "\\t"))
+			crumb_separator = "\t";
+		else
+			crumb_separator = e;
+	}
+
 	e = getenv (PROCENV_EXEC_ENV);
 	if (e && *e) {
 		char *tmp;
@@ -5824,6 +5843,7 @@ main (int    argc,
 		{"cgroups"         , no_argument, NULL, 'c'},
 		{"cpu"             , no_argument, NULL, 'C'},
 		{"compiler"        , no_argument, NULL, 'd'},
+		{"crumb-separator" , required_argument, NULL, 0},
 		{"environment"     , no_argument, NULL, 'e'},
 		{"semaphores"      , no_argument, NULL, 'E'},
 		{"fds"             , no_argument, NULL, 'f'},
@@ -5922,9 +5942,16 @@ main (int    argc,
 				if (! indent_char)
 					die ("cannot use nul indent character");
 			} else if (! strcmp ("separator", long_options[long_index].name)) {
-				text_separator = optarg;
+				if (! strcmp (optarg, "\\t"))
+					text_separator = "\t";
+				else
+					text_separator = optarg;
+			} else if (! strcmp ("crumb-separator", long_options[long_index].name)) {
+				if (! strcmp (optarg, "\\t"))
+					crumb_separator = "\t";
+				else
+					crumb_separator = optarg;
 			}
-
 			/* reset */
 			selected_option = 0;
 			indent = 0;

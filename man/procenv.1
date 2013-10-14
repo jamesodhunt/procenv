@@ -47,6 +47,12 @@ See
 Display CPU and scheduler details.
 .\"
 .TP
+\fB\-\-crumb\-separator=\fR\fIstr\fR
+Specify string
+.I str
+as alternate delimiter for crumb format output (default=\(aq:\(aq).
+.\"
+.TP
 \fB\-d\fR, \fB\-\-compiler\fR
 Display compiler details.
 See
@@ -89,15 +95,14 @@ Specify output format.
 may be one of:
 .RS
 .IP \(bu 4
-\fItext\fR (plain ASCII text [default]).
-.IP \(bu 4
 \fIcrumb\fR ("breadcrumbs").
 .IP \(bu 4
 \fIjson\fR (JavaScript Object Notation).
 .IP \(bu 4
+\fItext\fR (plain ASCII text [default]).
+.IP \(bu 4
 \fIxml\fR (Extensible Markup Language).
 .RE
-The 'crumb' output format displays the data in a flattened
 .PP
 .\"
 .TP
@@ -344,6 +349,11 @@ The following environment variables may be used as aliases to their
 command-line counterparts:
 .\"
 .TP
+\fBPROCENV_CRUMB_SEPARATOR\fR
+Alternative to \fB\-\-crumb\-separator\fR.
+.PP
+.\"
+.TP
 \fBPROCENV_EXEC\fR
 Alternative to \fB\-\-exec\fR.
 .PP
@@ -389,8 +399,10 @@ Only one display option may be specified.
 .IP \(bu
 Command-line options take priority over environment variables.
 .IP \(bu
-All indent-char values are literal except \(aq\\t\(aq which can be used
-to specify tab-indenting.
+All values for \fB\-\-indent\-char\fR are literal except \(aq\\t\(aq which can be
+used to specify a tab character. The same is true for \fB\-\-separator\-char\fR and
+\fB\-\-crumb\-separator\fR but only if it is the first character
+specified.
 .IP \(bu
 Specifying a visible indent-char is only (vaguely) meaningful for text output.
 .IP \(bu
@@ -429,11 +441,18 @@ the values are queryable, there is no documented method to do so.
 \& # in debug mode to allow early boot environment to be examined.
 \& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
 \&
-\& # Display all data in JSON format
-\& procenv --format=json
+\& # Display all data in JSON format using an indent of 4 spaces
+\& procenv --format=json --indent=4
+\&
+\& # Display all data in XML format using tabs for indents
+\& procenv --format=xml --indent-char="\t"
 \&
 \& # Display resource limits in easily-parseable format
 \& procenv --format=crumb --limits
+\&
+\& # Produce output suitable for importing into a spreadsheet
+\& procenv --format=crumb --crumb-separator=\(aq,\(aq --separator=\(aq,\(aq --limits
+.Ve
 .Ve
 .\"
 .SH LIMITATIONS
@@ -441,6 +460,11 @@ the values are queryable, there is no documented method to do so.
 Spaces within the value of \fBPROCENV_EXEC\fR are treated as delimiters
 meaning that any spaces within a string argument for example will result in
 incorrect behaviour.
+.IP \(bu 4
+The separator character must be chosen carefully since no check is
+performed on the data to see if
+.I it itself
+contains instances of the separator character.
 .\"
 .SH AUTHORS
 Written by
