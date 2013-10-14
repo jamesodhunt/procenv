@@ -1,3 +1,14 @@
+0.27	2013-10-14
+
+	* Added IPC options '--shared-memory', '--semaphores' and
+	  '--message-queues'.
+	* Added rudimentary "make check" tests.
+	* Made default text output highly structured.
+	* Added ability to produce output in XML, JSON and "breadcrumb"
+	  (including CSV) formats.
+	* Added ability to specify indent amount, indent character and
+	  separators (via command-line or environment variable).
+
 0.26	2013-08-27
 
 	* Check to determine if running on a console now works for
