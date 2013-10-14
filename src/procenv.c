@@ -4978,7 +4978,7 @@ show_capabilities (void)
 {
 	int ret;
 
-	header ("capabilities(linux)");
+	header ("capabilities");
 
 	container_open ("list");
 
@@ -5132,7 +5132,7 @@ show_linux_cgroups (void)
 	char          buffer[1024];
 	size_t        len;
 
-	header ("cgroups(linux)");
+	header ("cgroups");
 
 	f = fopen (file, "r");
 
@@ -5273,7 +5273,7 @@ show_oom (void)
 	int      ret;
 	int      seen = FALSE;
 
-	header ("oom(linux)");
+	header ("oom");
 
 	for (file = files; file && *file; file++) {
 		ret = sprintf (path, "%s/%s", dir, *file);
