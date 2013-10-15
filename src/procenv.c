@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright  2012-2013 James Hunt.
+ * Copyright 2012-2013 James Hunt.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,13 @@
 extern char **environ;
 
 /**
+ * doc:
+ *
+ * The output document.
+ **/
+char *doc = NULL;
+
+/**
  * output:
  *
  * Where to send output.
@@ -38,11 +45,34 @@ extern char **environ;
 Output output = OUTPUT_STDOUT;
 
 /**
+ * output_format:
+ *
+ * Format output will be displayed in.
+ **/
+OutputFormat output_format = OUTPUT_FORMAT_TEXT;
+
+/**
  * output_file:
  *
  * Name or output file to send output to if not NULL.
  **/
 const char *output_file = NULL;
+
+/**
+ * text_separator:
+ *
+ * Separator used for text output format to separate a name from a
+ * value.
+ **/
+const char *text_separator = PROCENV_DEFAULT_TEXT_SEPARATOR;
+
+/**
+ * crumb_separator:
+ *
+ * Separator used for text output format to separate a name from a
+ * value.
+ **/
+const char *crumb_separator = PROCENV_DEFAULT_CRUMB_SEPARATOR;
 
 /**
  * output_fd:
@@ -70,9 +100,23 @@ int selected_option = 0;
 /**
  * indent:
  *
- * Number of spaces to indent output.
+ * Current output indent value.
  **/
 int indent = 0;
+
+/**
+ * indent_amount:
+ *
+ * Number of INDENT_CHARs to emit for an indent.
+ **/
+int indent_amount = DEFAULT_INDENT_AMOUNT;
+
+/**
+ * indent_char:
+ *
+ * Character to use for indenting.
+ **/
+int indent_char = DEFAULT_INDENT_CHAR;
 
 /**
  * program_name:
@@ -93,6 +137,23 @@ char **exec_args = NULL;
  **/
 char **argvp = NULL;
 int argvc = 0;
+
+/**
+ * last_element: Type of previous element handled.
+ **/
+ElementType last_element = ELEMENT_TYPE_NONE;
+
+/**
+ * current_element: Type of element currently being handled.
+ **/
+ElementType current_element = ELEMENT_TYPE_NONE;
+
+/**
+ * crumb_list:
+ *
+ * List used to store breadcrumbs when OUTPUT_FORMAT_CRUMB being used.
+ **/
+static PRList *crumb_list = NULL;
 
 struct procenv_user     user;
 struct procenv_misc     misc;
@@ -141,6 +202,15 @@ struct procenv_map output_map[] = {
 	{ OUTPUT_STDOUT , "stdout" },
 	{ OUTPUT_SYSLOG , "syslog" },
 	{ OUTPUT_TERM   , "terminal" },
+
+	{ 0, NULL }
+};
+
+struct procenv_map output_format_map[] = {
+	{ OUTPUT_FORMAT_TEXT, "text" },
+	{ OUTPUT_FORMAT_CRUMB, "crumb" },
+	{ OUTPUT_FORMAT_JSON, "json" },
+	{ OUTPUT_FORMAT_XML, "xml" },
 
 	{ 0, NULL }
 };
@@ -210,6 +280,40 @@ struct if_flag_map {
 #endif
 
 	{ 0, NULL }
+};
+
+/*
+ * Note the gross hack to avoid need for flexible arrays.
+ */
+TranslateTable translate_table[] = {
+	{
+		OUTPUT_FORMAT_XML,
+		{
+			{ '\'', "&apos;" },
+			{ '"', "&quot;" },
+			{ '&', "&amp;" },
+			{ '<', "&lt;" },
+			{ '>', "&gt;" },
+
+			/* terminator */
+			{ '\0', NULL }
+		}
+	},
+	{
+		OUTPUT_FORMAT_JSON,
+		{
+			{ '"', "\\\"" },
+			{ '\\', "\\\\" },
+
+			/* hack! */
+			{ '\0', NULL },
+			{ '\0', NULL },
+			{ '\0', NULL },
+
+			/* terminator */
+			{ '\0', NULL }
+		}
+	},
 };
 
 #if defined (PROCENV_LINUX)
@@ -514,7 +618,7 @@ struct procenv_map scheduler_map[] = {
 	mk_map_entry (SCHED_IDLE),
 #endif
 #endif
-		
+
 	{ 0, NULL }
 };
 
@@ -533,53 +637,87 @@ usage (void)
 	show ("");
 	show ("Options:");
 	show ("");
-	show ("  -a, --meta          : Display meta details.");
-	show ("  -A, --arguments     : Display program arguments.");
-	show ("  -b, --libs          : Display library details.");
-	show ("  -c, --cgroup[s]     : Display cgroup details (Linux only).");
-	show ("  -d, --compiler      : Display compiler details.");
-	show ("  -e, --env[ironment] : Display environment variables.");
-	show ("  --exec              : Treat non-option arguments as program to execute.");
-	show ("  -f, --fds           : Display file descriptor details.");
-	show ("  --file=<file>       : Send output to <file> (implies --output=file).");
-	show ("  -g, --sizeof        : Display sizes of data types in bytes.");
-	show ("  -h, --help          : This help text.");
-	show ("  -i, --misc          : Display miscellaneous details.");
-	show ("  -j, --uname         : Display uname details.");
-	show ("  -k, --clock[s]      : Display clock details.");
-	show ("  -l, --limits        : Display limits.");
-	show ("  -L, --locale        : Display locale details.");
-	show ("  -m, --mount[s]      : Display mount details.");
-	show ("  -n, --confstr       : Display confstr details.");
-	show ("  -N, --network       : Display network details.");
-	show ("  -o, --oom           : Display out-of-memory manager details (Linux only)");
-	show ("  --output=<type>     : Send output to alternative location. <type> can be one of:");
+	show ("  -a, --meta              : Display meta details.");
+	show ("  -A, --arguments         : Display program arguments.");
+	show ("  -b, --libs              : Display library details.");
+	show ("  -c, --cgroups           : Display cgroup details (Linux only).");
+	show ("  -C, --cpu               : Display CPU and scheduler details.");
+	show ("  --crumb-separator=<str> : Specify string '<str>' as alternate delimiter");
+	show ("                            for crumb format output (default='%s').",
+			PROCENV_DEFAULT_CRUMB_SEPARATOR);
+	show ("  -d, --compiler          : Display compiler details.");
+	show ("  -e, --environment       : Display environment variables.");
+	show ("  -E, --semaphores        : Display semaphore details.");
+	show ("  --exec                  : Treat non-option arguments as program to execute.");
+	show ("  -f, --fds               : Display file descriptor details.");
+	show ("  --file=<file>           : Send output to <file> (implies --output=file).");
+	show ("  --format=<format>       : Specify output format. <format> can be one of:");
 	show ("");
-	show ("                      file     : Send output to a file.");
-	show ("                      stderr   : Write to standard error.");
-	show ("                      stdout   : Write to standard output (default).");
-	show ("                      syslog   : Write to the system log file.");
-	show ("                      terminal : Write to terminal.");
+	show ("                            crumb    : ASCII 'breadcrumbs'");
+	show ("                            json     : JSON output.");
+	show ("                            text     : ASCII output (default).");
+	show ("                            xml      : XML output.");
 	show ("");
-	show ("  -p, --proc[ess]     : Display process details.");
-	show ("  -P, --platform      : Display platform details.");
-	show ("  -q, --time          : Display time details.");
-	show ("  -r, --range[s]      : Display range of data types.");
-	show ("  -s, --signal[s]     : Display signal details.");
-	show ("  -t, --tty           : Display terminal details.");
-	show ("  -T, --threads       : Display thread details.");
-	show ("  -u, --stat          : Display stat details.");
-	show ("  -U, --rusage        : Display rusage details.");
-	show ("  -v, --version       : Display version details.");
-	show ("  -w, --capabilities  : Display capaibility details (Linux only).");
-	show ("  -x, --pathconf      : Display pathconf details.");
-	show ("  -y, --sysconf       : Display sysconf details.");
-	show ("  -z, --timezone      : Display timezone details.");
+	show ("  -g, --sizeof            : Display sizes of data types in bytes.");
+	show ("  -h, --help              : This help text.");
+	show ("  -i, --misc              : Display miscellaneous details.");
+	show ("  --indent                : Number of indent characters to use for each indent");
+	show ("                            (default=%d).", DEFAULT_INDENT_AMOUNT);
+	show ("  --indent-char=<c>       : Use character '<c>' for indenting");
+	show ("                            (default='%c').", DEFAULT_INDENT_CHAR);
+	show ("  -j, --uname             : Display uname details.");
+	show ("  -k, --clocks            : Display clock details.");
+	show ("  -l, --limits            : Display limits.");
+	show ("  -L, --locale            : Display locale details.");
+	show ("  -m, --mounts            : Display mount details.");
+	show ("  -M, --message-queues    : Display message queue details.");
+	show ("  -n, --confstr           : Display confstr details.");
+	show ("  -N, --network           : Display network details.");
+	show ("  -o, --oom               : Display out-of-memory manager details (Linux only)");
+	show ("  --output=<type>         : Send output to alternative location.");
+	show ("                            <type> can be one of:");
+	show ("");
+	show ("                            file     : Send output to a file.");
+	show ("                            stderr   : Write to standard error.");
+	show ("                            stdout   : Write to standard output (default).");
+	show ("                            syslog   : Write to the system log file.");
+	show ("                            terminal : Write to terminal.");
+	show ("");
+	show ("  -p, --process           : Display process details.");
+	show ("  -P, --platform          : Display platform details.");
+	show ("  -q, --time              : Display time details.");
+	show ("  -r, --ranges            : Display range of data types.");
+	show ("  --separator=<str>       : Specify string '<str>' as alternate delimiter");
+	show ("                            for text format output (default='%s').",
+			PROCENV_DEFAULT_TEXT_SEPARATOR);
+	show ("  -s, --signals           : Display signal details.");
+	show ("  -S, --shared-memory     : Display shared memory details.");
+	show ("  -t, --tty               : Display terminal details.");
+	show ("  -T, --threads           : Display thread details.");
+	show ("  -u, --stat              : Display stat details.");
+	show ("  -U, --rusage            : Display rusage details.");
+	show ("  -v, --version           : Display version details.");
+	show ("  -w, --capabilities      : Display capaibility details (Linux only).");
+	show ("  -x, --pathconf          : Display pathconf details.");
+	show ("  -y, --sysconf           : Display sysconf details.");
+	show ("  -z, --timezone          : Display timezone details.");
 	show ("");
 	show ("Notes:");
 	show ("");
-	show ("  - If no option is specified, all details are displayed.");
-	show ("  - Only one option may be specified.");
+	show ("  - Options are considered in order, so '--output' should");
+       	show ("    precede any other option.");
+	show ("  - If no display option is specified, all details are displayed.");
+	show ("  - Only one display option may be specified.");
+	show ("  - All values for '--indent-char' are literal except '\\t' which can be");
+	show ("    used to specify a tab character. The same is true for '--separator'");
+	show ("    and '--crumb-separator' but only if it is the first character specified.");
+	show ("  - Specifying a visible indent-char is only (vaguely) meaningful");
+	show ("    for text output.");
+	show ("  - Any long option name may be shortened as long as it remains unique.");
+	show ("  - The 'crumb' output format is designed for easy parsing: it displays");
+	show ("    the data in a flattened format with each value on a separate line");
+	show ("    preceeded by all appropriate headings which are separated by the");
+	show ("    current separator.");
 	show ("");
 }
 
@@ -589,10 +727,11 @@ show_pathconfs (ShowMountType what,
 {
 	assert (dir);
 
-	if (what == SHOW_ALL)
-		showi (INDENT, "pathconf for path '%s':", dir);
-	else
-		show ("pathconf for path '%s':", dir);
+	if (what == SHOW_PATHCONF) {
+		header (dir);
+	} else {
+		header ("pathconf");
+	}
 
 	show_pathconf (what, dir, _PC_LINK_MAX);
 	show_pathconf (what, dir, _PC_MAX_CANON);
@@ -603,6 +742,8 @@ show_pathconfs (ShowMountType what,
 	show_pathconf (what, dir, _PC_CHOWN_RESTRICTED);
 	show_pathconf (what, dir, _PC_NO_TRUNC);
 	show_pathconf (what, dir, _PC_VDISABLE);
+
+	footer ();
 }
 
 const char *
@@ -623,23 +764,25 @@ get_speed (speed_t speed)
  *
  * @prefix: string prefix to write,
  * @indent: number of spaces to indent output to,
- * @fmt: printf-style format with associated arguments.
+ * @fmt: printf-style format with associated arguments that comprises
+ *  the value part.
  *
- * Write output to @string, indented by @indent spaces.
+ * Write output to @string, indented by @indent spaces. A trailing newline
+ * will be added.
+ *
  * Note that error scenarios cannot call die() as by definition output
  * may not be possible.
  **/
 void
 _show (const char *prefix, int indent, const char *fmt, ...)
 {
-	int       ret;
 	va_list   ap;
 	char     *buffer = NULL;
 
 	assert (fmt);
 
 	if (indent)
-		appendf (&buffer, "%*s", indent, " ");
+		appendf (&buffer, "%*c", indent, indent_char);
 
 	if (prefix && *prefix)
 		appendf (&buffer, "%s: ", prefix);
@@ -648,28 +791,132 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 	appendva (&buffer, fmt, ap);
 	va_end (ap);
 
-	appendf (&buffer, "\n");
+	append (&buffer, "\n");
+
+	_show_output (buffer);
+
+	free (buffer);
+}
+
+/**
+ * entry:
+ *
+ * @name: name of thing to display,
+ * @fmt: printf-style format with associated arguments that comprises
+ *  the value part.
+ *
+ * Add name/value pair represented by @name and value comprising
+ * printf-format string to the @doc global. The value added will be
+ * indented appropriately.
+ **/
+void
+entry (const char *name, const char *fmt, ...)
+{
+	va_list   ap;
+	char     *encoded_name = NULL;
+	char     *encoded_value = NULL;
+
+	assert (name);
+	assert (fmt);
+
+	common_assert ();
+
+	change_element (ELEMENT_TYPE_ENTRY);
+
+	encoded_name = strdup (name);
+	assert (encoded_name);
+
+	if (encode_string (&encoded_name) < 0)
+		die ("failed to encode name");
+
+	va_start (ap, fmt);
+	appendva (&encoded_value, fmt, ap);
+	va_end (ap);
+
+	if (encode_string (&encoded_value) < 0)
+		die ("failed to encode value");
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB:
+		assert (crumb_list);
+
+		/* Add the bread crumbs */
+		PR_LIST_FOREACH (crumb_list, iter) {
+			char *crumb = (char *)iter->data;
+			appendf (&doc, "%s%s",
+					crumb,
+					crumb_separator);
+		}
+		appendf (&doc, "%s%s%s\n",
+				encoded_name,
+				text_separator,
+				encoded_value);
+		break;
+
+	case OUTPUT_FORMAT_TEXT:
+		appendf (&doc, "%s%s%s",
+				encoded_name,
+				text_separator,
+				encoded_value);
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		appendf (&doc, "\"%s\" : \"%s\"",
+				encoded_name,
+				encoded_value);
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		appendf (&doc, "<entry name=\"%s\">%s</entry>",
+				encoded_name, encoded_value);
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+
+	free (encoded_name);
+	free (encoded_value);
+}
+
+/**
+ * _show_output:
+ *
+ * @string: String to display.
+ *
+ * Write output @string to appropriate location based on Output
+ * destination.
+ **/
+void
+_show_output (const char *string)
+{
+	int ret;
+
+	if (! string || ! *string)
+		return;
 
 	switch (output) {
 	case OUTPUT_SYSLOG:
-		syslog (LOG_INFO, "%s", buffer);
+		syslog (LOG_INFO, "%s", string);
 		ret = 0;
 		break;
 
 	case OUTPUT_STDOUT:
-		ret = fputs (buffer, stdout);
+		ret = fputs (string, stdout);
 		break;
 
 	case OUTPUT_STDERR:
-		ret = fputs (buffer, stderr);
+		ret = fputs (string, stderr);
 		break;
 
 	case OUTPUT_TERM:
 		assert (user.tty_fd != -1);
-		ret = write (user.tty_fd, buffer, strlen (buffer));
+		ret = write (user.tty_fd, string, strlen (string));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to terminal\n");
-			goto error;
+			exit (EXIT_FAILURE);
 		}
 		break;
 
@@ -682,14 +929,14 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 			if (output_fd < 0) {
 				fprintf (stderr, "ERROR: failed to open file '%s'\n",
 						output_file);
-				goto error;
+				exit (EXIT_FAILURE);
 			}
 		}
-		ret = write (output_fd, buffer, strlen (buffer));
+		ret = write (output_fd, string, strlen (string));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to file '%s'\n",
 					output_file);
-			goto error;
+			exit (EXIT_FAILURE);
 		}
 		break;
 
@@ -699,61 +946,424 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 		break;
 	}
 
-	if (ret < 0)
-		goto error;
-
-	free (buffer);
-
-	return;
-
-error:
-	if (buffer)
-		free (buffer);
-
-	fprintf (stderr, "ERROR: failed to construct message\n");
-	exit (EXIT_FAILURE);
+	if (ret < 0) {
+		fprintf (stderr, "ERROR: failed to output message\n");
+		exit (EXIT_FAILURE);
+	}
 }
 
 /**
- * header:
- * @fmt: printf-style format with associated arguments.
+ * inc_indent:
  *
- * Display a header to stdout, unless user has requested
- * a summary view.
- */
+ * Increase indent.
+ **/
 void
-header (const char *fmt, ...)
+inc_indent (void)
 {
-	char     buffer[PROCENV_BUFFER];
-	va_list  ap;
-	size_t   bytes;
-	size_t   ret;
+	assert (indent >= 0);
 
-	bytes = sizeof (buffer);
+	indent += indent_amount;
+}
 
-	memset (buffer, '\0', sizeof (buffer));
+/**
+ * dec_indent:
+ *
+ * Decrease indent.
+ **/
+void
+dec_indent (void)
+{
+	assert (indent >= 0);
 
-	/* Don't display header if user has specified what to display as
-	 * only 1 group of information will be displayed (so a header is
-	 * unnecessary).
-	 */
-	if (selected_option)
+	indent -= indent_amount;
+
+	assert (indent >= 0);
+}
+
+/**
+ * add_indent:
+ *
+ * Insert the current indent to the output document.
+ **/
+void
+add_indent (char **doc)
+{
+	common_assert ();
+
+	if (! indent)
 		return;
 
-	/* append colon */
-	va_start (ap, fmt);
-	ret = vsprintf (buffer, fmt, ap);
-	assert (ret);
+	if (indent_char == DEFAULT_INDENT_CHAR) {
+		appendf (doc, "%*c", indent, indent_char);
+	} else {
+		char *buffer = NULL;
 
-	bytes -= ret;
-	bytes--;
+		appendf (&buffer, "%*c", indent, DEFAULT_INDENT_CHAR);
 
-	strncat (buffer, ":", bytes);
-	va_end (ap);
+		/* Replace the default characters with the chosen character.
+		 * Necessary as printf-type functions don't allow the padding
+		 * character to be specified.
+		 */
+		memset (buffer, indent_char, strlen (buffer));
 
-	buffer[sizeof (buffer) - 1] = '\0';
+		append (doc, buffer);
+		free (buffer);
+	}
+}
 
-	_show ("", 0, buffer);
+/**
+ * master_header:
+ *
+ * @doc: document to write footer to.
+ *
+ * Main header which is displayed once.
+ **/
+void
+master_header (char **doc)
+{
+	common_assert ();
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
+	case OUTPUT_FORMAT_TEXT:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		object_open (FALSE);
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		append (doc, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		appendf (doc, "<%s version=\"%s\" package_string=\"%s\" "
+				"mode=\"%s%s\" format_version=\"%d\">\n",
+				PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING,
+				user.euid ? _(NON_STR) "-" : "",
+				PRIVILEGED_STR,
+				PROCENV_FORMAT_VERSION);
+
+		inc_indent ();
+
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * master_footer:
+ *
+ * @doc: document to write footer to.
+ *
+ * Main footer which is displayed once.
+ **/
+void
+master_footer (char **doc)
+{
+    common_assert ();
+
+    switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
+        case OUTPUT_FORMAT_TEXT:
+            /* Tweak */
+	    append (doc, "\n");
+            break;
+
+        case OUTPUT_FORMAT_JSON:
+            object_close (FALSE);
+
+            /* Tweak */
+            append (doc, "\n");
+            break;
+
+        case OUTPUT_FORMAT_XML:
+            /* Tweak */
+            append (doc, "\n");
+            dec_indent ();
+            appendf (doc, "</%s>\n", PACKAGE_NAME);
+            break;
+
+        default:
+            assert_not_reached ();
+            break;
+    }
+}
+
+/**
+ * object_open:
+ *
+ * @retain: if TRUE, do not disrupt the current element such that the
+ * opening of the object will be invisible to the state machine, but
+ * will still produce the required output.
+ *
+ * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
+ *
+ * Handle opening an object.
+ **/
+void
+object_open (int retain)
+{
+	common_assert ();
+
+	if (output_format == OUTPUT_FORMAT_JSON) {
+		if (retain) {
+			format_element ();
+		} else {
+			change_element (ELEMENT_TYPE_OBJECT_OPEN);
+		}
+	} else {
+		/* Objects are only required for handling JSON.  In
+		 * fact, they cause problems for other output formats
+		 * that do not have visible "objects" in that they cause
+		 * the state table to lose track of the previous element
+		 * since it is actually the previous-previous element
+		 * (as the pointless object is the previous element).
+		 * 
+		 * As such, ignore them.
+		 */
+	}
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
+	case OUTPUT_FORMAT_TEXT:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		append (&doc, "{");
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		/* NOP */
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * object_close:
+ *
+ * @retain: if TRUE, do not disrupt the current element such that the
+ * object closure will be invisible to the state machine, but will still
+ * produce @retain: if TRUE, do not disrupt the current element.
+ *
+ * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
+ *
+ * Handle closing an object.
+ **/
+void
+object_close (int retain)
+{
+	common_assert ();
+
+	if (output_format == OUTPUT_FORMAT_JSON) {
+		if (retain) {
+			format_element ();
+		} else {
+			change_element (ELEMENT_TYPE_OBJECT_CLOSE);
+		}
+	} else {
+		/* Objects are only required for handling JSON.  In
+		 * fact, they cause problems for other output formats
+		 * that do not have visible "objects" in that they cause
+		 * the state table to lose track of the previous element
+		 * since it is actually the previous-previous element
+		 * (as the pointless object is the previous element).
+		 * 
+		 * As such, ignore them.
+		 */
+	}
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
+	case OUTPUT_FORMAT_TEXT:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		append (&doc, "}");
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		/* NOP */
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * section_open:
+ *
+ * @name: name of section.
+ *
+ * Start a new section which will contain >0 entry() calls.
+ **/
+void
+section_open (const char *name)
+{
+	assert (name);
+	common_assert ();
+
+	change_element (ELEMENT_TYPE_SECTION_OPEN);
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_TEXT:
+		appendf (&doc, "%s:", name);
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		add_breadcrumb (name);
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		appendf (&doc, "\"%s\" : {", name);
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		appendf (&doc, "<section name=\"%s\">", name);
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+void
+section_close (void)
+{
+	common_assert ();
+
+	change_element (ELEMENT_TYPE_SECTION_CLOSE);
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_TEXT:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		remove_breadcrumb ();
+		break;
+		
+	case OUTPUT_FORMAT_JSON:
+		append (&doc, "}");
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		append (&doc, "</section>");
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * container_open:
+ *
+ * @name: name of container.
+ *
+ * Start a new container which will contain >0 entry() calls.
+ *
+ * This is primarily to handle JSON arrays.
+ **/
+void
+container_open (const char *name)
+{
+	assert (name);
+	common_assert ();
+
+	change_element (ELEMENT_TYPE_CONTAINER_OPEN);
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_TEXT:
+		appendf (&doc, "%s:", name);
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		add_breadcrumb (name);
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		appendf (&doc, "\"%s\" : [", name);
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		appendf (&doc, "<container name=\"%s\">", name);
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * container_close:
+ *
+ * Finish with a container.
+ **/
+void
+container_close (void)
+{
+	common_assert ();
+
+	change_element (ELEMENT_TYPE_CONTAINER_CLOSE);
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_TEXT:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		remove_breadcrumb ();
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		append (&doc, "]");
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		append (&doc, "</container>");
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+void
+header (const char *name)
+{
+	assert (name);
+	common_assert ();
+
+	section_open (name);
+}
+
+void
+footer (void)
+{
+	common_assert ();
+	section_close ();
 }
 
 /**
@@ -818,7 +1428,7 @@ show_signals (void)
 	sigset_t          old_sigset;
 	struct sigaction  act;
 
-	header ("signals");
+	container_open ("signals");
 
 	/* Query blocked signals.
 	 *
@@ -853,13 +1463,22 @@ show_signals (void)
 		signal_name = get_signal_name (i);
 		signal_desc = strsignal (i);
 
-		show ("%s ('%s', %d): blocked=%s, ignored=%s",
-				signal_name ? signal_name : UNKNOWN_STR,
-				signal_desc ? signal_desc : UNKNOWN_STR,
-				i,
-				blocked ? YES_STR : NO_STR,
-				ignored ? YES_STR : NO_STR);
+		object_open (FALSE);
+
+		section_open (signal_name);
+
+		entry ("number", "%d", i);
+		entry ("description", "'%s'",
+				signal_desc ? signal_desc : UNKNOWN_STR);
+		entry ("blocked", "%s", blocked ? YES_STR : NO_STR);
+		entry ("ignored", "%s", ignored ? YES_STR : NO_STR);
+
+		section_close ();
+
+		object_close (FALSE);
 	}
+
+    container_close ();
 }
 
 void
@@ -873,20 +1492,32 @@ show_rlimits (void)
 	show_limit (RLIMIT_DATA);
 	show_limit (RLIMIT_FSIZE);
 
-	/* why can't we use this? */
-#if 0
-	show_limit (RLIMIT_RTTIME);
-#endif
-
 #if defined (PROCENV_LINUX)
+
+	if (LINUX_KERNEL_MMR (2, 6, 25)) {
+#if defined (RLIMIT_RTTIME)
+		show_limit (RLIMIT_RTTIME);
+#endif
+	}
 	show_limit (RLIMIT_LOCKS);
 #endif
 
 	show_limit (RLIMIT_MEMLOCK);
 
 #if defined (PROCENV_LINUX)
-	show_limit (RLIMIT_MSGQUEUE);
-	show_limit (RLIMIT_NICE);
+
+	if (LINUX_KERNEL_MMR (2, 6, 8)) {
+#if defined (RLIMIT_MSGQUEUE)
+		show_limit (RLIMIT_MSGQUEUE);
+#endif
+	}
+
+	if (LINUX_KERNEL_MMR (2, 6, 12)) {
+#if defined RLIMIT_NICE
+		show_limit (RLIMIT_NICE);
+#endif
+	}
+
 #endif
 
 	show_limit (RLIMIT_NOFILE);
@@ -897,16 +1528,19 @@ show_rlimits (void)
 	show_limit (RLIMIT_RTPRIO);
 #endif
 
-	/* FIXME */
-#if 0
-	show_limit (RLIMIT_RTTIME);
-#endif
-
 #if defined (PROCENV_LINUX)
+
+	if (LINUX_KERNEL_MMR (2, 6, 8)) {
+#if defined (RLIMIT_SIGPENDING)
 	show_limit (RLIMIT_SIGPENDING);
+#endif
+	}
+
 #endif
 
 	show_limit (RLIMIT_STACK);
+
+	footer ();
 }
 
 void
@@ -914,10 +1548,10 @@ show_rusage (void)
 {
 	struct rusage usage;
 
-	header ("rusage");
-
 	if (getrusage (RUSAGE_SELF, &usage) < 0)
 		die ("unable to query rusage");
+
+	header ("rusage");
 
 	show_usage (usage, ru_maxrss);
 	show_usage (usage, ru_ixrss);
@@ -933,10 +1567,12 @@ show_rusage (void)
 	show_usage (usage, ru_nsignals);
 	show_usage (usage, ru_nvcsw);
 	show_usage (usage, ru_nivcsw);
+
+    footer ();
 }
 
 void
-dump_sysconf (void)
+show_sysconf (void)
 {
 	struct procenv_map *p;
 	long                value;
@@ -945,11 +1581,14 @@ dump_sysconf (void)
 
 	for (p = sysconf_map; p && p->name; p++) {
 		value = get_sysconf (p->num);
-		show ("%s=%ld", p->name, value);
+		entry (p->name, "%ld", value);
 	}
+
+    footer ();
 }
 
 #ifndef PROCENV_ANDROID
+
 void
 show_confstrs (void)
 {
@@ -962,7 +1601,10 @@ show_confstrs (void)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
 #endif
 	show_confstr (_CS_PATH);
+
+	footer ();
 }
+
 #endif
 
 void
@@ -973,7 +1615,7 @@ get_misc (void)
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
 #if defined (PROCENV_LINUX)
-	get_root (misc.root, sizeof (misc.root));
+	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
 #endif
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	get_bsd_misc ();
@@ -1007,204 +1649,266 @@ is_console (int fd)
 #endif
 
 void
-dump_user (void)
+show_proc (void)
 {
 	header ("process");
 
-	show ("process id (pid): %d", user.pid);
+	entry ("process id (pid)", "%d", user.pid);
 
-	show ("parent process id (ppid): %d", user.ppid);
-	show ("session id (sid): %d (leader=%s)",
+	entry ("parent process id (ppid)", "%d", user.ppid);
+	entry ("session id (sid)", "%d (leader=%s)",
 			user.sid,
 			is_session_leader () ? YES_STR : NO_STR);
 
-	show ("name: '%s'", user.proc_name);
+	entry ("name", "'%s'", user.proc_name);
 
 	show_proc_branch ();
 
-	show ("process group id: %d (leader=%s)",
+	entry ("process group id", "%d (leader=%s)",
 			user.pgroup,
 			is_process_group_leader () ? YES_STR : NO_STR);
 	
-	show ("foreground process group: %d", user.fg_pgroup);
+	entry ("foreground process group", "%d", user.fg_pgroup);
 
-	show ("terminal: '%s'", user.ctrl_terminal);
+	entry ("terminal", "'%s'", user.ctrl_terminal);
 
-	show ("has controlling terminal: %s",
+	entry ("has controlling terminal", "%s",
 			has_ctty () ? YES_STR : NO_STR);
 
 #if defined (PROCENV_HURD)
-	show ("on console: %s", UNKNOWN_STR);
+	entry ("on console", "%s", UNKNOWN_STR);
 #else
-	show ("on console: %s",
+	entry ("on console", "%s",
 			is_console (user.tty_fd) ? YES_STR : NO_STR);
 #endif
 
-	show ("real user id (uid): %d ('%s')",
+	section_open ("user");
+
+	entry ("real user id (uid)", "%d ('%s')",
 			user.uid,
 			get_user_name (user.uid));
 
-	show ("effective user id (euid): %d ('%s')",
+	entry ("effective user id (euid)", "%d ('%s')",
 			user.euid,
 			get_user_name (user.euid));
 
-	show ("saved set-user-id (suid): %d ('%s')",
+	entry ("saved set-user-id (suid)", "%d ('%s')",
 			user.suid,
 			get_user_name (user.suid));
 
-	show ("real group id (gid): %d ('%s')",
+	section_close ();
+
+	section_open ("group");
+
+	entry ("real group id (gid)", "%d ('%s')",
 			user.gid,
 			get_group_name (user.gid));
 
-	show ("effective group id (egid): %d ('%s')",
+	entry ("effective group id (egid)", "%d ('%s')",
 			user.egid,
 			get_group_name (user.egid));
 
-	show ("saved set-group-id (sgid): %d ('%s')",
+	entry ("saved set-group-id (sgid)", "%d ('%s')",
 			user.sgid,
 			get_group_name (user.sgid));
 
-	show ("login name: '%s'", user.login ? user.login : "");
+	section_close ();
 
-#if defined (PROCENV_ANDROID)
+	entry ("login name", "'%s'", user.login ? user.login : "");
+
+	section_open ("passwd");
+
+	entry ("name", "'%s'", user.passwd.pw_name);
+
+#if ! defined (PROCENV_ANDROID)
 	/* No gecos on Android. In fact it doesn't actually use the
 	 * passwd database, but meh.
 	 */
-	show ("passwd: name='%s', dir='%s', shell='%s'",
-			user.passwd.pw_name,
-			user.passwd.pw_dir,
-			user.passwd.pw_shell);
-#else
-	show ("passwd: name='%s', gecos='%s', dir='%s', shell='%s'",
-			user.passwd.pw_name,
-			user.passwd.pw_gecos,
-			user.passwd.pw_dir,
-			user.passwd.pw_shell);
+	entry ("gecos", "'%s'", user.passwd.pw_gecos);
 #endif
+
+	entry ("dir", "'%s'", user.passwd.pw_dir);
+	entry ("shell", "'%s'", user.passwd.pw_shell);
+
+	section_close ();
+
 	show_all_groups ();
+
+	footer ();
 }
 
 void
-dump_priorities (void)
+show_priorities (void)
 {
-	show ("scheduler priority: process=%d, process group=%d, user=%d",
-			priority.process,
-			priority.pgrp,
-			priority.user);
+#if defined (PROCENV_LINUX)
+	int sched;
+
+	sched = sched_getscheduler (0);
+#endif
+
+	section_open ("scheduler");
+
+#if defined (PROCENV_LINUX)
+	entry ("type", "%s",
+			sched < 0 ? UNKNOWN_STR :
+			get_scheduler_name (sched));
+#endif
+
+	section_open ("priority");
+
+	entry ("process", "%d", priority.process);
+	entry ("process group", "%d", priority.pgrp);
+	entry ("user", "%d", priority.user);
+
+	section_close ();
+
+	section_close ();
 }
 
 void
-dump_misc (void)
+show_misc (void)
 {
 	header ("misc");
 
-	show ("umask: %4.4o", misc.umask_value);
-	show ("current directory (cwd): '%s'", misc.cwd);
+	entry ("umask", "%4.4o", misc.umask_value);
+	entry ("current directory (cwd)", "'%s'", misc.cwd);
 #if defined (PROCENV_LINUX)
-	show ("root: %s%s%s",
+	entry ("root", "%s%s%s",
 			strcmp (misc.root, UNKNOWN_STR) ? "'" : "",
 			misc.root,
 			strcmp (misc.root, UNKNOWN_STR) ? "'" : "");
 #endif
-	show ("chroot: %s", in_chroot () ? YES_STR : NO_STR);
+	entry ("chroot", "%s", in_chroot () ? YES_STR : NO_STR);
+	entry ("container", "%s", container_type ());
+
 #if defined (PROCENV_LINUX)
 	show_linux_prctl ();
+
+	section_open ("linux security module");
 	show_linux_security_module ();
 	show_linux_security_module_context ();
+	section_close ();
 #endif
-	show ("container: %s", container_type ());
 
-	show_cpu ();
-	dump_priorities ();
-	show ("memory page size: %d bytes", getpagesize ());
+	entry ("memory page size", "%d bytes", getpagesize ());
 
 #if defined (PROCENV_LINUX)
 #ifdef LINUX_VERSION_CODE
-	show ("kernel headers version: %u.%u.%u",
+	entry ("kernel headers version", "%u.%u.%u",
 			(LINUX_VERSION_CODE >> 16),
 			((LINUX_VERSION_CODE >> 8) & 0xFF),
 			(LINUX_VERSION_CODE & 0xFF));
 #endif
 #endif
+
+	footer ();
 }
 
 void
-dump_platform (void)
+show_platform (void)
 {
 	long kernel_bits;
 	long executable_bits;
 
 	header ("platform");
 
-	show ("operating system: %s", get_os ());
-	show ("architecture: %s", get_arch ());
+	entry ("operating system", "%s", get_os ());
+	entry ("architecture", "%s", get_arch ());
 
 	kernel_bits = get_kernel_bits ();
 
 	executable_bits = sizeof (void *) * CHAR_BIT * sizeof (char);
 
 	if (kernel_bits == -1)
-		show ("kernel bits: %s", UNKNOWN_STR);
+		entry ("kernel bits", "%s", UNKNOWN_STR);
 	else
-		show ("kernel bits: %lu", kernel_bits);
+		entry ("kernel bits", "%lu", kernel_bits);
 
-	show ("executable bits: %lu", executable_bits);
+	entry ("executable bits", "%lu", executable_bits);
 
-	show ("code endian: %s",
+	entry ("code endian", "%s",
 		is_big_endian () ? BIG_STR : LITTLE_STR);
+
 	show_data_model ();
+
+    footer ();
 }
 
 void
 show_cpu (void)
 {
+	header ("cpu");
+
 #if defined (PROCENV_LINUX)
 	show_linux_cpu ();
-	show_linux_scheduler ();
 #endif
 
 #if defined (PROCENV_BSD)
 	show_bsd_cpu ();
 #endif
+	show_priorities ();
+
+	footer ();
 }
 
 void
-dump_fds (void)
+show_fds (void)
+{
+#if defined (PROCENV_LINUX)
+	show_fds_linux ();
+#else
+	show_fds_generic ();
+#endif
+
+}
+
+void
+show_fds_generic (void)
 {
 	int fd;
 	int max;
 
-	header ("fds");
+	container_open ("file descriptors");
+
 	max = sysconf (_SC_OPEN_MAX);
 
 	for (fd = 0; fd < max; fd++) {
-		if (fd_valid (fd)) {
-			int    is_tty = isatty (fd);
-			char  *name = NULL;
+		int    is_tty = isatty (fd);
+		char  *name = NULL;
+		char  *num = NULL;
 
-			if (is_tty) {
+		if (! fd_valid (fd))
+			continue;
+
 #if ! defined (PROCENV_ANDROID)
-				name = ttyname (fd);
+		name = ttyname (fd);
 #endif
-				show ("fd %d: terminal=%s ('%s')", fd,
-						is_tty ? YES_STR : NO_STR,
-						name ? name : NA_STR);
-			} else {
-				show ("fd %d: terminal=%s", fd, NO_STR);
-			}
-		}
+		appendf (&num, "%d", fd);
+
+		object_open (FALSE);
+
+		section_open (num);
+
+		entry ("terminal", "%s", is_tty ? YES_STR : NO_STR);
+		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
+		entry ("device", "%s", name ? name : NA_STR);
+
+		section_close ();
+
+		object_close (FALSE);
+
+		free (num);
 	}
 
-#if defined (PROCENV_LINUX)
-	dump_linux_proc_fds ();
-#endif
-
+	container_close ();
 }
 
 void
 show_env (void)
 {
 	char    **env = environ;
+	char     *name;
+	char     *value;
 	size_t    i;
 
 	header ("environment");
@@ -1218,9 +1922,17 @@ show_env (void)
 
 	env = environ;
 	while (env && *env) {
-		show ("%s", *env);
+		name = *env;
+		value = strchr (name, '=');
+		assert (value);
+		*value = '\0';
+		value++;
+
+		entry (name, "%s", value);
 		env++;
 	}
+
+	footer ();
 }
 
 int
@@ -1308,48 +2020,65 @@ get_user_info (void)
 	assert (p == (void *)&user.passwd);
 }
 
-/* append @new to @orig */
+/**
+ * appendn:
+ *
+ * @str: [output] string to append to,
+ * @new: string to append to @str,
+ * @len: length of @new.
+ *
+ * Append first @len bytes of @new to @str,
+ * ensuring result is nul-terminated.
+ **/
+void
+appendn (char **str, const char *new, size_t len)
+{
+	size_t  total;
+
+	assert (str);
+	assert (new);
+
+	if (! len)
+		return;
+
+	if (! *str)
+		*str = strdup ("");
+
+	/* +1 for terminating nul */
+	total = strlen (*str) + 1;
+
+	total += len;
+
+	*str = realloc (*str, total);
+	assert (*str);
+
+	strncat (*str, new, len);
+
+	assert ((*str)[total-1] == '\0');
+}
+
+/* append @new to @str */
 void
 append (char **str, const char *new)
 {
-    size_t    len;
-    size_t    total;
+	size_t  len;
+	assert (str);
+	assert (new);
 
-    assert (str);
-    assert (new);
+	len = strlen (new);
 
-    if (! *str)
-	    *str = strdup ("");
-
-    assert (*str);
-
-    /* +1 for terminating nul */
-    total = strlen (*str) + 1;
-
-    len = strlen (new);
-
-    /* +1 for comma-delimiter */
-    total += len + 1;
-
-    *str = realloc (*str, total);
-    assert (*str);
-    strcat (*str, new);
+	appendn (str, new, len);
 }
 
-/* append fmt and args to @str */
+/* append @fmt and args to @str */
 void
 appendf (char **str, const char *fmt, ...)
 {
-    va_list  ap;
-    char    *new = NULL;
+    va_list   ap;
+    char     *new = NULL;
 
     assert (str);
     assert (fmt);
-
-    if (! *str)
-	    *str = strdup ("");
-
-    assert (*str);
 
     va_start (ap, fmt);
 
@@ -1360,10 +2089,15 @@ appendf (char **str, const char *fmt, ...)
 
     va_end (ap);
 
-    append (str, new);
-    free (new);
+    if (*str) {
+	    append (str, new);
+	    free (new);
+    } else {
+	    *str = new;
+    }
 }
 
+/* append @fmt and args to @str */
 void
 appendva (char **str, const char *fmt, va_list ap)
 {
@@ -1372,18 +2106,17 @@ appendva (char **str, const char *fmt, va_list ap)
     assert (str);
     assert (fmt);
 
-    if (! *str)
-	    *str = strdup ("");
-
-    assert (*str);
-
     if (vasprintf (&new, fmt, ap) < 0) {
         perror ("vasprintf");
         exit (EXIT_FAILURE);
     }
 
-    append (str, new);
-    free (new);
+    if (*str) {
+	    append (str, new);
+	    free (new);
+    } else {
+	    *str = new;
+    }
 }
 
 void
@@ -1391,7 +2124,7 @@ show_all_groups (void)
 {
 	int     i;
 	int     ret;
-	char   *str;
+	char   *str = NULL;
 
 	/* Initial number of groups we'll try to read. If this isn't
 	 * enough, we increase it to make rooom for all available
@@ -1417,9 +2150,6 @@ show_all_groups (void)
 			goto error;
 	}
 
-	str = strdup ("groups:");
-	assert (str);
-
 	size = ret;
 
 	if (size == 0) {
@@ -1429,15 +2159,14 @@ show_all_groups (void)
 
 		group = get_group_name (user.passwd.pw_gid);
 		if (! group) {
-			show (str);
-			free (str);
+			entry ("groups", "%s", UNKNOWN_STR);
 			return;
 		}
 
 		appendf (&str, " '%s' (%d)",
 				group,
 				user.passwd.pw_gid);
-		show (str);
+		entry ("groups", "%s", str);
 		free (str);
 		return;
 	}
@@ -1468,7 +2197,7 @@ show_all_groups (void)
 	free (group_names);
 	free (groups);
 
-	show (str);
+	entry ("groups", "%s", str);
 	free (str);
 
 	return;
@@ -1478,16 +2207,8 @@ error:
 }
 
 void
-set_indent (void)
-{
-	indent = selected_option ? 0 : INDENT;
-}
-
-void
 init (void)
 {
-	set_indent ();
-
 	/* required to allow for more graceful handling of prctl(2)
 	 * options that were introduced in kernel version 'x.y'.
 	 */
@@ -1496,7 +2217,6 @@ init (void)
 	get_user_info ();
 	get_misc ();
 	get_priorities ();
-
 }
 
 void
@@ -1509,6 +2229,13 @@ cleanup (void)
 
 	if (output == OUTPUT_SYSLOG)
 		closelog ();
+
+	if (output_format == OUTPUT_FORMAT_CRUMB && crumb_list) {
+		clear_breadcrumbs ();
+		free (crumb_list);
+	}
+
+	free (doc);
 }
 
 /**
@@ -1528,27 +2255,50 @@ is_big_endian (void)
 }
 
 void
-dump_meta (void)
+show_meta (void)
 {
-	header (PACKAGE_NAME);
+	header ("meta");
 
-	show ("version: %s", PACKAGE_STRING);
-	show ("mode: %s%s",
+	entry ("version", "%s", PACKAGE_VERSION);
+	entry ("package", "%s", PACKAGE_STRING);
+	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
 			PRIVILEGED_STR);
+
+	entry ("format-type", "%s", get_output_format_name ());
+	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
+
+	footer ();
 }
 
 void
 show_arguments (void)
 {
-	int i;
+	int  i;
 
 	header ("arguments");
 
-	show ("count: %u", argvc);
+	entry ("count", "%u", argvc);
 
-	for (i = 0; i < argvc; i++)
-		show ("argv[%d]='%s'", i, argvp[i]);
+	container_open ("list");
+
+	for (i = 0; i < argvc; i++) {
+		char  *buffer = NULL;
+
+		appendf (&buffer, "argv[%d]", i);
+
+		object_open (FALSE);
+
+		entry (buffer, "%s", argvp[i]);
+
+		object_close (FALSE);
+
+		free (buffer);
+	}
+
+	container_close ();
+
+	footer ();
 }
 
 void
@@ -1556,10 +2306,11 @@ show_stat (void)
 {
 	struct stat  st;
 	char         real_path[PATH_MAX];
-	char         formatted_time[32];
-	char         modestr[10+1];
+	char         formatted_atime[32];
+	char         formatted_ctime[32];
+	char         formatted_mtime[32];
+	char        *modestr;
 	mode_t       perms;
-	int          i = 0;
 	char        *tmp = NULL;
 
 	assert (program_name);
@@ -1577,32 +2328,24 @@ show_stat (void)
 		die ("unable to stat path: '%s'", real_path);
 
 	header ("stat");
-	show ("argv[0]: '%s'", program_name);
-	show ("real path: '%s'", real_path);
-	show ("dev: major=%u, minor=%u",
-			major (st.st_dev), minor (st.st_dev));
-	show ("inode: %lu", (unsigned long int)st.st_ino);
 
-	memset (modestr, '\0', sizeof (modestr));
+	entry ("argv[0]", "'%s'", program_name);
+	entry ("real path", "'%s'", real_path);
 
-	modestr[i++] = (S_ISLNK (st.st_mode & S_IFMT)) ? 'l' : '-';
+	section_open ("device");
 
-	perms = (st.st_mode & S_IRWXU);
-	modestr[i++] = (perms & S_IRUSR) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWUSR) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXUSR) ? 'x' : '-';
+	entry ("major", "%u", major (st.st_dev));
+	entry ("minor", "%u", minor (st.st_dev));
 
-	perms = (st.st_mode & S_IRWXG);
-	modestr[i++] = (perms & S_IRGRP) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWGRP) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXGRP) ? 'x' : '-';
+	section_close ();
 
-	perms = (st.st_mode & S_IRWXO);
-	modestr[i++] = (perms & S_IROTH) ? 'r' : '-';
-	modestr[i++] = (perms & S_IWOTH) ? 'w' : '-';
-	modestr[i++] = (perms & S_IXOTH) ? 'x' : '-';
+	entry ("inode", "%lu", (unsigned long int)st.st_ino);
 
+	modestr = format_perms (st.st_mode);
+	if (! modestr)
+		die ("failed to allocate space for permissions string");
 	perms = (st.st_mode &= ~S_IFMT);
+
 	if (perms & S_ISUID)
 		modestr[3] = 's';
 	if (perms & S_ISGID)
@@ -1610,28 +2353,45 @@ show_stat (void)
 	if (perms & S_ISVTX)
 		modestr[9] = 't';
 
-	show ("permissions: %4.4o (%s)", perms, modestr);
+	section_open ("permissions");
 
-	show ("hard links: %u", st.st_nlink);
-	show ("user id (uid): %d ('%s')", st.st_uid, get_user_name (st.st_uid));
-	show ("group id (gid): %d ('%s')", st.st_gid, get_group_name (st.st_uid));
-	show ("size: %lu bytes (%lu 512-byte blocks)", st.st_size, st.st_blocks);
+	entry ("octal", "%4.4o", perms);
+	entry ("symbolic", "%s", modestr);
+	free (modestr);
 
-	if (! ctime_r ((time_t *)&st.st_atime, formatted_time))
+	section_close ();
+
+	entry ("hard links", "%u", st.st_nlink);
+	entry ("user id (uid)", "%d ('%s')", st.st_uid, get_user_name (st.st_uid));
+	entry ("group id (gid)", "%d ('%s')", st.st_gid, get_group_name (st.st_uid));
+	entry ("size", "%lu bytes (%lu 512-byte blocks)", st.st_size, st.st_blocks);
+
+	/*****************************************/
+	section_open ("times");
+
+	if (! ctime_r ((time_t *)&st.st_atime, formatted_atime))
 		die ("failed to format atime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
-	show ("atime: %lu (%s)", st.st_atime, formatted_time);
+	formatted_atime[ strlen (formatted_atime)-1] = '\0';
 
+	entry ("atime (access)", "%lu (%s)", st.st_atime, formatted_atime);
 
-	if (! ctime_r ((time_t *)&st.st_mtime, formatted_time))
+	if (! ctime_r ((time_t *)&st.st_mtime, formatted_mtime))
 		die ("failed to format mtime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
-	show ("mtime: %lu (%s)", st.st_mtime, formatted_time);
+	formatted_mtime[ strlen (formatted_mtime)-1] = '\0';
 
-	if (! ctime_r ((time_t *)&st.st_ctime, formatted_time))
+	entry ("mtime (modification)", "%lu (%s)", st.st_mtime, formatted_mtime);
+
+	if (! ctime_r ((time_t *)&st.st_ctime, formatted_ctime))
 		die ("failed to format ctime");
-	formatted_time[ strlen (formatted_time)-1] = '\0';
-	show ("ctime: %lu (%s)", st.st_ctime, formatted_time);
+	formatted_ctime[ strlen (formatted_ctime)-1] = '\0';
+
+	entry ("ctime (status change)", "%lu (%s)", st.st_ctime, formatted_ctime);
+
+	section_close ();
+
+	/*****************************************/
+
+	footer ();
 }
 
 long
@@ -1653,7 +2413,9 @@ get_kernel_bits (void)
 void
 dump (void)
 {
-	dump_meta ();
+	master_header (&doc);
+
+	show_meta ();
 	show_arguments ();
 
 #if defined (PROCENV_LINUX)
@@ -1666,36 +2428,40 @@ dump (void)
 	show_confstrs ();
 #endif
 	show_env ();
-	dump_fds ();
+	show_fds ();
 #ifndef PROCENV_ANDROID
 	show_libs ();
 #endif
 	show_rlimits ();
 	show_locale ();
-	dump_misc ();
+	show_misc ();
+	show_msg_queues ();
 	show_mounts (SHOW_ALL);
 	show_network ();
 #if defined (PROCENV_LINUX)
 	show_oom ();
 #endif
-	dump_platform ();
-	dump_user ();
+	show_platform ();
+	show_proc ();
 	show_ranges ();
 
 	/* We should really call this last, to make figures as reliable
 	 * as possible.
 	 */
 	show_rusage ();
-
+	show_semaphores ();
+	show_shared_mem ();
 	show_signals ();
 	show_sizeof ();
 	show_stat ();
-	dump_sysconf ();
+	show_sysconf ();
 	show_threads ();
 	show_time ();
 	show_timezone ();
 	show_tty_attrs ();
-	dump_uname ();
+	show_uname ();
+
+	master_footer (&doc);
 }
 void
 get_network_address (const struct sockaddr *address, int family, char *name)
@@ -1731,23 +2497,18 @@ get_network_address (const struct sockaddr *address, int family, char *name)
 	assert (name[NI_MAXHOST-1] == '\0');
 }
 
-char *
+void
 decode_if_flags (unsigned int flags)
 {
-	char *str = NULL;
 	struct if_flag_map *p;
-	int first = TRUE;
 
 	for (p = if_flag_map; p && p->name; p++) {
 		if (flags & p->flag) {
-			appendf (&str, "%s%s",
-					first ? "" : ",",
-					p->name);
-			first = FALSE;
+			object_open (FALSE);
+			entry (p->name, "0x%x", p->flag);
+			object_close (FALSE);
 		}
 	}
-
-	return str;
 }
 
 const char *
@@ -1914,16 +2675,18 @@ show_linux_mounts (ShowMountType what)
 	unsigned int     major = 0;
 	unsigned int     minor = 0;
 	int              have_stats;
+#if defined (PROCENV_LINUX)
+	char             canonical[PATH_MAX];
+#endif
+
+	common_assert ();
 
 	mtab = fopen (MOUNTS, "r");
 
-	if (! mtab) {
-		show ("%s", UNKNOWN_STR);
+	if (! mtab)
 		return;
-	}
 
 	while ((mnt = getmntent (mtab))) {
-		char *str = NULL;
 		have_stats = TRUE;
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
@@ -1949,58 +2712,78 @@ show_linux_mounts (ShowMountType what)
 			get_major_minor (mnt->mnt_dir,
 					&major,
 					&minor);
-			appendf (&str,
-				"fsname='%s', dir='%s', type='%s', "
-				"opts='%s', "
-				"dev=(major:%u, minor:%u), "
-				"dump_freq=%d, fsck_passno=%d, ",
-				mnt->mnt_fsname,
-				mnt->mnt_dir,
-				mnt->mnt_type,
-				mnt->mnt_opts,
-				major, minor,
-				mnt->mnt_freq, mnt->mnt_passno);
+
+			section_open (mnt->mnt_dir);
+
+			entry ("filesystem", "'%s'", mnt->mnt_fsname);
+
+#if defined (PROCENV_LINUX)
+			get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
+			entry ("canonical", "'%s'", canonical);
+#endif
+
+			entry ("type", "'%s'", mnt->mnt_type);
+			entry ("options", "'%s'", mnt->mnt_opts);
+
+			show_pathconfs (what, mnt->mnt_dir);
+
+			section_open ("device");
+			entry ("major", "%u", major);
+			entry ("minor", "%u", minor);
+			section_close ();
+
+			entry ("dump frequency", "%d", mnt->mnt_freq);
+			entry ("fsck pass number", "%d", mnt->mnt_passno);
 
 			if (have_stats) {
-				appendf (&str, 
-				"fsid=%.*x, "
-				"optimal_block_size=%lu, "
-				"%d-byte blocks (total=%lu, used=%lu, free=%lu, available=%lu), "
-				"files/inodes (total=%lu, used=%lu, free=%lu)",
-				sizeof (fs.f_fsid),
-				fs.f_fsid,
-				fs.f_bsize,
-				DF_BLOCK_SIZE,
-				blocks,
-				used_blocks,
-				bfree,
-				bavail,
-				fs.f_files,
-				used_files,
-				fs.f_ffree);
+
+				entry ("fsid", "%.*x", sizeof (fs.f_fsid), fs.f_fsid);
+				entry ("optimal block size", "%lu", fs.f_bsize);
+
+				section_open ("blocks");
+
+				entry ("size", "%lu bytes", DF_BLOCK_SIZE);
+				entry ("total", "%lu", blocks);
+				entry ("used", "%lu", used_blocks);
+				entry ("free", "%lu", bfree);
+				entry ("available", "%lu", bavail);
+
+				section_close ();
+
+				section_open ("files/inodes");
+
+				entry ("total", "%lu", fs.f_files);
+				entry ("used", "%lu", used_files);
+				entry ("free", "%lu", fs.f_ffree);
+
+				section_close ();
 			} else {
-				appendf (&str, 
-				"fsid=%s, "
-				"optimal_block_size=%s, "
-				"%d-byte blocks (total=%s, used=%s, free=%s, available=%s), "
-				"files/inodes (total=%s, free=%s)",
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR,
-				UNKNOWN_STR);
+				entry ("fsid", "%s", UNKNOWN_STR);
+				entry ("optimal block size", "%s", UNKNOWN_STR);
+
+				section_open ("blocks");
+
+				entry ("size", "%lu bytes", DF_BLOCK_SIZE);
+				entry ("total", "%s", UNKNOWN_STR);
+				entry ("used", "%s", UNKNOWN_STR);
+				entry ("free", "%s", UNKNOWN_STR);
+				entry ("available", "%s", UNKNOWN_STR);
+
+				section_close ();
+
+				section_open ("files/inodes");
+
+				entry ("total", "%s", UNKNOWN_STR);
+				entry ("used", "%s", UNKNOWN_STR);
+				entry ("free", "%s", UNKNOWN_STR);
+
+				section_close ();
 			}
 
-			show (str);
-			free (str);
-		}
-
-		if (what == SHOW_ALL || what == SHOW_PATHCONF)
+			section_close ();
+		} else {
 			show_pathconfs (what, mnt->mnt_dir);
+		}
 	}
 
 	fclose (mtab);
@@ -2008,13 +2791,11 @@ show_linux_mounts (ShowMountType what)
 #endif
 
 #if defined (PROCENV_LINUX)
-char *
+void
 decode_extended_if_flags (const char *interface, unsigned short *flags)
 {
 	int                           sock;
 	struct ifreq                  ifr;
-	int                           first = TRUE;
-	char                         *str = NULL;
 	struct if_extended_flag_map  *p;
 
 	assert (interface);
@@ -2026,7 +2807,7 @@ decode_extended_if_flags (const char *interface, unsigned short *flags)
 	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
 	if (sock < 0)
-		return NULL;
+		return;
 
 	memset (&ifr, 0, sizeof (struct ifreq));
 	strncpy (ifr.ifr_name, interface, IFNAMSIZ-1);
@@ -2038,15 +2819,13 @@ decode_extended_if_flags (const char *interface, unsigned short *flags)
 
 	for (p = if_extended_flag_map; p && p->name; p++) {
 		if (*flags & p->flag) {
-			appendf (&str, "%s%s",
-					first ? "" : ",",
-					p->name);
-			first = FALSE;
+			object_open (FALSE);
+			entry (p->name, "0x%x", p->flag);
+			object_close (FALSE);
 		}
 	}
 out:
 	close (sock);
-	return str;
 }
 
 
@@ -2119,7 +2898,9 @@ linux_kernel_version (int major, int minor, int revision)
 void
 show_mounts (ShowMountType what)
 {
-	header ("mounts");
+	common_assert ();
+
+	header (what == SHOW_PATHCONF ? "pathconf" : "mounts");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_linux_mounts (what);
@@ -2128,6 +2909,8 @@ show_mounts (ShowMountType what)
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 	show_bsd_mounts (what);
 #endif
+
+	footer ();
 }
 
 const char *
@@ -2161,70 +2944,84 @@ get_net_family_name (sa_family_t family)
 void
 show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 {
-	char                *str = NULL;
-	char                *flags = NULL;
-	char                *extended_flags = NULL;
 	unsigned short       ext_flags = 0;
 	sa_family_t          family;
 	char                 address[NI_MAXHOST];
 	int                  mtu = 0;
 
+	common_assert ();
 	assert (ifa);
 
 	family = ifa->ifa_addr->sa_family;
 
-	flags = decode_if_flags (ifa->ifa_flags);
+	section_open (ifa->ifa_name);
+
+	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
+
+	/*******************************/
+	
+	section_open ("flags");
+
+	entry ("value", "0x%x", ifa->ifa_flags);
+
+	container_open ("fields");
+
+	decode_if_flags (ifa->ifa_flags);
+
+	container_close ();
+
+	section_close ();
+
+	/*******************************/
+
+	section_open ("extended flags");
+
+	entry ("value", "0x%x", ext_flags);
+
+	container_open ("fields");
 
 #if defined (PROCENV_LINUX)
-	extended_flags = decode_extended_if_flags (ifa->ifa_name, &ext_flags);
+	decode_extended_if_flags (ifa->ifa_name, &ext_flags);
 #endif
-	appendf (&str, "interface %s: family=%s (0x%x), "
-			"flags=0x%x (%s), extended_flags=0x%x (%s)",
-			ifa->ifa_name,
-		        get_net_family_name (family),
-			family,
-			ifa->ifa_flags,
-			flags ? flags : UNKNOWN_STR,
-			ext_flags,
-			extended_flags ? extended_flags : NA_STR);
-	if (flags)
-		free (flags);
 
-	if (extended_flags)
-		free (extended_flags);
+	container_close ();
+
+	section_close ();
+
+	/*******************************/
 
 	mtu = get_mtu (ifa);
 
 #if defined (PROCENV_HURD)
 	/* No AF_LINK/AF_PACKET on Hurd atm */
-	appendf (&str, ", mac=%s", UNKNOWN_STR);
+	entry ("mac", "%s", UNKNOWN_STR);
 #else
-	appendf (&str, ", mac=%s", mac_address ? mac_address : NA_STR);
+	entry ("mac", "%s", mac_address ? mac_address : NA_STR);
 #endif
 
 	if (mtu > 0) {
-		appendf (&str, ", mtu=%d", mtu);
+		entry ("mtu", "%d", mtu);
 	} else {
-		appendf (&str, ", mtu=%s", UNKNOWN_STR);
+		entry ("mtu", "%s", UNKNOWN_STR);
 	}
 
 	get_network_address (ifa->ifa_addr, family, address);
-	appendf (&str, ", address=%s", address);
+	entry ("address", "%s", address);
 
 	if (ifa->ifa_netmask)
 		get_network_address (ifa->ifa_netmask, family, address);
-	appendf (&str, ", netmask=%s", ifa->ifa_netmask ? address : NA_STR);
+	entry ("netmask", "%s", ifa->ifa_netmask ? address : NA_STR);
 
 #if !defined (PROCENV_HURD)
 	if (family != PROCENV_LINK_LEVEL_FAMILY) {
 		if ((ifa->ifa_flags & IFF_BROADCAST) && ifa->ifa_broadaddr) {
 			get_network_address (ifa->ifa_broadaddr, family, address);
 
-			appendf (&str, ", broadcast=%s", ifa->ifa_broadaddr ? address : NA_STR);
+			entry ("broadcast", "%s", ifa->ifa_broadaddr ? address : NA_STR);
 		}
 	} else {
 #endif
-		appendf (&str, ", broadcast=%s", NA_STR);
+		entry ("broadcast", "%s", NA_STR);
 #if !defined (PROCENV_HURD)
 	}
 #endif
@@ -2233,11 +3030,10 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 		get_network_address (ifa->ifa_dstaddr, family, address);
 
-		appendf (&str, ", point-to-point=%s", address);
+		entry ("point-to-point", "%s", address);
 	}
 
-	show (str);
-	free (str);
+	section_close ();
 }
 
 /*
@@ -2275,6 +3071,18 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
  * suggests this _seems_ to be the case, but is not documented as being
  * guaranteed.
  */
+#ifdef PROCENV_ANDROID
+
+void
+show_network (void)
+{
+	header ("network");
+	/* Bionic isn't actually that bionic at all :( */
+	show ("%s", UNKNOWN_STR);
+}
+
+#else
+
 void
 show_network (void)
 {
@@ -2285,13 +3093,13 @@ show_network (void)
 	struct network_map  *node = NULL;
 	struct network_map  *tmp = NULL;
 
+	common_assert ();
+
 	header ("network");
 
 	/* Query all network interfaces */
-	if (getifaddrs (&if_addrs) < 0) {
-		show ("%s", UNKNOWN_STR);
+	if (getifaddrs (&if_addrs) < 0)
 		return;
-	}
 
 	/* Construct an initial node for the cache */
 	head = calloc (1, sizeof (struct network_map));
@@ -2397,7 +3205,10 @@ show_network (void)
 
 	free (head);
 	freeifaddrs (if_addrs);
+
+	footer ();
 }
+#endif
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 
@@ -2465,6 +3276,9 @@ show_bsd_mounts (ShowMountType what)
 	statfs_int_type   bfree;
 	statfs_int_type   bavail;
 	statfs_int_type   used;
+	int               ret;
+
+	common_assert ();
 
 	/* Note that returned memory cannot be freed (by us) */
 	count = getmntinfo (&mounts, MNT_WAIT);
@@ -2483,8 +3297,9 @@ show_bsd_mounts (ShowMountType what)
 					mnt->f_mntonname);
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
+			char *str = NULL;
 
-			get_major_minor (mnt->f_mntonname,
+			ret = get_major_minor (mnt->f_mntonname,
 					&major,
 					&minor);
 
@@ -2494,34 +3309,48 @@ show_bsd_mounts (ShowMountType what)
 			bavail = mnt->f_bavail * multiplier;
 			used = blocks - bfree;
 
-			show ("fsname='%s', dir='%s', type='%s', "
-					"opts='%s', "
-					"dev=(major:%u, minor:%u), "
-					"fsid=%.*x%.*x, "
-					"optimal_block_size=%" statfs_int_fmt ", "
-					"%d-byte blocks (total=%" statfs_int_fmt ", "
-					"used=%" statfs_int_fmt ", free=%" statfs_int_fmt ", available=%" statfs_int_fmt "), "
-					"files/inodes (total=%" statfs_int_fmt ", free=%" statfs_int_fmt ")",
-					mnt->f_mntfromname,
-					mnt->f_mntonname,
-					mnt->f_fstypename,
-					opts,
-					major, minor,
+			section_open (mnt->f_mntfromname);
 
-					/* Always zero on BSD? */
-					sizeof (mnt->f_fsid.val[0]),
-					mnt->f_fsid.val[0],
-					sizeof (mnt->f_fsid.val[1]),
-					mnt->f_fsid.val[1],
+			entry ("dir", "'%s'", mnt->f_mntonname);
+			entry ("type", "%s", mnt->f_fstypename);
+			entry ("options", "'%s'", opts);
 
-					mnt->f_bsize,
-					DF_BLOCK_SIZE,
-					blocks,
-					used,
-					bfree,
-					bavail,
-					mnt->f_files,
-					mnt->f_ffree);
+			section_open ("device");
+			entry ("major", "%u", major);
+			entry ("minor", "%u", minor);
+			section_close ();
+
+			entry ("fsid", "%.*x%.*x", 
+				/* Always zero on BSD? */
+				sizeof (mnt->f_fsid.val[0]),
+				mnt->f_fsid.val[0],
+				sizeof (mnt->f_fsid.val[1]),
+				mnt->f_fsid.val[1]);
+
+			entry ("optimal block size", "%" statfs_int_fmt,
+					mnt->f_bsize);
+
+			section_open ("blocks");
+
+			entry ("size", "%lu bytes", DF_BLOCK_SIZE);
+
+			entry ("total", "%" statfs_int_fmt, blocks);
+			entry ("used", "%"statfs_int_fmt,  used);
+			entry ("free", "%" statfs_int_fmt, bfree);
+			entry ("available", "%" statfs_int_fmt, bavail);
+
+			section_close ();
+
+			section_open ("files/inodes");
+
+			entry ("total", "%" statfs_int_fmt, mnt->f_files);
+			entry ("used", "%" statfs_int_fmt,
+					mnt->f_files - mnt->f_ffree);
+			entry ("free", "%" statfs_int_fmt, mnt->f_ffree);
+
+			section_close ();
+
+			section_close ();
 		}
 
 		if (what == SHOW_ALL || what == SHOW_PATHCONF)
@@ -2530,6 +3359,33 @@ show_bsd_mounts (ShowMountType what)
 
 		free (opts);
 	}
+}
+
+/* FIXME */
+void
+show_shared_mem_bsd (void)
+{
+	header ("shared memory");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
+}
+
+/* FIXME */
+void
+show_semaphores_bsd (void)
+{
+	header ("semaphores");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
+}
+
+/* FIXME */
+void
+show_msg_queues_bsd (void)
+{
+	header ("message queues");
+
+	show ("%s", NOT_IMPLEMENTED_STR);
 }
 
 #endif
@@ -2659,6 +3515,9 @@ in_chroot (void)
 
 error:
 	die ("cannot stat '%s'", dir);
+
+	/* compiler appeasement */
+	return FALSE;
 }
 
 /* detect if setsid(2) has been called */
@@ -2678,6 +3537,8 @@ is_process_group_leader (void)
 void
 show_proc_branch (void)
 {
+	common_assert ();
+
 #if defined (PROCENV_LINUX)
 	show_linux_proc_branch ();
 #endif
@@ -2700,11 +3561,10 @@ show_bsd_proc_branch (void)
 	struct kinfo_proc   *p;
 	pid_t                self, current;
 	int                  done = FALSE;
-	char                *str;
+	char                *str = NULL;
 	pid_t                ultimate_parent = 0;
 
-	str = strdup ("ancestry: ");
-	assert (str);
+	common_assert ();
 
 	self = current = getpid ();
 
@@ -2807,7 +3667,7 @@ show_bsd_proc_branch (void)
 	if (kvm_close (kvm) < 0)
 		die ("failed to close kvm");
 
-	show (str);
+	entry ("ancestry", "%s", str);
 	free (str);
 }
 #endif
@@ -2819,6 +3679,10 @@ show_linux_prctl (void)
 	int  rc;
 	int  arg2;
 	char name[17] = { 0 };
+
+	common_assert ();
+
+	section_open ("prctl");
 
 #ifdef PR_GET_ENDIAN
 	if (LINUX_KERNEL_MMR (2, 6, 18)) {
@@ -2843,7 +3707,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("process endian: %s", value);
+		entry ("process endian", "%s", value);
 	}
 #endif
 
@@ -2869,7 +3733,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("dumpable: %s", value);
+		entry ("dumpable", "%s", value);
 	}
 #endif
 
@@ -2896,7 +3760,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("floating point emulation: %s", value);
+		entry ("floating point emulation", "%s", value);
 	}
 #endif
 
@@ -2932,7 +3796,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("floating point exceptions: %s", value);
+		entry ("floating point exceptions", "%s", value);
 	}
 #endif
 
@@ -2940,9 +3804,9 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
 		rc = prctl (PR_GET_NAME, name, 0, 0, 0);
 		if (rc < 0)
-			show ("process name: %s", UNKNOWN_STR);
+			entry ("process name", "%s", UNKNOWN_STR);
 		else
-			show ("process name: %s", name);
+			entry ("process name", "%s", name);
 	}
 
 #endif
@@ -2951,11 +3815,11 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MMR (2, 3, 15)) {
 		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
 		if (rc < 0)
-			show ("parent death signal: %s", UNKNOWN_STR);
+			entry ("parent death signal", "%s", UNKNOWN_STR);
 		else if (rc == 0)
-			show ("parent death signal: disabled");
+			entry ("parent death signal", "disabled");
 		else
-			show ("parent death signal: %d", arg2);
+			entry ("parent death signal", "%d", arg2);
 	}
 #endif
 
@@ -2982,7 +3846,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("secure computing: %s", value);
+		entry ("secure computing", "%s", value);
 	}
 #endif
 
@@ -3008,7 +3872,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("process timing: %s", value);
+		entry ("process timing", "%s", value);
 	}
 #endif
 
@@ -3032,7 +3896,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("timestamp counter read: %s", value);
+		entry ("timestamp counter read", "%s", value);
 	}
 #endif
 
@@ -3056,7 +3920,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("unaligned access: %s", value);
+		entry ("unaligned access", "%s", value);
 	}
 #endif
 
@@ -3083,7 +3947,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("machine-check exception: %s", value);
+		entry ("machine-check exception", "%s", value);
 	}
 #endif
 
@@ -3107,7 +3971,7 @@ show_linux_prctl (void)
 				break;
 			}
 		}
-		show ("no new privileges: %s", value);
+		entry ("no new privileges", "%s", value);
 	}
 #endif
 
@@ -3115,9 +3979,9 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MMR (2, 6, 28)) {
 		rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
 		if (rc < 0)
-			show ("timer slack: %s", UNKNOWN_STR);
+			entry ("timer slack", "%s", UNKNOWN_STR);
 		else
-			show ("timer slack: %dns", rc);
+			entry ("timer slack", "%dns", rc);
 	}
 #endif
 
@@ -3125,19 +3989,21 @@ show_linux_prctl (void)
 	if (LINUX_KERNEL_MM (3, 4)) {
 		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
 		if (rc < 0)
-			show ("child subreaper: %s", UNKNOWN_STR);
+			entry ("child subreaper", "%s", UNKNOWN_STR);
 		else
-			show ("child subreaper: %s", arg2 ? YES_STR : NO_STR);
+			entry ("child subreaper", "%s", arg2 ? YES_STR : NO_STR);
 	}
 #endif
 
 #ifdef PR_GET_TID_ADDRESS
 	rc = prctl (PR_GET_TID_ADDRESS, &arg2, 0, 0, 0);
 	if (rc < 0)
-		show ("clear child tid address: %s", UNKNOWN_STR);
+		entry ("clear child tid address", "%s", UNKNOWN_STR);
 	else
-		show ("clear child tid address: %p", arg2);
+		entry ("clear child tid address", "%p", arg2);
 #endif
+
+	section_close ();
 }
 
 void
@@ -3151,10 +4017,9 @@ show_linux_proc_branch (void)
 	size_t  len;
 	char   *p;
 	FILE   *f;
-	char   *str;
+	char   *str = NULL;
 
-	str = strdup ("ancestry: ");
-	assert (str);
+	common_assert ();
 
 	sprintf (pid, "%d", (int)getpid ());
 
@@ -3201,7 +4066,7 @@ show_linux_proc_branch (void)
 	}
 out:
 
-	show (str);
+	entry ("ancestry", "%s", str);
 	free (str);
 }
 #endif
@@ -3220,6 +4085,8 @@ show_tty_attrs (void)
 	int             ret;
 	int             fds[4] = { -1, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
 	size_t          i;
+
+	common_assert ();
 
 	fds[0] = user.tty_fd;
 
@@ -3240,18 +4107,21 @@ show_tty_attrs (void)
 		}
 	}
 
-	show ("%s", NA_STR);
+	/* cannot query attributes */
+	footer ();
 	return;
 
 work:
-
 	user.tty_fd = fds[i];
 
 #ifdef PROCENV_LINUX
 	get_tty_locked_status (&lock_status);
 #endif
 
-	show ("c_iflag=0x%x", tty.c_iflag);
+	/*****************************************/
+	section_open ("c_iflag (input)");
+
+	entry ("value", "0x%x", tty.c_iflag);
 
 	show_const_tty (tty, c_iflag, IGNBRK, lock_status);
 	show_const_tty (tty, c_iflag, BRKINT, lock_status);
@@ -3273,7 +4143,12 @@ work:
 	show_const_tty (tty, c_iflag, IUTF8, lock_status);
 #endif
 
-	show ("c_oflag=0x%x", tty.c_oflag);
+	section_close ();
+
+	/*****************************************/
+	section_open ("c_oflag (output)");
+
+	entry ("c_oflag", "0x%x", tty.c_oflag);
 
 	show_const_tty (tty, c_oflag, OPOST, lock_status);
 #if defined (PROCENV_LINUX)
@@ -3296,13 +4171,12 @@ work:
 	show_const_tty (tty, c_oflag, FFDLY, lock_status);
 #endif
 
-	show ("c_cflag=0x%x", tty.c_cflag);
+	section_close ();
 
-	show ("  [c_cflag:input baud speed=%s]",
-			get_speed (cfgetispeed (&tty)));
+	/*****************************************/
+	section_open ("c_cflag (control)");
 
-	show ("  [c_cflag:output baud speed=%s]",
-			get_speed (cfgetospeed (&tty)));
+	entry ("value", "0x%x", tty.c_cflag);
 
 #if defined (PROCENV_LINUX)
 	show_const_tty (tty, c_cflag, CBAUDEX, lock_status);
@@ -3324,7 +4198,12 @@ work:
 #endif
 	show_const_tty (tty, c_cflag, CRTSCTS, lock_status);
 
-	show ("c_lflag=0x%x", tty.c_lflag);
+	section_close ();
+
+	/*****************************************/
+	section_open ("c_lflag (local)");
+
+	entry ("value", "0x%x", tty.c_lflag);
 
 	show_const_tty (tty, c_lflag, ISIG, lock_status);
 #if defined (PROCENV_LINUX)
@@ -3344,7 +4223,10 @@ work:
 	show_const_tty (tty, c_lflag, PENDIN, lock_status);
 	show_const_tty (tty, c_lflag, IEXTEN, lock_status);
 
-	show ("c_cc:");
+	section_close ();
+
+	/*****************************************/
+	section_open ("c_cc (special)");
 
 	show_cc_tty (tty, VINTR, lock_status);
 	show_cc_tty (tty, VQUIT, lock_status);
@@ -3366,13 +4248,35 @@ work:
 	show_cc_tty (tty, VLNEXT, lock_status);
 	show_cc_tty (tty, VEOL2, lock_status);
 
+	section_close ();
+
 	if (ioctl (user.tty_fd, TIOCGWINSZ, &size) < 0)
 		die ("failed to determine terminal dimensions");
 
-	show ("winsize:ws_row=%u", size.ws_row);
-	show ("winsize:ws_col=%u", size.ws_col);
-	show ("winsize:ws_xpixel=%u", size.ws_xpixel);
-	show ("winsize:ws_ypixel=%u", size.ws_ypixel);
+	/*****************************************/
+	section_open ("speed");
+
+	entry ("input (baud)", "%s",
+			get_speed (cfgetispeed (&tty)));
+
+	entry ("output (baud)", "%s",
+			get_speed (cfgetospeed (&tty)));
+
+	section_close ();
+
+	/*****************************************/
+	section_open ("winsize");
+
+	entry ("ws_row", "%u", size.ws_row);
+	entry ("ws_col", "%u", size.ws_col);
+	entry ("ws_xpixel", "%u", size.ws_xpixel);
+	entry ("ws_ypixel", "%u", size.ws_ypixel);
+
+	section_close ();
+
+	/*****************************************/
+
+	footer ();
 }
 
 void
@@ -3383,13 +4287,15 @@ show_locale (void)
 	char               *v;
 	char               *saved = NULL;
 
+	common_assert ();
+
 	header ("locale");
 
 	v = getenv ("LANG");
-	show ("LANG=\"%s\"", v ? v : "");
+	entry ("LANG", "%s", v ? v : "");
 
 	v = getenv ("LANGUAGE");
-	show ("LANGUAGE=\"%s\"", v ? v : "");
+	entry ("LANGUAGE", "%s", v ? v : "");
 
 	value = setlocale (LC_ALL, "");
 	if (value) {
@@ -3400,16 +4306,18 @@ show_locale (void)
 
 	for (p = locale_map; p && p->name; p++) {
 		value = setlocale (p->num, NULL);
-		show ("%s=\"%s\"", p->name, value ? value : UNKNOWN_STR);
+		entry (p->name, "%s", value ? value : UNKNOWN_STR);
 	}
 
 	v = getenv ("LC_ALL");
-	show ("LC_ALL=\"%s\"", v ? v : "");
+	entry ("LC_ALL", "%s", v ? v : "");
 
 	if (saved) {
 		(void)setlocale (LC_ALL, saved);
 		free (saved);
 	}
+
+    footer ();
 }
 
 const char *
@@ -3545,6 +4453,10 @@ get_arch (void)
 	return "IA64";
 #endif
 
+#ifdef __MIPSEL__
+	return "MIPSEL";
+#endif
+
 #ifdef __mips__
 	return "MIPS";
 #endif
@@ -3588,8 +4500,35 @@ get_arch (void)
 int
 libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 {
-	if (info->dlpi_name && *info->dlpi_name)
-		show ("%s", info->dlpi_name);
+	const char *name;
+	const char *path;
+
+	assert (info);
+
+	if (! info->dlpi_name || ! *info->dlpi_name)
+		return 0;
+
+	path = info->dlpi_name;
+	name = strrchr (path, '/');
+
+	if (name) {
+		/* Jump over slash */
+		name++;
+	} else {
+		/* BSD libraries don't show the path */
+		name = path;
+	}
+
+	object_open (FALSE);
+
+	section_open (name);
+
+	entry ("path", "%s", path);
+	entry ("address", "%p", (void *)info->dlpi_addr);
+
+	section_close ();
+
+	object_close (FALSE);
 
 	return 0;
 }
@@ -3597,9 +4536,13 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 void
 show_libs (void)
 {
-	header ("libs");
+	common_assert ();
+
+	container_open ("libraries");
 
 	dl_iterate_phdr (libs_callback, NULL);
+
+	container_close ();
 }
 #endif
 
@@ -3637,6 +4580,8 @@ show_clocks (void)
 	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
 #endif
+
+    footer ();
 }
 
 void
@@ -3647,74 +4592,73 @@ show_timezone (void)
 
 	header ("timezone");
 
-	show ("tzname[0]='%s'", tzname[0]);
-	show ("tzname[1]='%s'", tzname[1]);
-	show ("timezone=%ld", timezone);
-	show ("daylight=%d", daylight);
+	entry ("tzname[0]", "'%s'", tzname[0]);
+	entry ("tzname[1]", "'%s'", tzname[1]);
+	entry ("timezone", "%ld", timezone);
+	entry ("daylight", "%d", daylight);
+
+    footer ();
 #endif
 }
-
-#define show_size(thing) \
-	show ("sizeof (" #thing "): %lu byte%s", \
-			(unsigned long int)sizeof (thing), \
-			sizeof (thing) == 1 ? "" : "s")
 
 void
 show_sizeof (void)
 {
 	header ("sizeof");
 
-	show ("bits/byte (CHAR_BIT): %d", CHAR_BIT);
+	entry ("bits/byte (CHAR_BIT)", "%d", CHAR_BIT);
 
 	/* fundamental types and non-aggregate typedefs */
 
-	show_size (char);
-	show_size (short int);
-	show_size (int);
+	show_sizeof_type (char);
+	show_sizeof_type (short int);
+	show_sizeof_type (int);
 
-	show_size (long int);
+	show_sizeof_type (long int);
 
-	show_size (long long int);
+	show_sizeof_type (long long int);
 
-	show_size (float);
+	show_sizeof_type (float);
 
-	show_size (double);
+	show_sizeof_type (double);
 
-	show_size (long double);
+	show_sizeof_type (long double);
 
-	show_size (size_t);
-	show_size (ssize_t);
-	show_size (ptrdiff_t);
-	show_size (void *);
-	show_size (wchar_t);
+	show_sizeof_type (size_t);
+	show_sizeof_type (ssize_t);
+	show_sizeof_type (ptrdiff_t);
+	show_sizeof_type (void *);
+	show_sizeof_type (wchar_t);
 
-	show_size (intmax_t);
-	show_size (uintmax_t);
-	show_size (imaxdiv_t);
-	show_size (intptr_t);
-	show_size (uintptr_t);
+	show_sizeof_type (intmax_t);
+	show_sizeof_type (uintmax_t);
+	show_sizeof_type (imaxdiv_t);
+	show_sizeof_type (intptr_t);
+	show_sizeof_type (uintptr_t);
 
-	show_size (time_t);
-	show_size (clock_t);
+	show_sizeof_type (time_t);
+	show_sizeof_type (clock_t);
 
-	show_size (sig_atomic_t);
-	show_size (off_t);
-	show_size (fpos_t);
-	show_size (mode_t);
+	show_sizeof_type (sig_atomic_t);
+	show_sizeof_type (off_t);
+	show_sizeof_type (fpos_t);
+	show_sizeof_type (mode_t);
 
-	show_size (pid_t);
-	show_size (uid_t);
-	show_size (gid_t);
+	show_sizeof_type (pid_t);
+	show_sizeof_type (uid_t);
+	show_sizeof_type (gid_t);
 
-	show_size (rlim_t);
-	show_size (fenv_t);
-	show_size (fexcept_t);
+	show_sizeof_type (rlim_t);
+	show_sizeof_type (fenv_t);
+	show_sizeof_type (fexcept_t);
 
-	show_size (wint_t);
-	show_size (div_t);
-	show_size (ldiv_t);
-	show_size (lldiv_t);
-	show_size (mbstate_t);
+	show_sizeof_type (wint_t);
+	show_sizeof_type (div_t);
+	show_sizeof_type (ldiv_t);
+	show_sizeof_type (lldiv_t);
+	show_sizeof_type (mbstate_t);
+
+	footer ();
 }
 
 void
@@ -3723,71 +4667,120 @@ show_ranges (void)
 	header ("ranges");
 
 	/******************************/
-	show ("char:");
+	section_open ("char");
 
-	showi (INDENT, "unsigned: %u to %u (%e to %e, 0x%.*x to 0x%.*x)",
-			0, UCHAR_MAX,
-			(double)0, (double)UCHAR_MAX,
+	show_size (char);
+
+	section_open ("unsigned");
+
+	entry ("decimal", "%u to %u", 0, UCHAR_MAX);
+
+	entry ("scientific", "%e to %e", (double)0, (double)UCHAR_MAX);
+	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (char), 0,
 			type_hex_width (char), UCHAR_MAX);
-	showi (INDENT, "signed: %d to %d", CHAR_MIN, CHAR_MAX);
+
+	section_close ();
+
+	section_open ("signed");
+	entry ("decimal", "%d to %d", CHAR_MIN, CHAR_MAX);
+	section_close ();
+
+	section_close ();
 
 	/******************************/
-	show ("short int:");
+	section_open ("short int");
 
-	showi (INDENT, "unsigned: %u to %u (%e to %e, 0x%.*x to 0x%.*x)",
-			0, USHRT_MAX,
-			(double)0, (double)USHRT_MAX,
+	show_size (short int);
+	section_open ("unsigned");
+	entry ("decimal", "%u to %u", 0, USHRT_MAX);
+	entry ("scientific", "%e to %e", (double)0, (double)USHRT_MAX);
+	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (short int), 0,
 			type_hex_width (short int), USHRT_MAX);
+	section_close ();
 
-	showi (INDENT, "signed: %d to %d", SHRT_MIN, SHRT_MAX);
+	section_open ("signed");
+	entry ("decimal", "%d to %d", SHRT_MIN, SHRT_MAX);
+	section_close ();
+
+	section_close ();
 
 	/******************************/
-	show ("int:");
+	section_open ("int");
 
-	showi (INDENT, "unsigned: %u to %u (%e to %e, 0x%.*x to 0x%.*x)",
-			0, UINT_MAX,
-			(double)0, (double)UINT_MAX,
+	show_size (int);
+	section_open ("unsigned");
+	entry ("decimal", "%u to %u", 0, UINT_MAX);
+	entry ("scientific", "%e to %e", (double)0, (double)UINT_MAX);
+	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (int), 0,
 			type_hex_width (int), UINT_MAX);
-	showi (INDENT, "signed: %d to %d", INT_MIN, INT_MAX);
+	section_close ();
+
+	section_open ("signed");
+	entry ("decimal", "%d to %d", INT_MIN, INT_MAX);
+	section_close ();
+
+	section_close ();
 
 	/******************************/
-	show ("long int:");
+	section_open ("long int");
 
-	showi (INDENT, "unsigned: %lu to %lu (%e to %e, 0x%.*lx to 0x%.*lx)",
-			0L, ULONG_MAX,
-			(double)0, (double)ULONG_MAX,
+	show_size (long int);
+	section_open ("unsigned");
+	entry ("decimal", "%u to %u", 0, ULONG_MAX);
+	entry ("scientific", "%e to %e", (double)0, (double)ULONG_MAX);
+	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (long int), 0L,
 			type_hex_width (long int), ULONG_MAX);
-	showi (INDENT, "signed: %ld to %ld", LONG_MIN, LONG_MAX);
+	section_close ();
+
+	section_open ("signed");
+	entry ("decimal", "%ld to %ld", LONG_MIN, LONG_MAX);
+	section_close ();
+
+	section_close ();
 
 	/******************************/
-	show ("long long int:");
+	section_open ("long long int");
 
-	showi (INDENT, "unsigned: %llu to %llu (%e to %e, 0x%.*llx to 0x%.*llx)",
-			0LL, ULLONG_MAX,
-			(double)0LL, (double)ULLONG_MAX,
+	show_size (long long int);
+	section_open ("unsigned");
+	entry ("decimal", "%llu to %llu", 0, ULLONG_MAX);
+	entry ("scientific", "%e to %e", (double)0, (double)ULLONG_MAX);
+	entry ("hex", "0x%.*llx to 0x%.*llx",
 			type_hex_width (long long int), 0LL,
 			type_hex_width (long long int), ULLONG_MAX);
-	showi (INDENT, "signed: %lld to %lld", LLONG_MIN, LLONG_MAX);
-	/******************************/
-	show ("float:");
+	section_close ();
 
-	showi (INDENT, "signed: %e to %e", FLT_MIN, FLT_MAX);
+	section_open ("signed");
+	entry ("decimal", "%lld to %lld", LLONG_MIN, LLONG_MAX);
+	section_close ();
 
-	/******************************/
-	show ("double:");
-
-	showi (INDENT, "signed: %le to %le", DBL_MIN, DBL_MAX);
+	section_close ();
 
 	/******************************/
-	show ("long double:");
-
-	showi (INDENT, "signed: %Le to %Le", LDBL_MIN, LDBL_MAX);
+	section_open ("float");
+	show_size (float);
+	entry ("signed", "%e to %e", FLT_MIN, FLT_MAX);
+	section_close ();
 
 	/******************************/
+	section_open ("double");
+	show_size (double);
+	entry ("signed", "%le to %le", DBL_MIN, DBL_MAX);
+	section_close ();
+
+	/******************************/
+	section_open ("long double");
+	show_size (long double);
+	entry ("signed", "%Le to %Le", LDBL_MIN, LDBL_MAX);
+	section_close ();
+
+	/******************************/
+
+    footer ();
 }
 
 void
@@ -3808,123 +4801,128 @@ show_compiler (void)
 #endif
 
 	header ("compiler");
-	show ("name: %s", name ? name : UNKNOWN_STR);
-	show ("version: %s", version ? version : UNKNOWN_STR);
-	show ("compile date (__DATE__): %s", __DATE__);
-	show ("compile time (__TIME__): %s", __TIME__);
-	show ("translation unit (__FILE__): %s", __FILE__);
-	show ("base file (__BASE_FILE__): %s", __BASE_FILE__);
-	show ("timestamp (__TIMESTAMP__): %s", __TIMESTAMP__);
+
+	entry ("name", "%s", name ? name : UNKNOWN_STR);
+	entry ("version", "%s", version ? version : UNKNOWN_STR);
+	entry ("compile date (__DATE__)", "%s", __DATE__);
+	entry ("compile time (__TIME__)", "%s", __TIME__);
+	entry ("translation unit (__FILE__)", "%s", __FILE__);
+	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
+	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
+
+	section_open ("feature test macros");
 
 #ifdef __STRICT_ANSI__
-	show ("__STRICT_ANSI__: %s", DEFINED_STR);
+	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
 #else
-	show ("__STRICT_ANSI__: %s", NOT_DEFINED_STR);
+	entry ("__STRICT_ANSI__", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _POSIX_C_SOURCE
-	show ("_POSIX_C_SOURCE: %lu", _POSIX_C_SOURCE);
+	entry ("_POSIX_C_SOURCE", "%lu", _POSIX_C_SOURCE);
 #else
-	show ("_POSIX_C_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_POSIX_C_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _POSIX_SOURCE
-	show ("_POSIX_SOURCE: %s", DEFINED_STR);
+	entry ("_POSIX_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_POSIX_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_POSIX_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _XOPEN_SOURCE
-	show ("_XOPEN_SOURCE: %lu", _XOPEN_SOURCE);
+	entry ("_XOPEN_SOURCE", "%lu", _XOPEN_SOURCE);
 #else
-	show ("_XOPEN_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_XOPEN_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _XOPEN_SOURCE_EXTENDED
-	show ("_XOPEN_SOURCE_EXTENDED: %s", DEFINED_STR);
+	entry ("_XOPEN_SOURCE_EXTENDED", "%s", DEFINED_STR);
 #else
-	show ("_XOPEN_SOURCE_EXTENDED: %s", NOT_DEFINED_STR);
+	entry ("_XOPEN_SOURCE_EXTENDED", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _ISOC95_SOURCE
-	show ("_ISOC95_SOURCE: %s", DEFINED_STR);
+	entry ("_ISOC95_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_ISOC95_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_ISOC95_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _ISOC99_SOURCE
-	show ("_ISOC99_SOURCE: %s", DEFINED_STR);
+	entry ("_ISOC99_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_ISOC99_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_ISOC99_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _ISOC11_SOURCE
-	show ("_ISOC11_SOURCE: %s", DEFINED_STR);
+	entry ("_ISOC11_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_ISOC11_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _LARGEFILE64_SOURCE
-	show ("_LARGEFILE64_SOURCE: %s", DEFINED_STR);
+	entry ("_LARGEFILE64_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_LARGEFILE64_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_LARGEFILE64_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _FILE_OFFSET_BITS
-	show ("_FILE_OFFSET_BITS: %lu", _FILE_OFFSET_BITS);
+	entry ("_FILE_OFFSET_BITS", "%lu", _FILE_OFFSET_BITS);
 #else
-	show ("_FILE_OFFSET_BITS: %s", NOT_DEFINED_STR);
+	entry ("_FILE_OFFSET_BITS", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _BSD_SOURCE
-	show ("_BSD_SOURCE: %s", DEFINED_STR);
+	entry ("_BSD_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_BSD_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_BSD_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _SVID_SOURCE
-	show ("_SVID_SOURCE: %s", DEFINED_STR);
+	entry ("_SVID_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_SVID_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_SVID_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _ATFILE_SOURCE
-	show ("_ATFILE_SOURCE: %s", DEFINED_STR);
+	entry ("_ATFILE_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_ATFILE_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_ATFILE_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _GNU_SOURCE
-	show ("_GNU_SOURCE: %s", DEFINED_STR);
+	entry ("_GNU_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_GNU_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_GNU_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _REENTRANT
-	show ("_REENTRANT: %s", DEFINED_STR);
+	entry ("_REENTRANT", "%s", DEFINED_STR);
 #else
-	show ("_REENTRANT: %s", NOT_DEFINED_STR);
+	entry ("_REENTRANT", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _THREAD_SAFE
-	show ("_THREAD_SAFE: %s", DEFINED_STR);
+	entry ("_THREAD_SAFE", "%s", DEFINED_STR);
 #else
-	show ("_THREAD_SAFE: %s", NOT_DEFINED_STR);
+	entry ("_THREAD_SAFE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _FORTIFY_SOURCE
-	show ("_FORTIFY_SOURCE: %s", DEFINED_STR);
+	entry ("_FORTIFY_SOURCE", "%s", DEFINED_STR);
 #else
-	show ("_FORTIFY_SOURCE: %s", NOT_DEFINED_STR);
+	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+	section_close ();
 
+	footer ();
 }
 
 void
 show_time (void)
 {
-	char              formatted_time[32];
+	char              formatted_time[CTIME_BUFFER];
 	struct timespec   ts;
 	struct tm        *tm;
 
@@ -3935,25 +4933,28 @@ show_time (void)
 	if (! tm)
 		die ("failed to determine localtime");
 
-	header ("time");
-	show ("raw: %u.%lu",
-			(unsigned int)ts.tv_sec,
-			ts.tv_nsec);
-
 	if (! asctime_r (tm, formatted_time))
 		die ("failed to determine formatted time");
 
 	/* overwrite trailing '\n' */
-	formatted_time[ strlen (formatted_time)-1] = '\0';
+	formatted_time[strlen (formatted_time)-1] = '\0';
 
-	show ("local: %s", formatted_time);
+	header ("time");
 
-	show ("ISO: %4.4d-%2.2d-%2.2dT%2.2d:%2.2d",
+	entry ("raw", "%u.%lu",
+			(unsigned int)ts.tv_sec,
+			ts.tv_nsec);
+
+	entry ("local", "%s", formatted_time);
+
+	entry ("ISO", "%4.4d-%2.2d-%2.2dT%2.2d:%2.2d",
 			1900+tm->tm_year,
 			tm->tm_mon,
 			tm->tm_mday,
 			tm->tm_hour,
 			tm->tm_min);
+
+    footer ();
 }
 
 void
@@ -3964,19 +4965,21 @@ get_uname (void)
 }
 
 void
-dump_uname (void)
+show_uname (void)
 {
 	header ("uname");
 
-	show ("sysname: %s", uts.sysname);
-	show ("nodename: %s", uts.nodename);
-	show ("release: %s", uts.release);
-	show ("version: %s", uts.version);
-	show ("machine: %s", uts.machine);
+	entry ("sysname", "%s", uts.sysname);
+	entry ("nodename", "%s", uts.nodename);
+	entry ("release", "%s", uts.release);
+	entry ("version", "%s", uts.version);
+	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
-	show ("domainname: %s", uts.domainname);
+	entry ("domainname", "%s", uts.domainname);
 #endif
+
+    footer ();
 }
 
 #if defined (PROCENV_LINUX)
@@ -3986,7 +4989,9 @@ show_capabilities (void)
 {
 	int ret;
 
-	header ("capabilities(linux)");
+	header ("capabilities");
+
+	container_open ("list");
 
 	show_capability (CAP_CHOWN);
 	show_capability (CAP_DAC_OVERRIDE);
@@ -4015,6 +5020,7 @@ show_capabilities (void)
 	show_capability (CAP_SYS_RESOURCE);
 	show_capability (CAP_SYS_TIME);
 	show_capability (CAP_SYS_TTY_CONFIG);
+
 	if (LINUX_KERNEL_MM (2, 4)) {
 		show_capability (CAP_MKNOD);
 		show_capability (CAP_LEASE);
@@ -4041,34 +5047,48 @@ show_capabilities (void)
 		show_capability (CAP_WAKE_ALARM);
 #endif
 
+	container_close ();
+
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
 		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
 		if (ret < 0)
-			show ("keep=%s", UNKNOWN_STR);
+			entry ("keep", "%s", UNKNOWN_STR);
 		else
-			show ("keep=%s", ret ? YES_STR : NO_STR);
+			entry ("keep", "%s", ret ? YES_STR : NO_STR);
 	}
 #endif
+
 
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
 	if (LINUX_KERNEL_MMR (2, 6, 26)) {
 		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
 		if (ret < 0)
-			show ("securebits=%s", UNKNOWN_STR);
+			entry ("securebits", "%s", UNKNOWN_STR);
 		else {
 			struct securebits_t {
 				unsigned int securebits;
 			} flags;
 			flags.securebits = (unsigned int)ret;
-			show ("securebits=0x%x", flags.securebits);
+
+			section_open ("securebits");
+
+			entry ("value", "0x%x", flags.securebits);
+
+			container_open ("fields");
 
 			show_const (flags, securebits, SECBIT_KEEP_CAPS);
 			show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
 			show_const (flags, securebits, SECBIT_NOROOT);
+
+			container_close ();
+
+			section_close ();
 		}
 	}
 #endif
+
+	footer ();
 }
 
 void
@@ -4083,7 +5103,7 @@ show_linux_security_module (void)
 	if (is_selinux_enabled ())
 		lsm = "SELinux";
 #endif
-	show ("Linux Security Module: %s", lsm);
+	entry ("name", "%s", lsm);
 }
 
 void
@@ -4104,11 +5124,11 @@ show_linux_security_module_context (void)
 #endif
 	if (context) {
 		if (mode)
-			show ("LSM context: %s (%s)", context, mode);
+			entry ("context", "%s (%s)", context, mode);
 		else
-			show ("LSM context: %s", context);
+			entry ("context", "%s", context);
 	} else
-		show ("LSM context: %s", UNKNOWN_STR);
+		entry ("context", "%s", UNKNOWN_STR);
 
 	free (context);
 	free (mode);
@@ -4117,49 +5137,90 @@ show_linux_security_module_context (void)
 void
 show_linux_cgroups (void)
 {
-	char *file = "/proc/self/cgroup";
-	FILE *f;
-	char buffer[1024];
-	size_t len;
+	const  char  *delim = ":";
+	char         *file = "/proc/self/cgroup";
+	FILE         *f;
+	char          buffer[1024];
+	size_t        len;
 
-	header ("cgroup(linux)");
+	header ("cgroups");
 
 	f = fopen (file, "r");
-	if (! f) {
-		show ("%s", UNKNOWN_STR);
-		return;
-	}
+
+	if (! f)
+		goto out;
 
 	while (fgets (buffer, sizeof (buffer), f)) {
+		char  *buf;
+		char  *hierarchy;
+		char  *subsystems;
+		char  *path;
+
 		len = strlen (buffer);
+		/* Remove NL */
 		buffer[len-1] = '\0';
-		show ("%s", buffer);
+
+		buf = strdup (buffer);
+		if (! buf)
+			die ("failed to alloate storage");
+
+		hierarchy = strsep (&buf, delim);
+		if (! hierarchy)
+			goto next;
+
+		subsystems = strsep (&buf, delim);
+		if (! subsystems)
+			goto next;
+
+		path = strsep (&buf, delim);
+		if (! path)
+			goto next;
+
+		/* FIXME: should sort by hierarchy */
+		container_open (hierarchy);
+
+		object_open (FALSE);
+
+		/* FIXME: should split this on comma */
+		entry ("subsystems", "%s", subsystems);
+
+		entry ("path", "%s", path);
+
+		object_close (FALSE);
+
+		container_close ();
+
+next:
+		free (buf);
 	}
 
 	fclose (f);
+
+out:
+
+	footer ();
 }
 
 void
-dump_linux_proc_fds (void)
+show_fds_linux (void)
 {
-	DIR *dir;
-	struct dirent *ent;
-	struct stat st;
-	char *prefix_path = "/proc/self/fd";
-	char path[MAXPATHLEN];
-	char link[MAXPATHLEN];
-	ssize_t len;
+	DIR            *dir;
+	struct dirent  *ent;
+	char           *prefix_path = "/proc/self/fd";
+	struct stat     st;
+	char            path[MAXPATHLEN];
+	char            link[MAXPATHLEN];
+	ssize_t         len;
 
-	header ("fds (linux/proc)");
+	container_open ("file descriptors");
 
 	dir = opendir (prefix_path);
-	if (! dir) {
-		show ("%s", UNKNOWN_STR);
+	if (! dir)
 		return;
-	}
 
 	while ((ent=readdir (dir)) != NULL) {
-		int fd;
+		int    fd;
+		char  *num = NULL;
 
 		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
 			continue;
@@ -4172,27 +5233,42 @@ dump_linux_proc_fds (void)
 			/* ignore errors */
 			continue;
 
+		appendf (&num, "%d", fd);
+
 		assert (len);
 		link[len] = '\0';
 
 		if (link[0] == '/') {
 
-			if (stat (link, &st) < 0)
+			if (stat (link, &st) < 0) {
+				free (num);
 				continue;
+			}
 
 			/* Ignore the last (invalid) entry */
-			if (S_ISDIR (st.st_mode))
+			if (S_ISDIR (st.st_mode)) {
+				free (num);
 				continue;
-
+			}
 		}
 
-		show ("'%s' -> '%s' (terminal=%s, valid=%s)",
-				path, link,
-				isatty (fd) ? YES_STR : NO_STR,
-				fd_valid (fd) ? YES_STR : NO_STR);
+		object_open (FALSE);
+
+		section_open (num);
+		free (num);
+
+		entry ("terminal", "%s", isatty (fd) ? YES_STR : NO_STR);
+		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
+		entry ("device", "%s", link);
+
+		section_close ();
+
+		object_close (FALSE);
 	}
 
 	closedir (dir);
+
+	container_close ();
 }
 
 void
@@ -4208,7 +5284,7 @@ show_oom (void)
 	int      ret;
 	int      seen = FALSE;
 
-	header ("oom(linux)");
+	header ("oom");
 
 	for (file = files; file && *file; file++) {
 		ret = sprintf (path, "%s/%s", dir, *file);
@@ -4224,14 +5300,16 @@ show_oom (void)
 		while (fgets (buffer, sizeof (buffer), f)) {
 			len = strlen (buffer);
 			buffer[len-1] = '\0';
-			show ("%s=%s", *file, buffer);
+			entry (*file, "%s", buffer);
 		}
 
 		fclose (f);
 	}
 
 	if (! seen)
-		show ("%s", UNKNOWN_STR);
+		entry ("%s", UNKNOWN_STR);
+
+	footer ();
 }
 
 char *
@@ -4245,17 +5323,6 @@ get_scheduler_name (int sched)
 	}
 
 	return NULL;
-}
-
-void
-show_linux_scheduler (void)
-{
-	int sched;
-
-	sched = sched_getscheduler (0);
-	show ("scheduler: %s",
-			sched < 0 ? UNKNOWN_STR :
-			get_scheduler_name (sched));
 }
 
 void
@@ -4274,33 +5341,38 @@ show_linux_cpu (void)
 	/* adjust to make 1-based */
 	cpu++;
 
-	show ("cpu: %u of %lu", cpu, max);
+	entry ("number", "%u of %lu", cpu, max);
 	return;
 
 unknown_sched_cpu:
 #endif
-	show ("cpu: %s of %lu", UNKNOWN_STR, max);
+	entry ("number", "%s of %lu", UNKNOWN_STR, max);
 }
 
 /**
- * get_root:
+ * get_canonical:
  *
- * @root [out]: path of root directory,
- * @len: Size of @root (should be atleast PATH_MAX).
+ * @path: path to convert to canonical form,
+ * @canonical [out]: canonical version of @path,
+ * @len: Size of @canonical (should be atleast PATH_MAX).
+ *
+ * FIXME: this should fully resolve not just sym links but replace all
+ * occurences of '../' by the appropriate direcotry!
  **/
 void
-get_root (char *root, size_t len)
+get_canonical (const char *path, char *canonical, size_t len)
 {
-	char     self[] = "/proc/self/root";
 	ssize_t  bytes;
 
-	assert (root);
+	assert (path);
+	assert (canonical);
+	assert (len);
 
-	bytes = readlink (self, root, len);
+	bytes = readlink (path, canonical, len);
 	if (bytes < 0)
-		sprintf (root, UNKNOWN_STR);
+		sprintf (canonical, UNKNOWN_STR);
 	else
-		root[bytes] = '\0';
+		canonical[bytes] = '\0';
 }
 
 void
@@ -4358,7 +5430,7 @@ show_bsd_cpu (void)
 	if (kvm_close (kvm) < 0)
 		die ("failed to close kvm");
 
-	show ("cpu: %u of %lu", cpu, max);
+	entry ("number", "%u of %lu", cpu, max);
 }
 
 void
@@ -4399,6 +5471,43 @@ get_output_value (const char *name)
 		}
 	}
 	die ("invalid output value: '%s'", name);
+
+	/* compiler appeasement */
+	return -1;
+}
+
+int
+get_output_format (const char *name)
+{
+	struct procenv_map *p;
+
+	assert (name);
+
+	for (p = output_format_map; p && p->name; p++) {
+		if (! strcmp (name, p->name)) {
+			return p->num;
+		}
+	}
+	die ("invalid output format value: '%s'", name);
+
+	/* compiler appeasement */
+	return -1;
+}
+
+const char *
+get_output_format_name (void)
+{
+	struct procenv_map *p;
+
+	for (p = output_format_map; p && p->name; p++) {
+		if (output_format == p->num)
+			return p->name;
+	}
+
+	bug ("invalid output format: %d", output_format);
+
+	/* compiler appeasement */
+	return NULL;
 }
 
 void
@@ -4420,6 +5529,39 @@ check_envvars (void)
 		output_file = e;
 		output = OUTPUT_FILE;
 	}
+
+	e = getenv (PROCENV_FORMAT_ENV);
+	if (e && *e) {
+		output_format = get_output_format (e);
+	}
+
+	e = getenv (PROCENV_INDENT_ENV);
+	if (e && *e) {
+		indent_amount = atoi (e);
+	}
+
+	e = getenv (PROCENV_INDENT_CHAR_ENV);
+	if (e && *e) {
+		/* Special character handling */
+		if (! strcmp (e, "\\t"))
+			indent_char = '\t';
+		else
+			indent_char = *e;
+	}
+
+	e = getenv (PROCENV_SEPARATOR_ENV);
+	if (e && *e) {
+		text_separator = e;
+	}
+
+	e = getenv (PROCENV_CRUMB_SEPARATOR_ENV);
+	if (e && *e) {
+		if (! strcmp (e, "\\t"))
+			crumb_separator = "\t";
+		else
+			crumb_separator = e;
+	}
+
 	e = getenv (PROCENV_EXEC_ENV);
 	if (e && *e) {
 		char *tmp;
@@ -4461,7 +5603,7 @@ check_envvars (void)
 	}
 }
 
-void
+int
 get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 {
 	struct stat  st;
@@ -4474,13 +5616,14 @@ get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 		/* Don't fail as this query may be for a mount which the
 		 * user does not have permission to check.
 		 */
-		warn ("unable to stat path '%s'", path);
 		*_major = *_minor = 0;
-		return;
+		return FALSE;
 	}
 
 	*_major = major (st.st_dev);
 	*_minor = minor (st.st_dev);
+
+	return TRUE;
 }
 
 /**
@@ -4580,7 +5723,7 @@ show_threads (void)
 	(void) pthread_attr_init (&attr);
 	(void) pthread_attr_getstacksize (&attr, &stack_size);
 
-	show ("thread stack size: %lu bytes",
+	entry ("stack size", "%lu bytes",
 			(unsigned long int)stack_size);
 
 #if defined (PROCENV_ANDROID)
@@ -4589,40 +5732,49 @@ show_threads (void)
 #else
 	ret = pthread_attr_getscope (&attr, &scope);
 #endif
-	show ("thread scope: %s",
+	entry ("scope", "%s",
 			ret != 0 ? UNKNOWN_STR :
 			scope == PTHREAD_SCOPE_SYSTEM ? "PTHREAD_SCOPE_SYSTEM"
 			: "PTHREAD_SCOPE_PROCESS");
 
 	ret = pthread_attr_getguardsize (&attr, &guard_size);
 	if (ret == 0) {
-		show ("thread guard size: %lu bytes",
+		entry ("guard size", "%lu bytes",
 				(unsigned long int)guard_size);
 	} else {
-		show ("thread guard size: %s", UNKNOWN_STR);
+		entry ("guard size", "%s", UNKNOWN_STR);
 	}
 
 	ret = pthread_getschedparam (pthread_self (), &sched, &param);
-	show ("thread scheduler: %s",
+
+	section_open ("scheduler");
+
+	entry ("type", "%s",
 			ret != 0
 			? UNKNOWN_STR
 			: get_thread_scheduler_name (sched));
 
 	if (ret != 0)
-		show ("thread scheduler priority: %s", UNKNOWN_STR);
+		entry ("priority", "%s", UNKNOWN_STR);
 	else
-		show ("thread scheduler priority: %d", param.sched_priority);
+		entry ("priority", "%d", param.sched_priority);
 
-#ifndef PROCENV_ANDROID
+#ifdef PROCENV_ANDROID
+	section_close ();
+#else
 	ret = pthread_attr_getinheritsched (&attr, &inherit_sched);
-	show ("thread inherit scheduler: %s",
+	entry ("inherit-scheduler attribute", "%s",
 			ret != 0 ? UNKNOWN_STR :
 			inherit_sched == PTHREAD_INHERIT_SCHED
 			?  "PTHREAD_INHERIT_SCHED"
 			: "PTHREAD_EXPLICIT_SCHED");
 
-	show ("thread concurrency: %d", pthread_getconcurrency ());
+	section_close ();
+
+	entry ("concurrency", "%d", pthread_getconcurrency ());
 #endif
+
+	footer ();
 }
 
 char *
@@ -4670,7 +5822,7 @@ show_data_model (void)
 	if (pointer_size > 8)
 		die ("%d-byte pointers not supported", (int)pointer_size);
 
-	show ("data model: %s (%d/%d/%d)",
+	entry ("data model", "%s (%d/%d/%d)",
 			data_model,
 			ilp[0], ilp[1], ilp[2]);
 }
@@ -4685,53 +5837,56 @@ main (int    argc,
 	int    done = FALSE;
 
 	struct option long_options[] = {
-		{"meta"         , no_argument, NULL, 'a'},
-		{"arguments"    , no_argument, NULL, 'A'},
-		{"libs"         , no_argument, NULL, 'b'},
-		{"cgroup"       , no_argument, NULL, 'c'},
-		{"cgroups"      , no_argument, NULL, 'c'},
-		{"compiler"     , no_argument, NULL, 'd'},
-		{"env"          , no_argument, NULL, 'e'},
-		{"environment"  , no_argument, NULL, 'e'},
-		{"fds"          , no_argument, NULL, 'f'},
-		{"sizeof"       , no_argument, NULL, 'g'},
-		{"help"         , no_argument, NULL, 'h'},
-		{"misc"         , no_argument, NULL, 'i'},
-		{"uname"        , no_argument, NULL, 'j'},
-		{"clock"        , no_argument, NULL, 'k'},
-		{"clocks"       , no_argument, NULL, 'k'},
-		{"limits"       , no_argument, NULL, 'l'},
-		{"locale"       , no_argument, NULL, 'L'},
-		{"mount"        , no_argument, NULL, 'm'},
-		{"mounts"       , no_argument, NULL, 'm'},
-		{"confstr"      , no_argument, NULL, 'n'},
-		{"network"      , no_argument, NULL, 'N'},
-		{"oom"          , no_argument, NULL, 'o'},
-		{"proc"         , no_argument, NULL, 'p'},
-		{"process"      , no_argument, NULL, 'p'},
-		{"platform"     , no_argument, NULL, 'P'},
-		{"time"         , no_argument, NULL, 'q'},
-		{"range"        , no_argument, NULL, 'r'},
-		{"ranges"       , no_argument, NULL, 'r'},
-		{"signal"       , no_argument, NULL, 's'},
-		{"signals"      , no_argument, NULL, 's'},
-		{"tty"          , no_argument, NULL, 't'},
-		{"threads"      , no_argument, NULL, 'T'},
-		{"stat"         , no_argument, NULL, 'u'},
-		{"rusage"       , no_argument, NULL, 'U'},
-		{"version"      , no_argument, NULL, 'v'},
-		{"capabilities" , no_argument, NULL, 'w'},
-		{"pathconf"     , no_argument, NULL, 'x'},
-		{"sysconf"      , no_argument, NULL, 'y'},
-		{"timezone"     , no_argument, NULL, 'z'},
-
-		{"output"      , required_argument, NULL, 0},
-		{"file"        , required_argument, NULL, 0},
-		{"exec"        , no_argument      , NULL, 0},
+		{"meta"            , no_argument, NULL, 'a'},
+		{"arguments"       , no_argument, NULL, 'A'},
+		{"libs"            , no_argument, NULL, 'b'},
+		{"cgroups"         , no_argument, NULL, 'c'},
+		{"cpu"             , no_argument, NULL, 'C'},
+		{"compiler"        , no_argument, NULL, 'd'},
+		{"crumb-separator" , required_argument, NULL, 0},
+		{"environment"     , no_argument, NULL, 'e'},
+		{"semaphores"      , no_argument, NULL, 'E'},
+		{"fds"             , no_argument, NULL, 'f'},
+		{"sizeof"          , no_argument, NULL, 'g'},
+		{"help"            , no_argument, NULL, 'h'},
+		{"misc"            , no_argument, NULL, 'i'},
+		{"uname"           , no_argument, NULL, 'j'},
+		{"clocks"          , no_argument, NULL, 'k'},
+		{"limits"          , no_argument, NULL, 'l'},
+		{"locale"          , no_argument, NULL, 'L'},
+		{"mounts"          , no_argument, NULL, 'm'},
+		{"message-queues"  , no_argument, NULL, 'M'},
+		{"confstr"         , no_argument, NULL, 'n'},
+		{"network"         , no_argument, NULL, 'N'},
+		{"oom"             , no_argument, NULL, 'o'},
+		{"process"         , no_argument, NULL, 'p'},
+		{"platform"        , no_argument, NULL, 'P'},
+		{"time"            , no_argument, NULL, 'q'},
+		{"ranges"          , no_argument, NULL, 'r'},
+		{"signals"         , no_argument, NULL, 's'},
+		{"shared-memory"   , no_argument, NULL, 'S'},
+		{"tty"             , no_argument, NULL, 't'},
+		{"threads"         , no_argument, NULL, 'T'},
+		{"stat"            , no_argument, NULL, 'u'},
+		{"rusage"          , no_argument, NULL, 'U'},
+		{"version"         , no_argument, NULL, 'v'},
+		{"capabilities"    , no_argument, NULL, 'w'},
+		{"pathconf"        , no_argument, NULL, 'x'},
+		{"sysconf"         , no_argument, NULL, 'y'},
+		{"timezone"        , no_argument, NULL, 'z'},
+		{"exec"            , no_argument      , NULL, 0},
+		{"file"            , required_argument, NULL, 0},
+		{"format"          , required_argument, NULL, 0},
+		{"indent"          , required_argument, NULL, 0},
+		{"indent-char"     , required_argument, NULL, 0},
+		{"output"          , required_argument, NULL, 0},
+		{"separator"       , required_argument, NULL, 0},
 
 		/* terminator */
-		{NULL, no_argument, NULL, 0}
+		{NULL              , no_argument      , NULL, 0}
 	};
+
+	doc = strdup ("");
 
 	program_name = argv[0];
 	argvp = argv;
@@ -4746,16 +5901,21 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcdefghijklLmnNopPqrstTuUvwxyz",
+				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
 
-		done = TRUE;
+		/* If the user has specified a display option, only
+		 * display that particular group (but crucially don't
+		 * count non-display options).
+		 */
+		if (option) {
+			done = TRUE;
+			master_header (&doc);
+		}
 
 		selected_option = option;
-
-		set_indent ();
 
 		switch (option)
 		{
@@ -4767,18 +5927,39 @@ main (int    argc,
 				output_file = optarg;
 			} else if (! strcmp ("exec", long_options[long_index].name)) {
 				reexec = TRUE;
+			} else if (! strcmp ("format", long_options[long_index].name)) {
+				output_format = get_output_format (optarg);
+			} else if (! strcmp ("indent", long_options[long_index].name)) {
+				indent_amount = atoi(optarg);
+				if (indent_amount <= 0)
+					die ("cannot specify indent <= 0");
+			} else if (! strcmp ("indent-char", long_options[long_index].name)) {
+				/* Special character handling */
+				if (! strcmp (optarg, "\\t"))
+					indent_char = '\t';
+				else
+					indent_char = *optarg;
+				if (! indent_char)
+					die ("cannot use nul indent character");
+			} else if (! strcmp ("separator", long_options[long_index].name)) {
+				if (! strcmp (optarg, "\\t"))
+					text_separator = "\t";
+				else
+					text_separator = optarg;
+			} else if (! strcmp ("crumb-separator", long_options[long_index].name)) {
+				if (! strcmp (optarg, "\\t"))
+					crumb_separator = "\t";
+				else
+					crumb_separator = optarg;
 			}
-
-			done = FALSE;
-
 			/* reset */
 			selected_option = 0;
-			set_indent ();
+			indent = 0;
 
 			break;
 
 		case 'a':
-			dump_meta ();
+			show_meta ();
 			break;
 
 		case 'A':
@@ -4797,6 +5978,10 @@ main (int    argc,
 #endif
 			break;
 
+		case 'C':
+			show_cpu ();
+			break;
+
 		case 'd':
 			show_compiler ();
 			break;
@@ -4805,8 +5990,12 @@ main (int    argc,
 			show_env ();
 			break;
 
+		case 'E':
+			show_semaphores ();
+			break;
+
 		case 'f':
-			dump_fds ();
+			show_fds ();
 			break;
 
 		case 'g':
@@ -4821,11 +6010,11 @@ main (int    argc,
 			get_uname ();
 			get_user_info ();
 			get_misc ();
-			dump_misc ();
+			show_misc ();
 			break;
 
 		case 'j':
-			dump_uname ();
+			show_uname ();
 			break;
 
 		case 'k':
@@ -4842,6 +6031,10 @@ main (int    argc,
 
 		case 'm':
 			show_mounts (SHOW_MOUNTS);
+			break;
+
+		case 'M':
+			show_msg_queues ();
 			break;
 
 		case 'n':
@@ -4862,11 +6055,11 @@ main (int    argc,
 
 		case 'p':
 			get_misc ();
-			dump_user ();
+			show_proc ();
 			break;
 
 		case 'P':
-			dump_platform ();
+			show_platform ();
 			break;
 
 		case 'q':
@@ -4879,6 +6072,10 @@ main (int    argc,
 
 		case 's':
 			show_signals ();
+			break;
+
+		case 'S':
+			show_shared_mem ();
 			break;
 
 		case 't':
@@ -4898,11 +6095,7 @@ main (int    argc,
 			break;
 
 		case 'v':
-			show ("%s %s: %s",
-					PACKAGE_NAME,
-					_("version"),
-					PACKAGE_VERSION);
-			show ("%s: %s\n", _("Written by"), PROGRAM_AUTHORS);
+			show_version ();
 			break;
 
 		case 'w':
@@ -4916,7 +6109,7 @@ main (int    argc,
 			break;
 
 		case 'y':
-			dump_sysconf ();
+			show_sysconf ();
 			break;
 
 		case 'z':
@@ -4929,8 +6122,18 @@ main (int    argc,
 		}
 	}
 
-	if (done)
-		exit (EXIT_SUCCESS);
+	if (done) {
+		common_assert ();
+
+		master_footer (&doc);
+
+		chomp (doc);
+		compress (&doc);
+
+		_show_output (doc);
+
+		goto finish;
+	}
 
 	if (output == OUTPUT_SYSLOG)
 		openlog (PACKAGE_NAME, LOG_CONS | LOG_PID, LOG_USER);
@@ -4948,6 +6151,12 @@ main (int    argc,
 
 	dump ();
 
+	chomp (doc);
+	compress (&doc);
+
+	_show_output (doc);
+
+finish:
 	cleanup ();
 
 	/* Perform re-exec */
@@ -4978,4 +6187,1448 @@ get_group_name (gid_t gid)
 	g = getgrgid (gid);
 
 	return g ? g->gr_name : NULL;
+}
+
+/**
+ * encode_string:
+ *
+ * Returns: 0 on success, -1 on failure.
+ *
+ * Note: It is the callers responsibility to free @str iff this function
+ * is successful. any previous value of @str will be freed by
+ * encode_string().
+ **/
+int
+encode_string (char **str)
+{
+	int    ret = 0;
+	char   *new;
+
+	assert (str);
+	assert (*str);
+
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_CRUMB: /* FALL */
+	case OUTPUT_FORMAT_TEXT:
+		/* Nothing to do */
+		ret = 0;
+		break;
+
+	case OUTPUT_FORMAT_JSON: /* FALL THROUGH */
+	case OUTPUT_FORMAT_XML:
+		new = translate (*str);
+		if (new) {
+			free (*str);
+			*str = new;
+		} else {
+			ret = -1;
+		}
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+
+	return ret;
+}
+
+char *
+translate (const char *str)
+{
+	char               *result = NULL;
+	const char         *start;
+	const char         *p;
+	TranslateTable     *table;
+	size_t              i;
+	size_t              len;
+	char                from;
+
+	assert (str);
+	assert (output_format != OUTPUT_FORMAT_TEXT);
+	assert (output_format != OUTPUT_FORMAT_CRUMB);
+
+	len = 1 + strlen (str);
+	start = str;
+
+	/* Find the correct translation table for the chosen output format */
+	for (i = 0; i < sizeof (translate_table) / sizeof (translate_table[0]); i++) {
+		table = &translate_table[i];
+		if (table && table->output_format == output_format)
+			break;
+	}
+
+	if (! table)
+		return NULL;
+
+	/* First, calculate the amount of space needed for the expanded
+	 * buffer.
+	 */
+	while (start && *start) {
+		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
+			from = table->map[i].from;
+			if (*start == from) {
+				len += strlen (table->map[i].to);
+			}
+		}
+		start++;
+	}
+
+	result = calloc (len, 1);
+	if (! result)
+		return NULL;
+
+	/* Now, iterate the string again, performing the actual
+	 * replacements.
+	 */
+	p = start = str;
+
+	while (p && *p) {
+		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
+			from = table->map[i].from;
+			if (*p == from) {
+				size_t   amount;
+				char    *to;
+
+				to = table->map[i].to;
+
+				amount = (p - start);
+
+				/* Copy from start to match */
+				strncat (result, start, amount);
+
+				/* Nudge along the string, jumping over
+				 * matching character.
+				 */
+				start += (amount+1);
+
+				/* Copy replacement text */
+				strncat (result, to, strlen (to));
+
+				break;
+			}
+		}
+		p++;
+	}
+
+	/* Copy remaining non-matching chars */
+	strncat (result, start, (p - start));
+
+	return result;
+}
+
+/**
+ * change_element:
+ *
+ * Handle changing to a new element type. Depending on the output
+ * format, this may require separators and newlines to be emitted to
+ * produce well-formatted output.
+ **/
+void
+change_element (ElementType new)
+{
+	common_assert ();
+
+	last_element = current_element;
+
+	current_element = new;
+
+	format_element ();
+}
+
+void
+format_element (void)
+{
+	switch (output_format) {
+
+	case OUTPUT_FORMAT_TEXT:
+		format_text_element ();
+		break;
+
+	case OUTPUT_FORMAT_CRUMB:
+		/* NOP */
+		break;
+
+	case OUTPUT_FORMAT_JSON:
+		format_json_element ();
+		break;
+
+	case OUTPUT_FORMAT_XML:
+		format_xml_element ();
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+void
+format_text_element (void)
+{
+	common_assert ();
+	switch (last_element) {
+
+	case ELEMENT_TYPE_ENTRY:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				/* NOP */
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				/* NOP */
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_NONE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+void
+format_json_element (void)
+{
+	common_assert ();
+
+	switch (last_element) {
+
+	case ELEMENT_TYPE_ENTRY:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, ",\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE:
+			case ELEMENT_TYPE_OBJECT_OPEN:
+				/* NOP */
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				assert_not_reached ();
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, ",\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_OPEN:
+				/* NOP */
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				assert_not_reached ();
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				/* NOP */
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, ",\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_OBJECT_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				/* NOP */
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_OBJECT_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_OPEN:
+			case ELEMENT_TYPE_SECTION_OPEN:
+				append (&doc, ",\n");
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_NONE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+void
+format_xml_element (void)
+{
+	common_assert ();
+
+	switch (last_element) {
+
+	case ELEMENT_TYPE_ENTRY:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				assert_not_reached ();
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_SECTION_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				assert_not_reached ();
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_OPEN:
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_CONTAINER_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				append (&doc, "\n");
+				dec_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_OBJECT_OPEN:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_OPEN:
+				append (&doc, "\n");
+				inc_indent ();
+				add_indent (&doc);
+				break;
+
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				/* NOP */
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_OBJECT_CLOSE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_CLOSE:
+				/* NOP */
+				break;
+
+			case ELEMENT_TYPE_CONTAINER_CLOSE:
+			case ELEMENT_TYPE_ENTRY:
+				append (&doc, "\n");
+				dec_indent ();
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	case ELEMENT_TYPE_NONE:
+		{
+			switch (current_element) {
+			case ELEMENT_TYPE_ENTRY: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
+			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
+			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
+			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
+			case ELEMENT_TYPE_OBJECT_CLOSE:
+				add_indent (&doc);
+				break;
+
+			default:
+				assert_not_reached ();
+				break;
+			}
+		}
+		break;
+
+	default:
+		assert_not_reached ();
+		break;
+	}
+}
+
+/**
+ * compress:
+ *
+ * Remove lines composed entirely of whitespace from @str.
+ *
+ * This is required specifically for '--output=text' which in some
+ * scenarios generates lines comprising pure whitespace. This is
+ * unecessary and results from the fact that when an
+ * ELEMENT_TYPE_OBJECT_* is encountered, formatting is applied for the
+ * previously seen element, but sometimes such "objects" should be
+ * invisible.
+ **/
+void
+compress (char **str)
+{
+#define NUMBER_MATCHES 1
+	char         *new = NULL;
+	regex_t       regex;
+	regmatch_t    matches[NUMBER_MATCHES];
+	regmatch_t   *match;
+	char         *start;
+	char         *pattern = NULL;
+	int           ret;
+
+	assert (str);
+	assert (*str);
+
+	start = *str;
+
+	/* Match lines composed entirely of indent_char chars, and
+	 * entirely blank lines.
+	 */
+	appendf (&pattern, "^([%c][%c]*$|^$)", indent_char, indent_char);
+
+	if (regcomp (&regex, pattern, REG_EXTENDED|REG_NEWLINE))
+		goto error;
+
+	while (start && *start) {
+
+		ret = regexec (&regex, start, NUMBER_MATCHES, matches, 0);
+		if (ret == REG_NOMATCH)
+			break;
+
+		match = &matches[0];
+		if (match->rm_so == -1)
+			break;
+
+		/* Newlines annoyingly need to be special-cased
+		 * (due to the "^$" pattern) to avoid
+		 * looping when the input contains say "\n\n".
+		 */
+		if (! match->rm_so && ! match->rm_eo && start[match->rm_so] == '\n') {
+			start++;
+			continue;
+		}
+
+		/* Copy text before the match to the output buffer */
+		appendn (&new, start, match->rm_so);
+
+		/* Jump over the matching chars */
+		start += match->rm_eo;
+	}
+
+	regfree (&regex);
+
+	if (new) {
+		free (*str);
+		*str = new;
+	}
+
+	free (pattern);
+	return;
+
+error:
+	free (pattern);
+	die ("failed to compile regex");
+}
+
+/**
+ * chomp:
+ *
+ * Remove trailing extraneous newlines and indent_chars from @str.
+ **/
+void
+chomp (char *str)
+{
+	size_t  len;
+	int     removable = 0;
+	char   *p;
+
+	assert (str);
+
+	len = strlen (str);
+
+	/* Unable to add '\n' in this scenario */
+	if (len < 2)
+		return;
+
+	for (p = str+len-1; *p == '\n' || *p == (char)indent_char;
+			p--, removable++)
+		;
+
+	/* Chop string at the appropriate place after first adding a new
+	 * newline.
+	 */
+	if (removable > 1) {
+		len -= (removable-1);
+		str[len-1] = '\n';
+		str[len] = '\0';
+	}
+}
+
+void
+show_version (void)
+{
+	common_assert ();
+
+	header ("version");
+
+	entry (_("name"), "%s", PACKAGE_NAME);
+	entry (_("version"), "%s", PACKAGE_VERSION);
+	entry (_("author"), "%s", PROGRAM_AUTHORS);
+	
+	footer ();
+}
+
+void
+show_shared_mem (void)
+{
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+	show_shared_mem_linux ();
+#endif
+
+#if defined (PROCENV_BSD)
+	show_shared_mem_bsd ();
+#endif
+}
+
+void
+show_semaphores (void)
+{
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+	show_semaphores_linux ();
+#endif
+
+#if defined (PROCENV_BSD)
+	show_semaphores_bsd ();
+#endif
+}
+
+void
+show_msg_queues (void)
+{
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+	show_msg_queues_linux ();
+#endif
+#if defined (PROCENV_BSD)
+	show_msg_queues_bsd ();
+#endif
+}
+
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+void
+show_shared_mem_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct shm_info   info;
+	struct shmid_ds   shmid_ds;
+	struct ipc_perm  *perm;
+	char              formatted_atime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	char              formatted_dtime[CTIME_BUFFER];
+	char             *modestr = NULL;
+	int               locked = -1;
+	int               destroy = -1;
+	char             *cpid = NULL;
+	char             *lpid = NULL;
+
+	header ("shared memory");
+
+	max = shmctl (0, SHM_INFO, (struct shmid_ds *)&info);
+	if (max < 0)
+		goto out;
+
+	/* Display summary details */
+
+	section_open ("info");
+
+	entry ("segments", "%u", info.used_ids);
+	entry ("pages", "%lu", info.shm_tot);
+	entry ("shm_rss", "%lu", info.shm_rss);
+	entry ("shm_swp", "%lu", info.shm_swp);
+
+	section_close ();
+
+	container_open ("segments");
+
+	object_open (FALSE);
+
+	for (i = 0; i <= max; i++) {
+		char *id_str = NULL;
+
+		id = shmctl (i, SHM_STAT, &shmid_ds);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &shmid_ds.shm_perm;
+
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+#ifdef PROCENV_LINUX
+		locked = (perm->mode & SHM_LOCKED);
+		destroy = (perm->mode & SHM_DEST);
+#endif
+
+		format_time (&shmid_ds.shm_atime, formatted_atime, sizeof (formatted_atime));
+		format_time (&shmid_ds.shm_ctime, formatted_ctime, sizeof (formatted_ctime));
+		format_time (&shmid_ds.shm_dtime, formatted_dtime, sizeof (formatted_dtime));
+
+		cpid = pid_to_name (shmid_ds.shm_cpid);
+		lpid = pid_to_name (shmid_ds.shm_lpid);
+
+		appendf (&id_str, "%d", id);
+
+		container_open (id_str);
+		free (id_str);
+
+		object_open (FALSE);
+
+		/* pad out to max pointer size represented in hex.
+		 */
+		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
+		entry ("sequence", "%u", perm->__seq);
+
+		section_open ("permissions");
+		entry ("octal", "%4.4o", perm->mode);
+		entry ("symbolic", "%s", modestr);
+		section_close ();
+
+		section_open ("pids");
+		entry ("create", "%d (%s)", shmid_ds.shm_cpid, cpid ? cpid : UNKNOWN_STR);
+		entry ("last", "%d (%s)", shmid_ds.shm_cpid, lpid ? lpid : UNKNOWN_STR);
+		section_close ();
+
+		entry ("attachers", "%lu", shmid_ds.shm_nattch);
+
+		section_open ("creator");
+		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
+		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
+		section_close ();
+
+		section_open ("owner");
+		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
+		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
+		section_close ();
+
+		entry ("segment size", "%lu", shmid_ds.shm_segsz);
+
+		section_open ("times");
+		entry ("last attach (atime)", "%lu (%s)", shmid_ds.shm_atime, formatted_atime);
+		entry ("last detach (dtime)", "%lu (%s)", shmid_ds.shm_dtime, formatted_dtime);
+		entry ("last change (ctime)", "%lu (%s)", shmid_ds.shm_ctime, formatted_ctime);
+		section_close ();
+
+		entry ("locked", "%s", locked == 0 ? NO_STR
+					: locked > 0 ? YES_STR
+					: NA_STR);
+		entry ("destroy", "%s", destroy == 0 ? NO_STR
+					: destroy > 0 ? YES_STR
+					: NA_STR);
+
+		object_close (FALSE);
+
+		container_close ();
+
+		free (modestr);
+		if (cpid)
+			free (cpid);
+		if (lpid)
+			free (lpid);
+	}
+
+	object_close (FALSE);
+
+	container_close ();
+
+out:
+    footer ();
+}
+
+void
+show_semaphores_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct semid_ds   semid_ds;
+	struct seminfo    info;
+	struct ipc_perm  *perm;
+	char              formatted_otime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	char             *modestr = NULL;
+	union semun       arg;
+
+	header ("semaphores");
+
+	max = semctl (0, 0, SEM_INFO, &info);
+	if (max < 0)
+		goto out;
+
+	section_open ("info");
+
+	entry ("semmap", "%d", info.semmap);
+	entry ("semmni", "%d", info.semmni);
+	entry ("semmns", "%d", info.semmns);
+	entry ("semmnu", "%d", info.semmnu);
+	entry ("semmsl", "%d", info.semmsl);
+	entry ("semopm", "%d", info.semopm);
+	entry ("semume", "%d", info.semume);
+	entry ("semusz", "%d", info.semusz);
+	entry ("semvmx", "%d", info.semvmx);
+	entry ("semaem", "%d", info.semaem);
+
+	section_close ();
+
+	container_open ("set");
+
+	object_open (FALSE);
+
+	for (i = 0; i <= max; i++) {
+		char *id_str = NULL;
+
+		/* see semctl(2) */
+		arg.buf = (struct semid_ds *)&semid_ds;
+
+		id = semctl (i, 0, SEM_STAT, arg);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &semid_ds.sem_perm;
+
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+		/* May not have been set */
+		if (semid_ds.sem_otime)
+			format_time (&semid_ds.sem_otime, formatted_otime, sizeof (formatted_otime));
+		else
+			sprintf (formatted_otime, "%s", NA_STR);
+
+		format_time (&semid_ds.sem_ctime, formatted_ctime, sizeof (formatted_ctime));
+
+		appendf (&id_str, "%d", id);
+
+		container_open (id_str);
+		free (id_str);
+
+		object_open (FALSE);
+
+		/* pad out to max pointer size represented in hex.
+		 */
+		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
+		entry ("sequence", "%u", perm->__seq);
+
+		entry ("number in set", "%lu", semid_ds.sem_nsems);
+
+		section_open ("permissions");
+		entry ("octal", "%4.4o", perm->mode);
+		entry ("symbolic", "%s", modestr);
+		free (modestr);
+		section_close ();
+
+		section_open ("creator");
+		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
+		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
+		section_close ();
+
+		section_open ("owner");
+		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
+		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
+		section_close ();
+
+		section_open ("times");
+		entry ("last semop (otime)", "%lu (%s)", semid_ds.sem_otime, formatted_otime);
+		entry ("last change (ctime)", "%lu (%s)", semid_ds.sem_ctime, formatted_ctime);
+		section_close ();
+
+		object_close (FALSE);
+
+		container_close ();
+	}
+
+	object_close (FALSE);
+
+	container_close ();
+
+out:
+	footer ();
+}
+
+void
+show_msg_queues_linux (void)
+{
+	int               i;
+	int               id;
+	int               max;
+	struct msginfo    info;
+	struct msqid_ds   msqid_ds;
+	struct ipc_perm  *perm;
+	char              formatted_stime[CTIME_BUFFER];
+	char              formatted_rtime[CTIME_BUFFER];
+	char              formatted_ctime[CTIME_BUFFER];
+	char             *modestr = NULL;
+	char             *lspid = NULL;
+	char             *lrpid = NULL;
+
+	header ("message queues");
+
+	max = msgctl (0, MSG_INFO, (struct msqid_ds  *)&info);
+	if (max < 0)
+		goto out;
+
+	section_open ("info");
+
+	entry ("msgpool", "%d", info.msgpool);
+	entry ("msgmap", "%d", info.msgmap);
+	entry ("msgmax", "%d", info.msgmax);
+	entry ("msgmnb", "%d", info.msgmnb);
+	entry ("msgmni", "%d", info.msgmni);
+	entry ("msgssz", "%d", info.msgssz);
+	entry ("msgtql", "%d", info.msgtql);
+	entry ("msgseg", "%d", info.msgseg);
+
+	section_close ();
+
+	container_open ("sets");
+
+	object_open (FALSE);
+
+	for (i = 0; i <= max; i++) {
+		char *id_str = NULL;
+
+		id = msgctl (i, MSG_STAT, &msqid_ds);
+		if (id < 0) {
+			/* found an unused slot, so ignore it */
+			continue;
+		}
+
+		perm = &msqid_ds.msg_perm;
+
+		modestr = format_perms (perm->mode);
+		if (! modestr)
+			die ("failed to allocate space for permissions string");
+
+		/* May not have been set */
+		if (msqid_ds.msg_stime)
+			format_time (&msqid_ds.msg_stime, formatted_stime, sizeof (formatted_stime));
+		else
+			sprintf (formatted_stime, "%s", NA_STR);
+
+		/* May not have been set */
+		if (msqid_ds.msg_rtime)
+			format_time (&msqid_ds.msg_rtime, formatted_rtime, sizeof (formatted_rtime));
+		else
+			sprintf (formatted_rtime, "%s", NA_STR);
+
+		/* May not have been set */
+		if (msqid_ds.msg_ctime)
+			format_time (&msqid_ds.msg_ctime, formatted_ctime, sizeof (formatted_ctime));
+		else
+			sprintf (formatted_ctime, "%s", NA_STR);
+
+		lspid = pid_to_name (msqid_ds.msg_lspid);
+		lrpid = pid_to_name (msqid_ds.msg_lrpid);
+
+		appendf (&id_str, "%d", id);
+
+		container_open (id_str);
+		free (id_str);
+
+		object_open (FALSE);
+
+		/* pad out to max pointer size represented in hex */
+		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
+		entry ("sequence", "%u", perm->__seq);
+
+		section_open ("permissions");
+		entry ("octal", "%4.4o", perm->mode);
+		entry ("symbolic", "%s", modestr);
+		section_close ();
+
+		section_open ("creator");
+		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
+		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
+		section_close ();
+
+		section_open ("owner");
+		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
+		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
+		section_close ();
+
+		section_open ("times");
+		entry ("last send (stime)", "%lu (%s)", msqid_ds.msg_stime, formatted_stime);
+		entry ("last receive (rtime)", "%lu (%s)", msqid_ds.msg_rtime, formatted_rtime);
+		entry ("last change (ctime)", "%lu (%s)", msqid_ds.msg_ctime, formatted_ctime);
+		section_close ();
+
+		entry ("queue_bytes", "%lu", msqid_ds.__msg_cbytes);
+
+		entry ("msg_qnum", "%lu", msqid_ds.msg_qnum);
+		entry ("msg_qbytes", "%lu", msqid_ds.msg_qbytes);
+
+		entry ("last msgsnd pid", "%d (%s)", msqid_ds.msg_lspid,
+				lspid ? lspid : UNKNOWN_STR);
+
+		entry ("last msgrcv pid", "%d (%s)", msqid_ds.msg_lrpid,
+				lrpid ? lrpid : UNKNOWN_STR);
+
+		object_close (FALSE);
+
+		container_close ();
+
+		free (modestr);
+		if (lspid)
+			free (lspid);
+		if (lrpid)
+			free (lrpid);
+	}
+
+	object_close (FALSE);
+
+	container_close ();
+
+out:
+	footer ();
+}
+#endif /* PROCENV_LINUX || PROCENV_HURD */
+
+void
+format_time (const time_t *t, char *buffer, size_t len)
+{
+	char   *str = NULL;
+	size_t  l;
+
+	assert (t);
+	assert (buffer);
+
+	str = ctime (t);
+	if (! str)
+		die ("failed to format time");
+
+	l = strlen (str);
+
+	if (len < l)
+		bug ("buffer too small");
+
+	/* Ensure nul byte copied */
+	strncpy (buffer, str, l+1);
+
+	/* Overwrite NL */
+	buffer[strlen (buffer)-1] = '\0';
+}
+
+char *
+format_perms (mode_t mode)
+{
+	char    *modestr = NULL;
+	mode_t   perms;
+	int      i = 0;
+
+	/*
+	 * "-rwxrwxrwx" = 10+1 bytes.
+	 */
+	modestr = calloc ((1+3+3+3)+1, 1);
+
+	if (! modestr)
+		return NULL;
+
+	modestr[i++] = (S_ISLNK (mode & S_IFMT)) ? 'l' : '-';
+
+	perms = (mode & S_IRWXU);
+	modestr[i++] = (perms & S_IRUSR) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWUSR) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXUSR) ? 'x' : '-';
+
+	perms = (mode & S_IRWXG);
+	modestr[i++] = (perms & S_IRGRP) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWGRP) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXGRP) ? 'x' : '-';
+
+	perms = (mode & S_IRWXO);
+	modestr[i++] = (perms & S_IROTH) ? 'r' : '-';
+	modestr[i++] = (perms & S_IWOTH) ? 'w' : '-';
+	modestr[i++] = (perms & S_IXOTH) ? 'x' : '-';
+
+	perms = (mode &= ~S_IFMT);
+	if (perms & S_ISUID)
+		modestr[3] = 's';
+	if (perms & S_ISGID)
+		modestr[6] = 's';
+	if (perms & S_ISVTX)
+		modestr[9] = 't';
+
+	return modestr;
+}
+
+char *
+pid_to_name (pid_t pid)
+{
+	char   path[PATH_MAX];
+	char  *name = NULL;
+	FILE  *f = NULL;
+
+	sprintf (path, "/proc/%d/cmdline", (int)pid);
+
+	f = fopen (path, "r");
+	if (! f) 
+		goto out;
+
+	/* Reuse buffer */
+	if (! fgets (path, sizeof (path), f))
+		goto out;
+
+	/* Nul delimiting within /proc file will ensure we only get the
+	 * program name.
+	 */
+	append (&name, path);
+
+out:
+	if (f)
+		fclose (f);
+
+	return name;
+}
+
+
+void
+add_breadcrumb (const char *name)
+{
+	assert (name);
+
+	if (! crumb_list)
+		crumb_list = pr_list_new (NULL);
+
+	assert (crumb_list);
+
+	pr_list_prepend_str (crumb_list, name);
+}
+
+void
+remove_breadcrumb (void)
+{
+	PRList  *entry;
+
+	assert (crumb_list);
+
+	entry = pr_list_remove (crumb_list->prev);
+	assert (entry);
+
+	free ((char *)entry->data);
+	free (entry);
+}
+
+void
+clear_breadcrumbs (void)
+{
+	assert (crumb_list);
+
+	while (crumb_list->prev != crumb_list)
+		remove_breadcrumb ();
 }

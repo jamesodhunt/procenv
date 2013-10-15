@@ -79,7 +79,7 @@ POST_UNINSTALL = :
 bin_PROGRAMS = procenv$(EXEEXT)
 @HAVE_SELINUX_TRUE@am__append_1 = -DHAVE_SELINUX
 @HAVE_APPARMOR_TRUE@am__append_2 = -DHAVE_APPARMOR
-TESTS = tests/show_compiler_details procenv$(EXEEXT)
+TESTS = tests/show_compiler_details procenv$(EXEEXT) check_all_args
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/depcomp
@@ -93,7 +93,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_procenv_OBJECTS = procenv-procenv.$(OBJEXT)
+am_procenv_OBJECTS = procenv-procenv.$(OBJEXT) \
+	procenv-pr_list.$(OBJEXT)
 procenv_OBJECTS = $(am_procenv_OBJECTS)
 procenv_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -269,12 +270,22 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CFLAGS = \
 	-pedantic \
-	-std=gnu99 
+	-std=gnu99 \
+	-Wall -Wunused \
+	-fstack-protector \
+	-Wformat -Werror=format-security
 
-procenv_SOURCES = procenv.c procenv.h
+procenv_SOURCES = \
+	procenv.c procenv.h \
+	pr_list.c pr_list.h
+
 procenv_LDADD = -lrt
 procenv_CPPFLAGS = $(am__append_1) $(am__append_2)
-EXTRA_DIST = tests/show_compiler_details
+CLEANFILES = check_all_args
+EXTRA_DIST = \
+    tests/show_compiler_details \
+    tests/check_all_args.in
+
 all: all-am
 
 .SUFFIXES:
@@ -362,6 +373,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-pr_list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-procenv.Po@am__quote@
 
 .c.o:
@@ -391,6 +403,20 @@ procenv-procenv.obj: procenv.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='procenv.c' object='procenv-procenv.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-procenv.obj `if test -f 'procenv.c'; then $(CYGPATH_W) 'procenv.c'; else $(CYGPATH_W) '$(srcdir)/procenv.c'; fi`
+
+procenv-pr_list.o: pr_list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-pr_list.o -MD -MP -MF $(DEPDIR)/procenv-pr_list.Tpo -c -o procenv-pr_list.o `test -f 'pr_list.c' || echo '$(srcdir)/'`pr_list.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-pr_list.Tpo $(DEPDIR)/procenv-pr_list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pr_list.c' object='procenv-pr_list.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-pr_list.o `test -f 'pr_list.c' || echo '$(srcdir)/'`pr_list.c
+
+procenv-pr_list.obj: pr_list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-pr_list.obj -MD -MP -MF $(DEPDIR)/procenv-pr_list.Tpo -c -o procenv-pr_list.obj `if test -f 'pr_list.c'; then $(CYGPATH_W) 'pr_list.c'; else $(CYGPATH_W) '$(srcdir)/pr_list.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-pr_list.Tpo $(DEPDIR)/procenv-pr_list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pr_list.c' object='procenv-pr_list.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-pr_list.obj `if test -f 'pr_list.c'; then $(CYGPATH_W) 'pr_list.c'; else $(CYGPATH_W) '$(srcdir)/pr_list.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -597,6 +623,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -690,9 +717,11 @@ uninstall-am: uninstall-binPROGRAMS
 	ps ps-am tags tags-am uninstall uninstall-am \
 	uninstall-binPROGRAMS
 
-	-Wall -O2 \
-	-fstack-protector \
-	-Wformat -Werror=format-security
+
+check_all_args: tests/check_all_args.in
+	sed -e 's|[@]abs_builddir[@]|$(abs_builddir)|g' \
+	    $< > $@
+	chmod +x $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

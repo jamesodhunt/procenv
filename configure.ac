@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(procenv, 0.26, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.27, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2013 James Hunt <james.hunt@ubuntu.com>
  and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
@@ -55,5 +55,26 @@ AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 # it also disables verbose output meaning that procenv output is not
 # visible in build logs. Therefore, force old behaviour.
 AM_INIT_AUTOMAKE([serial-tests])
+
+AC_ARG_ENABLE([compiler-optimisations],
+	AS_HELP_STRING([--disable-compiler-optimisations],
+		       [Disable compiler optimisations]),
+	[AS_IF([test "x$enable_compiler_optimisations" = "xno"],
+	       [[CFLAGS=`echo "$CFLAGS" | sed -e "s/ -O[1-9s]*\b/ -O0/g"`
+	         CXXFLAGS=`echo "$CXXFLAGS" | sed -e "s/ -O[1-9s]*\b/ -O0/g"`]])])
+
+AC_ARG_ENABLE([linker-optimisations],
+	AS_HELP_STRING([--disable-linker-optimisations],
+		       [Disable linker optimisations]),
+	[AS_IF([test "x$enable_linker_optimisations" = "xno"],
+	       [LDFLAGS=`echo "$LDFLAGS" | sed -e "s/ -Wl,-O[0-9]*\b//g"`],
+	       [LDFLAGS="$LDFLAGS -Wl,-O1"])])
+
+AC_ARG_ENABLE([debug],
+	AS_HELP_STRING([--enable-debug],
+		       [enable developer build]),
+	[AS_IF([test "x$enable_debug" = "xyes"],
+	       [[CFLAGS=`echo "$CFLAGS -DDEBUG"`
+	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG"`]])])
 
 AC_OUTPUT(Makefile src/Makefile)
