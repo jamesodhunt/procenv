@@ -716,7 +716,7 @@ usage (void)
 	show ("  - Any long option name may be shortened as long as it remains unique.");
 	show ("  - The 'crumb' output format is designed for easy parsing: it displays");
 	show ("    the data in a flattened format with each value on a separate line");
-	show ("    preceeded by all appropriate headings which are separated by the");
+	show ("    preceded by all appropriate headings which are separated by the");
 	show ("    current separator.");
 	show ("");
 }
