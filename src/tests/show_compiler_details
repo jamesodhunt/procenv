@@ -4,7 +4,7 @@
 # Notes: Tested with gcc and clang.
 #---------------------------------------------------------------------
 
-CC=${CC:-gcc}
+CC=${CC:-cc}
 CPP=${CPP:-cpp}
 LD=${LD:-ld}
 

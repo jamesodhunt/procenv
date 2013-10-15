@@ -1,3 +1,145 @@
+2013-10-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add '--debug' option.
+	* man/procenv.1:
+	  - General tidy-up.
+	  - OPTIONS: Added '--crumb-separator'.
+	  - EXAMPLES: Added a few more.
+	  - LIMITATIONS: Updated.
+	* src/pr_list.c: Undo erroneous "fix" to pr_list_append() and
+	  pr_list_prepend().
+	* src/procenv.c:
+	  - Remove "(linux)" suffix from capabilities, cgroups and oom
+	    output: they are not displayed on other platforms, so the
+	    information is redundant.
+	  - Added '--crumb-separator'.
+	  - show_network_if(): Put flags in containeris rather than dumping as a
+	    comma-separated list.
+
+2013-10-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Update.
+	* man/procenv.1: ENVIRONMENT VARIABLES:
+	  - Added PROCENV_INDENT, PROCENV_INDENT_CHAR and PROCENV_SEPARATOR.
+	* src/pr_list.c:
+	  - Fix issue in pr_list_append() and pr_list_prepend().
+	  - Added PR_LIST_FOREACH_STR() and PR_LIST_FOREACH_REV_STR() from
+	    pr_list.h.
+	  - pr_list_visitor_str(): New.
+	* src/procenv.c:
+	  - appendf(): Simplified and plugged a memory leak.
+	  - appendva(): Simplified and plugged a memory leak.
+	  - show_fds_linux(): Fixed memory leak.
+	  - show_semaphores_linux(): Fixed memory leak.
+	  - Comments.
+	  - cleanup(): Check crumb_list before clearing it.
+	  - check_envvars(): Added PROCENV_INDENT_ENV, PROCENV_INDENT_CHAR_ENV and
+	    PROCENV_SEPARATOR_ENV.
+
+2013-10-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add ability to disable optimisation for debugging.
+	* man/procenv.1:
+	  - SYNOPSIS: Added '--format=crumb'
+	  - ENVIRONMENT VARIABLES: Added 'PROCENV_FORMAT'.
+	  - NOTES: More details.
+	  - EXAMPLES: Two examples showing how to use '--format'.
+	* src/Makefile.am:
+	  - Remove hard-coded optimisation flag.
+	  - Add pr_list.[ch] sources.
+	* src/procenv.c:
+	  - Added 'crumb' format and supporting functions.
+	  - Removed horrid object-handling hacks since object_open()
+	    and object_close() are now sensible.
+	  - Added calls to object_open() and object_close() in various places
+	    for json array handling.
+	  - usage():
+	    - Fixed '--messages-queues' and '--shared-memory' to add missing
+	      intra-word dash.
+	    - Updated notes.
+	  - show_meta(): Use get_output_format_name() instead of hard-coded
+	    list.
+	  - show_stat(): Removed double header().
+	  - check_env_vars(): Update to handle 'PROCENV_FORMAT'.
+	* src/tests/check_all_args.in:
+	  - Test both short and long options.
+	  - Test 'crumb' format.
+
+2013-10-03  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_proc(): Improved grouping by adding more sections.
+	  - show_meta(): Show output format.
+	  - show_compiler(): Add "feature test macros" section.
+
+2013-10-02  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added new options:
+	    - -C/--cpu.
+	    - --format.
+	    - --indent.
+	    - --indent-char.
+	    - --separator.
+	  - Removed bracketed partial option names since getopt_long(3) allows
+	    any unique partially named option.
+	* src/Makefile.am:
+	  - Added check_all_args test.
+	  - CFLAGS: Check for unused variables.
+	* src/procenv.c:
+	  - Added ability to produce output in either highly-structured text
+	    (default), JSON, or XML using the --format=<format> option.
+
+2013-09-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/tests/check_all_args.in: Added missing test.
+	* src/procenv.c:
+	  - usage():
+	    - Clarify option usage.
+	    - Ensure no wrapping on 80-column devices.
+	  - show_rlimits():
+	    - Enable RLIMIT_RTTIME on Linux.
+	    - Check kernel version and defines for newer limits.
+	* src/procenv.h: Cleanup.
+
+2013-09-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/Makefile.am: Updated for new check_all_args test.
+	* src/procenv.c:
+	  - dump(): Ensure correct output ordering.
+	  - Added "not implemented" stubs for FreeBSD IPC functions.
+	* src/tests/show_compiler_details: Don't hard-code 'gcc' - use 'cc'
+	  for maximum portability.
+
+2013-09-11  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added -E/--semaphores option.
+	  - Added -M/--message-queues option.
+	  - Added -S/--shared-memory option.
+	  - Added ref to ipcs(1).
+	* src/procenv.c:
+	  - Added support for displaying IPC resources (shared memory,
+	    semaphores and message queues) under Linux only at this
+	    stage.
+	  - New utility functions: format_time(), format_perms() and
+	    pid_to_name().
+
+2013-08-30  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_stat(): Make resilient to failures.
+	  - show_linux_mounts(): Show if unable to query major+minor number.
+	  - show_bsd_mounts(): Show if unable to query major+minor number.
+	  - get_major_minor(): Return a value rather than simply warning on
+	    error.
+
+2013-08-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_network(): Handle bionics lack of getifaddrs().
+	  - get_arch(): Don't identify MIPSEL as MIPS.
+
 2013-08-23  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: 

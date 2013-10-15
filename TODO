@@ -1,27 +1,54 @@
 # TODO
 
-- networking details
+- Introduce "value()" that can take a bare value. This will allow for
+  example mount options to be displayed in a container.
+- Non-root queryable hdd attributes?
+- Tests:
+  - --indent=
+  - --indent-char=
+  - --crumb-separator=
+  - --separator=
+- Create a versioned XML schema.
+- Restructure code into separate files.
+- Use weak symbols/VPATH to avoid ifdefs!
+- Display numeric values for all symbols?:
+	- limits (RLIMIT_AS)
+	- capabilities (CAP_CHOWN)
+	- clocks (CLOCK_REALTIME)
+	- pathconf (_PC_LINK_MAX)
+	- sysconf (ARG_MAX)
+	- etc
+  XXX: must be consistent with existing signals (SIGHUP, etc)!!
+- BUG: all numbers are displayed as strings in json output.
+- Add in ability to specify a platform restriction for certain details by modifying
+  section_open() and container_open() to accept string pairs like:
+
+  container_open (const char *name, int count, ...);
+                  |
+                  V
+  container_open (const char *name, 2, "restriction", "linux");
+- Networking details
   - IPv6 scope_id.
   - gateway.
+- Add to show_sizeof():
+  suseconds_t.
+- sort network interfaces.
 - add to show_sizeof():
   - intN_t group   
-- i18n (gettext)
-- don't hide any option that a particular O/S / arch doesn't
+- I18N (gettext)
+- Don't hide any option that a particular O/S / arch doesn't
   have: show the option with a value of `UNKNOWN_STR'.
-- allow data to be dumped in JSON and XML by implementing a keyvalue()
-  macro that replaces the existing calls to show() when used in the
-  context of dumping a key/value pair along with logic to change the
-  output format.
-- uptime (using utmp)?
-- text/data/bss/stack details (end(3), sbrk(2))
+- Rework output code to use a cleaner stack-based approach.
+- Uptime (using utmp)?
+- Text/data/bss/stack details (end(3), sbrk(2))
 - mincore(2)?
-- add program arguments to show_misc().
-- add process arguments to show_proc_branch()?
-- sort output of show_mounts().
-- use CPUID instruction to detect XEN environments?
+- Add program arguments to show_misc().
+- Add process arguments to show_proc_branch()?
+- Sort output of show_mounts().
+- Use CPUID instruction to detect XEN environments?
   (http://libcpuid.sourceforge.net/)
-- use dlopen to probe for apparmor/selinux. This avoids having to depend
+- Use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
-- add in permissions for /dev/tty and fds 0-2 if they refer to devices.
+- Add in permissions for /dev/tty and fds 0-2 if they refer to devices.
 - ELF details.
