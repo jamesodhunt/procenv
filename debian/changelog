@@ -1,9 +1,9 @@
-procenv (0.27-1) UNRELEASED; urgency=low
+procenv (0.27-1) unstable; urgency=low
 
   * New upstream release.
   * debian/control: Add expat and perl to Build-Depends for tests.
 
- -- James Hunt <james.hunt@ubuntu.com>  Tue, 15 Oct 2013 08:21:12 +0100
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 23 Oct 2013 09:13:49 +0100
 
 procenv (0.26-1) unstable; urgency=low
 
