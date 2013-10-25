@@ -4429,9 +4429,6 @@ get_arch (void)
 {
 
 #ifdef __arm__
-#ifdef __aarch64__
-	return "ARM64";
-#endif
 #ifdef __ARM_PCS_VFP
 	return "ARMhf";
 #endif
@@ -4439,6 +4436,11 @@ get_arch (void)
 	return "ARMEL";
 #endif
 	return "ARM";
+#endif
+
+	/* not arm apparently! :) */
+#ifdef __aarch64__
+	return "ARM64/AARCH64";
 #endif
 
 #ifdef __hppa__

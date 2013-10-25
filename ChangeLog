@@ -1,3 +1,9 @@
+2013-10-25  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Stuff.
+	* src/procenv.c: get_arch(): Fix for AARCH64 which seemingly isn't
+	  considered to be "ARM" by gcc.
+
 2013-10-15  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1:
