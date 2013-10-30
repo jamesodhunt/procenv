@@ -1,0 +1,284 @@
+Description: Upstream cross-platform fixes for non x86/AMD64 platforms.
+ procenv (0.27-2) unstable; urgency=low
+ .
+   * Upstream sync including fixes for Hurd semaphores, and those
+     platforms which don't support the complete set of standard
+     Linux signals.
+Author: James Hunt <james.hunt@ubuntu.com>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: http://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: <YYYY-MM-DD>
+
+--- procenv-0.27.orig/TODO
++++ procenv-0.27/TODO
+@@ -1,5 +1,9 @@
+ # TODO
+ 
++- XXX: run show_compiler_details *before* build to help diagnose
++  failures.
++- Add YAML output format?
++- Sort *all* output values.
+ - Introduce "value()" that can take a bare value. This will allow for
+   example mount options to be displayed in a container.
+ - Non-root queryable hdd attributes?
+--- procenv-0.27.orig/ChangeLog
++++ procenv-0.27/ChangeLog
+@@ -1,3 +1,28 @@
++2013-10-30  James Hunt  <james.hunt@ubuntu.com>
++
++	* src/procenv.c:
++	  - show_signals(): Check return from get_signal_name() in case a
++	    platform doesn't provide the signal in question.
++	  - get_kernel_bits(): Return error value rather than calling die().
++	  - show_bsd_mounts(): Removed unused variables.
++	  - Added a few extra asserts to ensure section_open() is passed a valid
++	    name.
++	* src/procenv.h: Need to define 'semun' on Hurd too.
++
++2013-10-25  James Hunt  <james.hunt@ubuntu.com>
++
++	* TODO: Stuff.
++	* src/procenv.c: get_arch(): Fix for AARCH64 which seemingly isn't
++	  considered to be "ARM" by gcc.
++
++2013-10-15  James Hunt  <james.hunt@ubuntu.com>
++
++	* man/procenv.1:
++	  - Fix for lintian bug: spelling-error-in-binary.
++	* src/procenv.c:
++	  - Fixes for lintian bugs: spelling-error-in-manpage,
++	    hyphen-used-as-minus-sign.
++
+ 2013-10-14  James Hunt  <james.hunt@ubuntu.com>
+ 
+ 	* configure.ac: Add '--debug' option.
+--- /dev/null
++++ procenv-0.27/TODO.debian
+@@ -0,0 +1,5 @@
++# Debian fixes:
++
++- powerpc:
++  - semmap: -1674096
++  - 'procenv -E' crash
+--- procenv-0.27.orig/src/procenv.c
++++ procenv-0.27/src/procenv.c
+@@ -716,7 +716,7 @@ usage (void)
+ 	show ("  - Any long option name may be shortened as long as it remains unique.");
+ 	show ("  - The 'crumb' output format is designed for easy parsing: it displays");
+ 	show ("    the data in a flattened format with each value on a separate line");
+-	show ("    preceeded by all appropriate headings which are separated by the");
++	show ("    preceded by all appropriate headings which are separated by the");
+ 	show ("    current separator.");
+ 	show ("");
+ }
+@@ -1461,6 +1461,9 @@ show_signals (void)
+ 			blocked = 1;
+ 
+ 		signal_name = get_signal_name (i);
++		if (! signal_name)
++			continue;
++
+ 		signal_desc = strsignal (i);
+ 
+ 		object_open (FALSE);
+@@ -2403,7 +2406,7 @@ get_kernel_bits (void)
+ 	errno = 0;
+ 	value = sysconf (_SC_LONG_BIT);
+ 	if (value == -1 && errno != 0)
+-		die ("failed to determine kernel bits");
++		return -1;
+ 	return value;
+ #endif
+ 	return -1;
+@@ -2709,10 +2712,11 @@ show_linux_mounts (ShowMountType what)
+ 				used_files = fs.f_files - fs.f_ffree;
+ 			}
+ 
+-			get_major_minor (mnt->mnt_dir,
++			(void)get_major_minor (mnt->mnt_dir,
+ 					&major,
+ 					&minor);
+ 
++			assert (mnt->mnt_dir);
+ 			section_open (mnt->mnt_dir);
+ 
+ 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
+@@ -2954,6 +2958,7 @@ show_network_if (const struct ifaddrs *i
+ 
+ 	family = ifa->ifa_addr->sa_family;
+ 
++	assert (ifa->ifa_name);
+ 	section_open (ifa->ifa_name);
+ 
+ 	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
+@@ -3276,7 +3281,6 @@ show_bsd_mounts (ShowMountType what)
+ 	statfs_int_type   bfree;
+ 	statfs_int_type   bavail;
+ 	statfs_int_type   used;
+-	int               ret;
+ 
+ 	common_assert ();
+ 
+@@ -3297,9 +3301,7 @@ show_bsd_mounts (ShowMountType what)
+ 					mnt->f_mntonname);
+ 
+ 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
+-			char *str = NULL;
+-
+-			ret = get_major_minor (mnt->f_mntonname,
++			(void)get_major_minor (mnt->f_mntonname,
+ 					&major,
+ 					&minor);
+ 
+@@ -3309,6 +3311,7 @@ show_bsd_mounts (ShowMountType what)
+ 			bavail = mnt->f_bavail * multiplier;
+ 			used = blocks - bfree;
+ 
++			assert (mnt->f_mntfromname);
+ 			section_open (mnt->f_mntfromname);
+ 
+ 			entry ("dir", "'%s'", mnt->f_mntonname);
+@@ -4429,9 +4432,6 @@ get_arch (void)
+ {
+ 
+ #ifdef __arm__
+-#ifdef __aarch64__
+-	return "ARM64";
+-#endif
+ #ifdef __ARM_PCS_VFP
+ 	return "ARMhf";
+ #endif
+@@ -4441,6 +4441,11 @@ get_arch (void)
+ 	return "ARM";
+ #endif
+ 
++	/* not arm apparently! :) */
++#ifdef __aarch64__
++	return "ARM64/AARCH64";
++#endif
++
+ #ifdef __hppa__
+ 	return "HP/PA RISC";
+ #endif
+@@ -4509,6 +4514,8 @@ libs_callback (struct dl_phdr_info *info
+ 		return 0;
+ 
+ 	path = info->dlpi_name;
++	assert (path);
++
+ 	name = strrchr (path, '/');
+ 
+ 	if (name) {
+--- procenv-0.27.orig/src/procenv.h
++++ procenv-0.27/src/procenv.h
+@@ -817,7 +817,7 @@ void show_semaphores_bsd (void);
+ void show_msg_queues_bsd (void);
+ #endif /* PROCENV_BSD + __FreeBSD_kernel__ */
+ 
+-#if defined (PROCENV_LINUX)
++#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+ /* semctl(2) on Linux tells us _we_ must define this */
+ 
+ union semun {
+--- /dev/null
++++ procenv-0.27/tmp/procenv_0.27-1_i386.changes
+@@ -0,0 +1,44 @@
++-----BEGIN PGP SIGNED MESSAGE-----
++Hash: SHA512
++
++Format: 1.8
++Date: Wed, 23 Oct 2013 09:13:49 +0100
++Source: procenv
++Binary: procenv
++Architecture: i386
++Version: 0.27-1
++Distribution: sid
++Urgency: low
++Maintainer: James Hunt <james.hunt@ubuntu.com>
++Changed-By: James Hunt <james.hunt@ubuntu.com>
++Description: 
++ procenv    - Utility to show process environment
++Changes: 
++ procenv (0.27-1) unstable; urgency=low
++ .
++   * New upstream release.
++   * debian/control: Add expat and perl to Build-Depends for tests.
++Checksums-Sha1: 
++ 4c02b5fa90eb4306c4e219287163d84cf19a14c8 50048 procenv_0.27-1_i386.deb
++Checksums-Sha256: 
++ 23d3987be04b5bd942c471eff0f6c9639288ecfa7c9835ccfe20404495374d41 50048 procenv_0.27-1_i386.deb
++Files: 
++ 887a1a7b03a7d0c0d5569656a279ced8 50048 utils optional procenv_0.27-1_i386.deb
++
++-----BEGIN PGP SIGNATURE-----
++Version: GnuPG v1.4.14 (GNU/Linux)
++
++iQIcBAEBCgAGBQJSZ4miAAoJEJ1Q4UTmNXMnRcwP/1H2slCi5dX2tRCURpwVSQEH
++GN1CKi1YdjJn/1HXcaGTaBVJLR2UpCx+8IXJZADyLEtzM4eQhXPokmKI5qipKELx
++RESrdltkzdHuAsu0jDU9jXk9d9MNMhu7XY9lVosT5wDKKPfj793e3u/Pji1e7g0P
++cAMuN3WJM6KP5EcXhq+V9bOjXx4KvEBiJ/fsTTydtX5ad2s5jMrQ3N87RZCoh2LB
++/h8ifs4l+/+jzlkgryemgMKNhI5gJYT4PoDhqK8PceJub6kDVtJYq3PA/1iVd1HO
++/GvKCgy/9dzJSif1yNyC/e6aCcfuxiCOBGNsHvISzU2sM6IlZXGy6fTJ+jLTt2ZD
++cdpkONMeLCmt2axrJ6P5TZ+AVeA89DopLF0aiw/WS0MJ9k/LRGZWyfI84+/L4Uf4
++Au+W2/53zO0gIXWbIOIlK5h0QORkLWzqz6EfYDx3hwrUYX0ANrRNyGNp8xYIwViG
++VbFIoX/qs2lqg+ralaC/YQkWlsK6KJqIC38dnz+JXs3p7c8/XjM5FpKhoXn9TDM3
++Dly0ZYVBfoygYrEncyyMH8WLNeFvUG34/zIuQtX3XF62hLfEr4ldRg8WGfFL8WPK
++VKxKm5myaWn0wfPexP54sQES2uOzblm9iqO6iajnI7MCQ5wufBLJd6edmNI9p/1q
++GqOjKZtm/Yd0Ed12XTdB
++=pZiW
++-----END PGP SIGNATURE-----
+--- procenv-0.27.orig/man/procenv.1
++++ procenv-0.27/man/procenv.1
+@@ -414,7 +414,7 @@ Any long option name may be shortened as
+ The
+ .I crumb
+ output format is designed for easy parsing: it displays the data in a
+-flattened format with each value on a separate line preceeded by all
++flattened format with each value on a separate line preceded by all
+ appropriate headings which are separated by the current separator.
+ .IP \(bu
+ The \fB\-\-message\-queues\fR, \fB\-\-semaphores\fR and 
+@@ -431,10 +431,10 @@ the values are queryable, there is no do
+ \& # Send compiler information to syslog (note the order of the options).
+ \& procenv \-\-output=syslog \-\-compiler
+ \&
+-\& # Run a command ('mycmd --arg1 --foo=bar') without creating a new
++\& # Run a command ('mycmd \-\-arg1 \-\-foo=bar') without creating a new
+ \& # process, but have procenv run first and log its output to a
+ \& # regular file.
+-\& exec procenv \-\-file=/tmp/procenv.log --exec -- mycmd --arg1 --foo=bar
++\& exec procenv \-\-file=/tmp/procenv.log \-\-exec \-\- mycmd \-\-arg1 \-\-foo=bar
+ \&
+ \& # The following kernel command-line snippet will cause procenv to
+ \& # write output to first serial tty device and then execute init(8)
+@@ -442,16 +442,16 @@ the values are queryable, there is no do
+ \& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
+ \&
+ \& # Display all data in JSON format using an indent of 4 spaces
+-\& procenv --format=json --indent=4
++\& procenv \-\-format=json \-\-indent=4
+ \&
+ \& # Display all data in XML format using tabs for indents
+-\& procenv --format=xml --indent-char="\t"
++\& procenv \-\-format=xml \-\-indent-char="\t"
+ \&
+ \& # Display resource limits in easily-parseable format
+-\& procenv --format=crumb --limits
++\& procenv \-\-format=crumb \-\-limits
+ \&
+ \& # Produce output suitable for importing into a spreadsheet
+-\& procenv --format=crumb --crumb-separator=\(aq,\(aq --separator=\(aq,\(aq --limits
++\& procenv \-\-format=crumb \-\-crumb-separator=\(aq,\(aq \-\-separator=\(aq,\(aq \-\-limits
+ .Ve
+ .Ve
+ .\"

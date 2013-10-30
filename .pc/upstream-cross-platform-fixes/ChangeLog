@@ -1,0 +1,500 @@
+2013-10-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add '--debug' option.
+	* man/procenv.1:
+	  - General tidy-up.
+	  - OPTIONS: Added '--crumb-separator'.
+	  - EXAMPLES: Added a few more.
+	  - LIMITATIONS: Updated.
+	* src/pr_list.c: Undo erroneous "fix" to pr_list_append() and
+	  pr_list_prepend().
+	* src/procenv.c:
+	  - Remove "(linux)" suffix from capabilities, cgroups and oom
+	    output: they are not displayed on other platforms, so the
+	    information is redundant.
+	  - Added '--crumb-separator'.
+	  - show_network_if(): Put flags in containeris rather than dumping as a
+	    comma-separated list.
+
+2013-10-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Update.
+	* man/procenv.1: ENVIRONMENT VARIABLES:
+	  - Added PROCENV_INDENT, PROCENV_INDENT_CHAR and PROCENV_SEPARATOR.
+	* src/pr_list.c:
+	  - Fix issue in pr_list_append() and pr_list_prepend().
+	  - Added PR_LIST_FOREACH_STR() and PR_LIST_FOREACH_REV_STR() from
+	    pr_list.h.
+	  - pr_list_visitor_str(): New.
+	* src/procenv.c:
+	  - appendf(): Simplified and plugged a memory leak.
+	  - appendva(): Simplified and plugged a memory leak.
+	  - show_fds_linux(): Fixed memory leak.
+	  - show_semaphores_linux(): Fixed memory leak.
+	  - Comments.
+	  - cleanup(): Check crumb_list before clearing it.
+	  - check_envvars(): Added PROCENV_INDENT_ENV, PROCENV_INDENT_CHAR_ENV and
+	    PROCENV_SEPARATOR_ENV.
+
+2013-10-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add ability to disable optimisation for debugging.
+	* man/procenv.1:
+	  - SYNOPSIS: Added '--format=crumb'
+	  - ENVIRONMENT VARIABLES: Added 'PROCENV_FORMAT'.
+	  - NOTES: More details.
+	  - EXAMPLES: Two examples showing how to use '--format'.
+	* src/Makefile.am:
+	  - Remove hard-coded optimisation flag.
+	  - Add pr_list.[ch] sources.
+	* src/procenv.c:
+	  - Added 'crumb' format and supporting functions.
+	  - Removed horrid object-handling hacks since object_open()
+	    and object_close() are now sensible.
+	  - Added calls to object_open() and object_close() in various places
+	    for json array handling.
+	  - usage():
+	    - Fixed '--messages-queues' and '--shared-memory' to add missing
+	      intra-word dash.
+	    - Updated notes.
+	  - show_meta(): Use get_output_format_name() instead of hard-coded
+	    list.
+	  - show_stat(): Removed double header().
+	  - check_env_vars(): Update to handle 'PROCENV_FORMAT'.
+	* src/tests/check_all_args.in:
+	  - Test both short and long options.
+	  - Test 'crumb' format.
+
+2013-10-03  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_proc(): Improved grouping by adding more sections.
+	  - show_meta(): Show output format.
+	  - show_compiler(): Add "feature test macros" section.
+
+2013-10-02  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added new options:
+	    - -C/--cpu.
+	    - --format.
+	    - --indent.
+	    - --indent-char.
+	    - --separator.
+	  - Removed bracketed partial option names since getopt_long(3) allows
+	    any unique partially named option.
+	* src/Makefile.am:
+	  - Added check_all_args test.
+	  - CFLAGS: Check for unused variables.
+	* src/procenv.c:
+	  - Added ability to produce output in either highly-structured text
+	    (default), JSON, or XML using the --format=<format> option.
+
+2013-09-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/tests/check_all_args.in: Added missing test.
+	* src/procenv.c:
+	  - usage():
+	    - Clarify option usage.
+	    - Ensure no wrapping on 80-column devices.
+	  - show_rlimits():
+	    - Enable RLIMIT_RTTIME on Linux.
+	    - Check kernel version and defines for newer limits.
+	* src/procenv.h: Cleanup.
+
+2013-09-12  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/Makefile.am: Updated for new check_all_args test.
+	* src/procenv.c:
+	  - dump(): Ensure correct output ordering.
+	  - Added "not implemented" stubs for FreeBSD IPC functions.
+	* src/tests/show_compiler_details: Don't hard-code 'gcc' - use 'cc'
+	  for maximum portability.
+
+2013-09-11  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Added -E/--semaphores option.
+	  - Added -M/--message-queues option.
+	  - Added -S/--shared-memory option.
+	  - Added ref to ipcs(1).
+	* src/procenv.c:
+	  - Added support for displaying IPC resources (shared memory,
+	    semaphores and message queues) under Linux only at this
+	    stage.
+	  - New utility functions: format_time(), format_perms() and
+	    pid_to_name().
+
+2013-08-30  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_stat(): Make resilient to failures.
+	  - show_linux_mounts(): Show if unable to query major+minor number.
+	  - show_bsd_mounts(): Show if unable to query major+minor number.
+	  - get_major_minor(): Return a value rather than simply warning on
+	    error.
+
+2013-08-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_network(): Handle bionics lack of getifaddrs().
+	  - get_arch(): Don't identify MIPSEL as MIPS.
+
+2013-08-23  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: 
+	* man/procenv.1:
+	  - Added -A/--arguments option.
+	  - Updated --mount to include reference to statfs.
+	  - Added -N/--network option.
+	  - Updated SEE ALSO section.
+	* src/procenv.c: 
+	  - Added support for BSD/Hurd signals: SIGEMT, SIGINFO, SIGLOST.
+	  - usage(): Use colon to separate output types from description for
+	    consistency.
+	  - is_console(): Enable for FreeBSD/kFreeBSD.
+	  - append(): Allocate space if str points to NULL.
+	  - appendf(): Allocate space if str points to NULL.
+	  - appendva(): Allocate space if str points to NULL.
+	  - dump():
+	    - Call show_network().
+	    - Call show_locale() *after* show_rlimits() for correct ordering.
+	  - show_linux_mounts(): Add block and inode details (LP: #1212728).
+	  - show_bsd_mounts(): Add block and inode details (LP: #1212728).
+	  - show_compiler():
+	    - Added __FILE__, __BASE_FILE__ and __TIMESTAMP__.
+	  - main():
+	    - Updates for -N/--network.
+	  - New functions:
+	    - show_arguments().
+	    - get_network_address().
+	    - decode_if_flags().
+	    - get_ipv6_scope_name() (unused).
+	    - get_mtu().
+	    - get_mac_address().
+	    - decode_extended_if_flags().
+	    - get_net_family_name().
+	    - show_network_if().
+	    - show_network().
+
+2013-07-19  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/man/procenv.1: Updated date and year.
+	* src/procenv.c:
+	  - show_bsd_proc_branch(): Fix to work in BSD jails: these entities are
+	    bizarre in that they have no init process, and a processes parent
+	    may actually be a process running *outside* of the jail... and as a
+	    result, all you can know about it is its PID.
+	  - Various hacks to work in the decidedly un-bionic Android
+	    environment.
+	* Android.mk: Makefile for Android.
+
+2013-07-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Add a new --exec example.
+
+2013-06-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Force old serial test behaviour (specifically
+	  for automake-1.13 and above) to ensure test output is visible in
+	  build logs.
+
+2013-05-31  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - dump_misc(): Don't quote value if it's UNKNOWN_STR
+	    (for easier parsing).
+	  - show_stat(): Change "mode" to "permissions" since not only is the
+	    latter more familiar to some, the tags should be as unique as
+	    possible (and we have another "mode" for privileged execution).
+	  - show_linux_mounts(): Display UNKNOWN_STR rather than aborting if
+	    /proc not mounted.
+	  - show_linux_proc_branch: As per show_linux_mounts().
+	  - get_os(): Fixed regression where kFreeBSD was not being detected
+	    (seemingly because __linux__ is no longer defined on such systems :-)
+	  - get_arch(): Added missing detection for "SystemZ".
+	  - show_linux_cgroups(): As per show_linux_mounts().
+	  - dump_linux_proc_fds(): As per show_linux_mounts().
+	  - show_oom(): As per show_linux_mounts().
+	  - get_root(): As per show_linux_mounts().
+
+2013-05-17  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Added -P/--platform option.
+	* src/procenv.c:
+	  - usage(): Added -P/--platform option.
+	  - dump_misc(): Move platforms bits to dump_platform().
+	  - dump_platform(): New function:
+	  - dump(): Call dump_platform().
+	    - show executable bits.
+	    - Call show_data_model().
+	    - Call get_os() and get_arch().
+	  - get_platform(): Removed.
+	  - get_os(): New function.
+	  - get_arch(): New function (includes support for x32).
+	  - show_data_model(): New function.
+	  - main(): Added -P/--platform option.
+
+2013-04-07  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_tty_attrs():
+	  - Clear lock status for all non-linux platforms.
+	  - Update calls to show_const_tty() and show_cc_tty() passing
+	    lock_status as a parameter.
+	* src/procenv.h:
+	  - show_cc_tty(): Pass lock status as a parameter. Comment header.
+	  - show_const_tty(): Pass lock status as a parameter. Comment header.
+
+2013-04-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - Changed __linux__ to PROCENV_LINUX.
+	  - header(): Fix possible buffer overflow.
+	  - dump_meta(): Added a "mode" value showing if running
+	    privileged or non-privileged (the former showing potentially
+	    more information).
+	  - show_tty_attrs():
+	    - Now shows individual locked tty attributes
+	      when running in privileged mode.
+	    - Added winsize attributes.
+	  - get_tty_locked_status(): New function.
+	* man/procenv.1: Update for --tty.
+
+2013-03-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* Merge of lp:~mtmiller/procenv/portability-bug-fixes.
+
+2013-01-10  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Updated.
+	* src/procenv.c:
+	  - locale_map: Protect LC_NAME for FreeBSD.
+	  - show_env() and show_all_groups(): sort environment
+	    using strcoll(3) rather than strcmp(3) to make output
+	    locale-aware.
+
+2012-12-15  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: get_priorities(): Do not assert priorities
+	  since they may be legitimate values. We could check errno,
+	  but little point when only querying.
+
+2012-12-10  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Updated with an idea from Dmitrijs Ledkovs.
+
+2012-12-06  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Updated with a couple of ideas.
+	* man/procenv.1: Formatting of "SEE ALSO" section.
+	* src/procenv.c: show_linux_prctl(): Handle all possible
+	  return scenarios to avoid random output.
+	  Thanks Dave Love (LP: #1086771).
+
+	[ Dave Love <fx@gnu.org> ]
+	* src/procenv.c:
+	  - locale_map:
+	    - Guard non-POSIX locale categories for portability.
+	    - Remove LC_ALL.
+	  - show_locale(): Special-case handling for LC_ALL.
+
+	[ Mike Miller <mtmiller@ieee.org> ]
+	* src/procenv.c:
+	  - show_linux_security_module_context(): Check that Apparmor
+	    and SELinux are enabled before querying contexts
+	    (LP: #1086768).
+
+2012-12-02  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - locale_map: Add LC_ADDRESS, LC_IDENTIFICATION,
+	    LC_MEASUREMENT, LC_NAME, LC_PAPER and LC_TELEPHONE
+	    (LP: #1081628).
+	  - show_env(): Sort environment variables (LP: #1081629).
+	  - show_locale(): Added LANG and LANGUAGE for parity with
+	    locale(1).
+	* man/procenv.1:
+	  - Add ref to locale(7).
+	  - Add ref to locale(1).
+
+2012-11-29  James Hunt  <james.hunt@ubuntu.com>
+
+	* General tidy-up (removing unused variables, etc).
+
+	[ Dave Love <fx@gnu.org> ]
+	* Makefile.am: Add man page to man1_MANS for RHEL package build.
+	* src/procenv.c:
+	  - show_locale(): Load locale from the environment prior to
+	    querying, and revert at end.
+	  - show_linux_cpu(): Guard sched_getcpu().
+	* src/procenv.h: show_capability(): Make NOP if PR_CAPBSET_READ
+	  not available.
+	* configure.ac: Add sched_getcpu to list of AC_CHECK_FUNCS.
+
+2012-11-28  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Update for --threads and set date.
+	* src/procenv.c: get_platform(): Correction for detecting ARMHF.
+
+2012-11-28  James Hunt  <james.hunt@ubuntu.com>
+	
+	* src/procenv.c:
+	  - get_thread_scheduler_name(): Make visible to non-Linux platforms.
+	  - get_platform(): Fix for Hurd.
+	  - show_clocks(): Fix for Hurd.
+	* src/procenv.h:
+	  - Fix to gross Hurd hack.
+	  - Make visible to non-Linux platforms.
+	  - show_clock_res(): Make resilient to failure.
+	
+2012-11-26  James Hunt  <james.hunt@ubuntu.com>
+	
+	* TODO: Update.
+	* configure.ac: Add pthread.
+	* man/procenv.1: Formatting.
+	* src/procenv.c:
+	  - usage(): Added -T and --threads option.
+	  - get_misc(): Minor Hurd tweak.
+	  - get_user_info(): Added check around prctl.
+	  - init(): Call gte_uname() as early as possible to allow
+	    LINUX_KERNEL_*() macros to work.
+	  - dump(): Add show_threads().
+	  - show_capabilities(): Put kernel version guard around
+	    PR_GET_KEEPCAPS.
+	  - get_thread_scheduler_name(): New function.
+	  - show_linux_scheduler(): Disallow failure.
+	  - show_linux_cpu(): Disallow failure.
+	  - show_threads(): New function.
+	  - main():
+	  - Added --threads option.
+	  - Call get_uname() for '-i'.
+	* src/procenv.h: Added pthread.h and minor tweak for Hurd.
+	
+2012-11-22  James Hunt  <james.hunt@ubuntu.com>
+	
+	* src/tests/show_compiler_details: New test to dump out useful info
+	  as an aid to debugging build failures and for general interest.
+	* src/Makefile.am: Call show_compiler_details test before running
+	  main binary such that we can use the new tests output to diagnose
+	  failures with the main binary.
+	* src/procenv.h:
+	  - Added explicit define for GNU/Hurd to ensure that platform defines
+	    procenv_user.proc_name.
+	
+2012-11-21  James Hunt  <james.hunt@ubuntu.com>
+	
+	* TODO: Update.
+	* src/procenv.c:
+	  - dump_misc(): Added kernel headers version.
+	  - linux_kernel_version():
+	  - Rewrite as original logic was flawed - we now use the same
+	    technique as KERNEL_VERSION()/LINUX_VERSION_CODE.
+	  - Drop the @patch parameter: we're not using it and it is problematic
+	    if it contains alphabetics.
+	  - show_linux_prctl(): Don't allow prctl to fail, even for
+	    environments, such as chroots, where the libc defines the symbols,
+	    but the kernel outside the chroot does not implement the features.
+	  - get_platform(): Added alpha and m68k.
+	  - main(): Call get_user_info() if dumping misc details to ensure uname
+	    values available.
+	* src/procenv.h:
+	  - Removed LINUX_KERNEL_MMRP() as unused.
+	  - Removed pdie() macro now that we handle prctl failures gracefully.
+	
+2012-11-20  James Hunt  <james.hunt@ubuntu.com>
+	
+	* man/procenv.1:
+	  - Added new locale options.
+	  - Updated datestamp.
+	* src/procenv.c:
+	  - usage(): Added locale options.
+	  - dump_misc():
+	  - Now shows 'platform' and 'kernel bits' (moved from dump_meta()).
+	  - Added 'endianness'.
+	  - is_big_endian(): New function.
+	  - show_stat(): Fixed 1 byte memory leak.
+	  - dump(): Call show_locale().
+	  - show_locale(): New function to dump locale details.
+	  - get_platform():
+	  - Added comment header.
+	  - Added in ia64, sparc64, sparc, mips, armhf, armel, s390x, SuperH, Hurd.
+	  - Changed 'Linux (Intel)' to 'Linux (i386)'.
+	  - Return UNKNOWN_STR as last resort.
+	  - show_capabilities(): Only query certain capabilities if they are
+	    known to be theoretically available by comparing running kernel
+	    version with kernel version specified in capabilities(7) that
+	    introduced it.
+	  - main(): Updated for new locale options.
+	* src/procenv.h: show_capability():
+	  - Added comment header.
+	  - Now handles failure less brutally.
+	
+2012-11-19  James Hunt  <james.hunt@ubuntu.com>
+	
+	* man/procenv.1: Show calls made by '--proc' and '--misc'.
+	* src/procenv.c:
+	  - Various platform-specific fixes identified by recent Debian upload.
+	  - Formatting.
+	  - linux_kernel_version(): Replacement for inadequate KERNEL_VERSION() macro.
+	  - New macros that make use of linux_kernel_version():
+	  - LINUX_KERNEL_M()
+	  - LINUX_KERNEL_MM()
+	  - LINUX_KERNEL_MMR()
+	  - LINUX_KERNEL_MMRP()
+	  - Horrid hack for Hurd, which doesn't define PATH_MAX.
+
+2012-11-16  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Remove duplicate entry for --proc.
+	  - Add references to system and library call man pages for each option.
+	  - Add note that options are processed in order.
+	  - Correct order of options in syslog example.
+	  - Added rusage options.
+	* TODO: Updated.
+	* src/procenv.c:
+	  - Added rusage.
+	  - Moved show_capability() to header file.
+	  - main(): Added missing 'u' to getopt_long() call.
+	  - show_sizeof(): Added types uintmax_t, imaxdiv_t, rlim_t,
+	fenv_t, fexcept_t.
+
+2012-11-05  James Hunt  <james.hunt@ubuntu.com>
+
+	* Split show_uname() into get_uname() and dump_uname().
+	* init(): Call get_uname().
+	* show_linux_prctl():
+	  - Check for x86 before quering PR_GET_TSC.
+	  - Check for kernel v3.5 before querying PR_GET_NO_NEW_PRIVS.
+	  - Check for kernel v3.4 before querying PR_GET_CHILD_SUBREAPER.
+	* New macros:
+	  - PROCENV_ARCH_X86.
+	  - KERNEL_VERSION().
+
+2012-11-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* AUTHORS: Corrected email address.
+	* man/procenv.1: Credit Kees in copyright and add in
+	  standard "warranty".
+
+2012-11-01  James Hunt  <james.hunt@ubuntu.com>
+
+	* Hide show_oom() for non-Linux platforms.
+
+2012-10-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - get_path(): New function to return path of specified program.
+	  - show_stat(): Ensure we can resolve argv[0] to a full
+	    path by using get_path().
+	  - check_envvars(): Made strsep() usage safe.
+
+2012-10-26  James Hunt  <james.hunt@ubuntu.com>
+
+	* Set EXTRA_DIST to ensure man page
+	  included in distribution.
+	* man/procenv.1: Typos and hyphen fixes.
+
+2012-10-25  James Hunt  <james.hunt@ubuntu.com>
+
+	* Initial import.
