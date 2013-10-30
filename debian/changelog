@@ -1,3 +1,11 @@
+procenv (0.27-2) UNRELEASED; urgency=low
+
+  * Upstream sync including fixes for Hurd semaphores, and those
+    platforms which don't support the complete set of standard
+    Linux signals.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Wed, 30 Oct 2013 19:13:09 +0000
+
 procenv (0.27-1) unstable; urgency=low
 
   * New upstream release.
