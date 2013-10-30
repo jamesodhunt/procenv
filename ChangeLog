@@ -1,3 +1,14 @@
+2013-10-30  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_signals(): Check return from get_signal_name() in case a
+	    platform doesn't provide the signal in question.
+	  - get_kernel_bits(): Return error value rather than calling die().
+	  - show_bsd_mounts(): Removed unused variables.
+	  - Added a few extra asserts to ensure section_open() is passed a valid
+	    name.
+	* src/procenv.h: Need to define 'semun' on Hurd too.
+
 2013-10-25  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: Stuff.

@@ -1,5 +1,7 @@
 # TODO
 
+- XXX: run show_compiler_details *before* build to help diagnose
+  failures.
 - Add YAML output format?
 - Sort *all* output values.
 - Introduce "value()" that can take a bare value. This will allow for

@@ -1461,6 +1461,9 @@ show_signals (void)
 			blocked = 1;
 
 		signal_name = get_signal_name (i);
+		if (! signal_name)
+			continue;
+
 		signal_desc = strsignal (i);
 
 		object_open (FALSE);
@@ -2403,7 +2406,7 @@ get_kernel_bits (void)
 	errno = 0;
 	value = sysconf (_SC_LONG_BIT);
 	if (value == -1 && errno != 0)
-		die ("failed to determine kernel bits");
+		return -1;
 	return value;
 #endif
 	return -1;
@@ -2709,10 +2712,11 @@ show_linux_mounts (ShowMountType what)
 				used_files = fs.f_files - fs.f_ffree;
 			}
 
-			get_major_minor (mnt->mnt_dir,
+			(void)get_major_minor (mnt->mnt_dir,
 					&major,
 					&minor);
 
+			assert (mnt->mnt_dir);
 			section_open (mnt->mnt_dir);
 
 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
@@ -2954,6 +2958,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	family = ifa->ifa_addr->sa_family;
 
+	assert (ifa->ifa_name);
 	section_open (ifa->ifa_name);
 
 	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
@@ -3276,7 +3281,6 @@ show_bsd_mounts (ShowMountType what)
 	statfs_int_type   bfree;
 	statfs_int_type   bavail;
 	statfs_int_type   used;
-	int               ret;
 
 	common_assert ();
 
@@ -3297,9 +3301,7 @@ show_bsd_mounts (ShowMountType what)
 					mnt->f_mntonname);
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			char *str = NULL;
-
-			ret = get_major_minor (mnt->f_mntonname,
+			(void)get_major_minor (mnt->f_mntonname,
 					&major,
 					&minor);
 
@@ -3309,6 +3311,7 @@ show_bsd_mounts (ShowMountType what)
 			bavail = mnt->f_bavail * multiplier;
 			used = blocks - bfree;
 
+			assert (mnt->f_mntfromname);
 			section_open (mnt->f_mntfromname);
 
 			entry ("dir", "'%s'", mnt->f_mntonname);
@@ -4511,6 +4514,8 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 		return 0;
 
 	path = info->dlpi_name;
+	assert (path);
+
 	name = strrchr (path, '/');
 
 	if (name) {
