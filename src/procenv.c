@@ -4490,6 +4490,10 @@ get_arch (void)
 		return "x32";
 #endif
 
+#ifdef __sh__
+	return "SuperH";
+#endif
+
 #if defined (__s390__) || defined (__zarch__) || defined (__SYSC_ZARCH__) || defined (__THW_370__)
 	return "SystemZ";
 #endif
