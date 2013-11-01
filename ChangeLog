@@ -1,7 +1,7 @@
 2013-11-01  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1:
-	  - NOTES: Escap dash in indent-char.
+	  - NOTES: Escape dash in indent-char.
 	  - EXAMPLES: Fixed display of indent-char value.
 	* src/procenv.c: get_arch(): Added missing "SuperH".
 
