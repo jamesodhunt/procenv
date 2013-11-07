@@ -4466,6 +4466,10 @@ get_arch (void)
 	return "MIPS";
 #endif
 
+#if defined (__powerpc64__) || defined (__ppc64__)
+	return "PPC64/PowerPC64";
+#endif
+
 #ifdef __powerpc__
 	return "PowerPC";
 #endif
