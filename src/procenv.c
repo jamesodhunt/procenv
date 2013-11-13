@@ -3364,31 +3364,28 @@ show_bsd_mounts (ShowMountType what)
 	}
 }
 
-/* FIXME */
+/* FIXME: not implemented */
 void
 show_shared_mem_bsd (void)
 {
 	header ("shared memory");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
+	footer ();
 }
 
-/* FIXME */
+/* FIXME: not implemented */
 void
 show_semaphores_bsd (void)
 {
 	header ("semaphores");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
+	footer ();
 }
 
-/* FIXME */
+/* FIXME: not implemented */
 void
 show_msg_queues_bsd (void)
 {
 	header ("message queues");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
+	footer ();
 }
 
 #endif

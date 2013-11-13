@@ -5,7 +5,7 @@
 - Add YAML output format?
 - Sort *all* output values.
 - Introduce "value()" that can take a bare value. This will allow for
-  example mount options to be displayed in a container.
+  example mount options to be displayed in an output container.
 - Non-root queryable hdd attributes?
 - Tests:
   - --indent=

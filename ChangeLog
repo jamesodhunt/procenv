@@ -1,3 +1,17 @@
+2013-11-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - Fixes for unimplemented FreeBSD output:
+	    - show_shared_mem_bsd()
+	    - show_semaphores_bsd()
+	    - show_msg_queues_bsd()
+	* src/tests/check_all_args.in:
+	  - Use mktemp(1) instead of Debian/Ubuntu-specific tempfile(1).
+	  - Remove rogue xmlwf call in '--format=text' test.
+	  - Fix for the unhelpful xmlwf: unlike every other Unix utility, xmlwf
+	    returns 0, even on failure (!) so we have to check if output is
+	    produced...
+
 2013-11-07  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c: get_arch(): Added PPC64.
