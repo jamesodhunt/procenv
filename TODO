@@ -7,6 +7,8 @@
 - Introduce "value()" that can take a bare value. This will allow for
   example mount options to be displayed in an output container.
 - Non-root queryable hdd attributes?
+- Hurd:
+  - establish how to determine process ancestry.
 - Tests:
   - --indent=
   - --indent-char=

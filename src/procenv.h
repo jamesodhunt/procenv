@@ -788,12 +788,16 @@ void show_capabilities (void);
 void show_linux_security_module (void);
 void show_linux_security_module_context (void);
 void show_linux_network (void);
-void show_linux_proc_branch (void);
 void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
 #endif /* PROCENV_LINUX */
+
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+void show_linux_proc_branch (void);
+#endif /* PROCENV_LINUX || __FreeBSD_kernel__ */
+
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void show_shared_mem_linux (void);

@@ -3539,8 +3539,12 @@ show_proc_branch (void)
 {
 	common_assert ();
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
 	show_linux_proc_branch ();
+#endif
+
+#if defined (PROCENV_HURD)
+	/* FIXME: how can this be queried in Hurd?? */
 #endif
 
 #if defined (PROCENV_BSD)
@@ -4006,6 +4010,9 @@ show_linux_prctl (void)
 	section_close ();
 }
 
+#endif
+
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
 void
 show_linux_proc_branch (void)
 {
