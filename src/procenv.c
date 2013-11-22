@@ -1955,8 +1955,6 @@ show_cpu_affinities (void)
 		displayed = TRUE;
 	}
 
-	appendf (&cpu_list, "\n");
-
 	entry ("affinity list", "%s", cpu_list);
 
 #if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
