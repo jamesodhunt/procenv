@@ -45,6 +45,10 @@ See
 .TP
 \fB\-C\fR, \fB\-\-cpu\fR
 Display CPU and scheduler details.
+See
+.BR kvm_getprocs (3) "" " (BSD), "
+.BR pthread_getaffinity_np (3) ", "
+.BR sched_getcpu (3) "" " (Linux)" "" "."
 .\"
 .TP
 \fB\-\-crumb\-separator=\fR\fIstr\fR
@@ -123,7 +127,6 @@ See
 .BR prctl (2) "" ", "
 .BR aa_getcon (2) "" " (Linux), "
 .BR getpidcon (3) "" " (Linux), "
-.BR sched_getcpu (3) "" " (Linux), "
 .BR sysconf (3) "" ", "
 .BR kvm_getprocs (3) "" " (BSD), "
 .BR getpriority (2) "" " and "

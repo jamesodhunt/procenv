@@ -1849,10 +1849,123 @@ show_cpu (void)
 #if defined (PROCENV_BSD)
 	show_bsd_cpu ();
 #endif
+	show_cpu_affinities ();
+
 	show_priorities ();
 
 	footer ();
 }
+
+/* Display cpu affinities in the same compressed but reasonably
+ * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
+ */ 
+void
+show_cpu_affinities (void)
+{
+	int                   ret;
+	size_t                max;
+	size_t                size;
+#if defined (PROCENV_BSD)
+	PROCENV_CPU_SET_TYPE  cpu_set_real;
+#endif
+	PROCENV_CPU_SET_TYPE *cpu_set;
+	size_t                cpu;
+	char                 *cpu_list = NULL;
+
+	/* TRUE if any enabled cpus have been displayed yet */
+	int         displayed = FALSE;
+
+	/* Number of cpu's in *current* range */
+	size_t      count = 0;
+
+	/* Only valid to read these when count is >0 */
+	size_t      last = 0;
+	size_t      first = 0;
+
+	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+	cpu_set = CPU_ALLOC (max);
+	assert (cpu_set);
+
+	size = CPU_ALLOC_SIZE (max);
+	CPU_ZERO_S (size, cpu_set);
+
+#elif defined (PROCENV_BSD)
+	cpu_set = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+#endif /* PROCENV_LINUX || __FreeBSD_kernel__ */
+
+	/* We could use sched_getaffinity(2) rather than
+	 * sched_getaffinity() on Linux (2.5.8+) but
+	 * pthread_getaffinity_np() provides the same information...
+	 * Except it is missing on kFreeBSD systems (!) so we have to
+	 * use sched_getaffinity() there. :(
+	 */
+#if defined (__FreeBSD_kernel__)
+	ret = sched_getaffinity (0, size, cpu_set);
+#else
+	ret = pthread_getaffinity_np (pthread_self (), size, cpu_set);
+#endif
+
+	if (ret < 0)
+		die ("failed to query cpu affinity");
+
+	for (cpu = 0; cpu < max; cpu++) {
+
+		if (CPU_ISSET (cpu, cpu_set)) {
+
+			/* Record first entry in the range */
+			if (! count)
+				first = cpu;
+
+			last = cpu;
+			count++;
+		} else {
+			if (count) {
+				if (first == last) {
+					appendf (&cpu_list, "%s%d",
+							displayed ? "," : "",
+							first);
+				} else {
+					appendf (&cpu_list, "%s%d-%d",
+							displayed ? "," : "",
+							first, last);
+				}
+				displayed = TRUE;
+			}
+
+			/* Reset */
+			count = 0;
+		}
+	}
+
+	if (count) {
+		if (first == last) {
+			appendf (&cpu_list, "%s%d",
+					displayed ? "," : "",
+					first);
+		} else {
+			appendf (&cpu_list, "%s%d-%d",
+					displayed ? "," : "",
+					first, last);
+		}
+		displayed = TRUE;
+	}
+
+	appendf (&cpu_list, "\n");
+
+	entry ("affinity list", "%s", cpu_list);
+
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+	CPU_FREE (cpu_set);
+#endif
+
+	free (cpu_list);
+}
+
 
 void
 show_fds (void)
@@ -1873,7 +1986,7 @@ show_fds_generic (void)
 
 	container_open ("file descriptors");
 
-	max = sysconf (_SC_OPEN_MAX);
+	max = get_sysconf (_SC_OPEN_MAX);
 
 	for (fd = 0; fd < max; fd++) {
 		int    is_tty = isatty (fd);
@@ -2077,49 +2190,49 @@ append (char **str, const char *new)
 void
 appendf (char **str, const char *fmt, ...)
 {
-    va_list   ap;
-    char     *new = NULL;
+	va_list   ap;
+	char     *new = NULL;
 
-    assert (str);
-    assert (fmt);
+	assert (str);
+	assert (fmt);
 
-    va_start (ap, fmt);
+	va_start (ap, fmt);
 
-    if (vasprintf (&new, fmt, ap) < 0) {
-        perror ("vasprintf");
-        exit (EXIT_FAILURE);
-    }
+	if (vasprintf (&new, fmt, ap) < 0) {
+		perror ("vasprintf");
+		exit (EXIT_FAILURE);
+	}
 
-    va_end (ap);
+	va_end (ap);
 
-    if (*str) {
-	    append (str, new);
-	    free (new);
-    } else {
-	    *str = new;
-    }
+	if (*str) {
+		append (str, new);
+		free (new);
+	} else {
+		*str = new;
+	}
 }
 
 /* append @fmt and args to @str */
 void
 appendva (char **str, const char *fmt, va_list ap)
 {
-    char  *new = NULL;
+	char  *new = NULL;
 
-    assert (str);
-    assert (fmt);
+	assert (str);
+	assert (fmt);
 
-    if (vasprintf (&new, fmt, ap) < 0) {
-        perror ("vasprintf");
-        exit (EXIT_FAILURE);
-    }
+	if (vasprintf (&new, fmt, ap) < 0) {
+		perror ("vasprintf");
+		exit (EXIT_FAILURE);
+	}
 
-    if (*str) {
-	    append (str, new);
-	    free (new);
-    } else {
-	    *str = new;
-    }
+	if (*str) {
+		append (str, new);
+		free (new);
+	} else {
+		*str = new;
+	}
 }
 
 void
@@ -2404,7 +2517,7 @@ get_kernel_bits (void)
 	long value;
 
 	errno = 0;
-	value = sysconf (_SC_LONG_BIT);
+	value = get_sysconf (_SC_LONG_BIT);
 	if (value == -1 && errno != 0)
 		return -1;
 	return value;
@@ -2518,34 +2631,34 @@ const char *
 get_ipv6_scope_name (uint32_t scope)
 {
 	switch (scope) {
-		case 0x0:
-		case 0xf:
-			return "reserved";
-			break;
+	case 0x0:
+	case 0xf:
+		return "reserved";
+		break;
 
-		case 0x1:
-			return "interface-local";
-			break;
+	case 0x1:
+		return "interface-local";
+		break;
 
-		case 0x2:
-			return "link-local";
-			break;
+	case 0x2:
+		return "link-local";
+		break;
 
-		case 0x4:
-			return "admin-local";
-			break;
+	case 0x4:
+		return "admin-local";
+		break;
 
-		case 0x5:
-			return "site-local";
-			break;
+	case 0x5:
+		return "site-local";
+		break;
 
-		case 0x8:
-			return "organization-local";
-			break;
+	case 0x8:
+		return "organization-local";
+		break;
 
-		case 0xe:
-			return "global";
-			break;
+	case 0xe:
+		return "global";
+		break;
 	}
 
 	return UNKNOWN_STR;
@@ -2922,24 +3035,24 @@ get_net_family_name (sa_family_t family)
 {
 	switch (family) {
 #if defined (PROCENV_LINUX)
-		case AF_PACKET:
-			return "AF_PACKET";
-			break;
+	case AF_PACKET:
+		return "AF_PACKET";
+		break;
 #endif
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-		case AF_LINK:
-			return "AF_LINK";
-			break;
+	case AF_LINK:
+		return "AF_LINK";
+		break;
 #endif
 
-		case AF_INET:
-			return "AF_INET";
-			break;
+	case AF_INET:
+		return "AF_INET";
+		break;
 
-		case AF_INET6:
-			return "AF_INET6";
-			break;
+	case AF_INET6:
+		return "AF_INET6";
+		break;
 	}
 
 	return UNKNOWN_STR;
@@ -2964,7 +3077,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
 
 	/*******************************/
-	
+
 	section_open ("flags");
 
 	entry ("value", "0x%x", ifa->ifa_flags);
@@ -3291,7 +3404,7 @@ show_bsd_mounts (ShowMountType what)
 		die ("unable to query mount info");
 
 	mnt = mounts;
-	
+
 	for (i = 0; i < count; i++) {
 		char *opts = NULL;
 
@@ -3324,11 +3437,11 @@ show_bsd_mounts (ShowMountType what)
 			section_close ();
 
 			entry ("fsid", "%.*x%.*x", 
-				/* Always zero on BSD? */
-				sizeof (mnt->f_fsid.val[0]),
-				mnt->f_fsid.val[0],
-				sizeof (mnt->f_fsid.val[1]),
-				mnt->f_fsid.val[1]);
+					/* Always zero on BSD? */
+					sizeof (mnt->f_fsid.val[0]),
+					mnt->f_fsid.val[0],
+					sizeof (mnt->f_fsid.val[1]),
+					mnt->f_fsid.val[1]);
 
 			entry ("optimal block size", "%" statfs_int_fmt,
 					mnt->f_bsize);
@@ -4324,7 +4437,7 @@ show_locale (void)
 		free (saved);
 	}
 
-    footer ();
+	footer ();
 }
 
 const char *
@@ -4600,7 +4713,7 @@ show_clocks (void)
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
 #endif
 
-    footer ();
+	footer ();
 }
 
 void
@@ -4616,7 +4729,7 @@ show_timezone (void)
 	entry ("timezone", "%ld", timezone);
 	entry ("daylight", "%d", daylight);
 
-    footer ();
+	footer ();
 #endif
 }
 
@@ -4799,7 +4912,7 @@ show_ranges (void)
 
 	/******************************/
 
-    footer ();
+	footer ();
 }
 
 void
@@ -4973,7 +5086,7 @@ show_time (void)
 			tm->tm_hour,
 			tm->tm_min);
 
-    footer ();
+	footer ();
 }
 
 void
@@ -4998,7 +5111,7 @@ show_uname (void)
 	entry ("domainname", "%s", uts.domainname);
 #endif
 
-    footer ();
+	footer ();
 }
 
 #if defined (PROCENV_LINUX)
@@ -5849,7 +5962,7 @@ show_data_model (void)
 
 int
 main (int    argc,
-      char  *argv[])
+		char  *argv[])
 {
 	int    option;
 	int    long_index;
@@ -6192,7 +6305,7 @@ char *
 get_user_name (uid_t uid)
 {
 	struct passwd *p;
-       
+
 	p = getpwuid (uid);
 
 	return p ? p->pw_name : NULL;
@@ -6202,7 +6315,7 @@ char *
 get_group_name (gid_t gid)
 {
 	struct group *g;
-	       
+
 	g = getgrgid (gid);
 
 	return g ? g->gr_name : NULL;
@@ -7092,7 +7205,7 @@ show_version (void)
 	entry (_("name"), "%s", PACKAGE_NAME);
 	entry (_("version"), "%s", PACKAGE_VERSION);
 	entry (_("author"), "%s", PROGRAM_AUTHORS);
-	
+
 	footer ();
 }
 
@@ -7207,7 +7320,7 @@ show_shared_mem_linux (void)
 		object_open (FALSE);
 
 		/* pad out to max pointer size represented in hex.
-		 */
+		*/
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
 		entry ("sequence", "%u", perm->__seq);
 
@@ -7242,11 +7355,11 @@ show_shared_mem_linux (void)
 		section_close ();
 
 		entry ("locked", "%s", locked == 0 ? NO_STR
-					: locked > 0 ? YES_STR
-					: NA_STR);
+				: locked > 0 ? YES_STR
+				: NA_STR);
 		entry ("destroy", "%s", destroy == 0 ? NO_STR
-					: destroy > 0 ? YES_STR
-					: NA_STR);
+				: destroy > 0 ? YES_STR
+				: NA_STR);
 
 		object_close (FALSE);
 
@@ -7264,7 +7377,7 @@ show_shared_mem_linux (void)
 	container_close ();
 
 out:
-    footer ();
+	footer ();
 }
 
 void
@@ -7340,7 +7453,7 @@ show_semaphores_linux (void)
 		object_open (FALSE);
 
 		/* pad out to max pointer size represented in hex.
-		 */
+		*/
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
 		entry ("sequence", "%u", perm->__seq);
 

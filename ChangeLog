@@ -1,3 +1,9 @@
+2013-11-22  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_cpu_affinities(): New function that displays basic
+	  CPU affinity details.
+	* man/procenv.1: Correct and add additional references for '--cpu'.
+
 2013-11-13  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

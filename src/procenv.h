@@ -216,6 +216,10 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#define PROCENV_CPU_SET_TYPE cpu_set_t
+#endif
+
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 #include <kvm.h>
 #include <sys/sysctl.h>
@@ -233,6 +237,11 @@
 
 #if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
 #include <sys/mount.h>
+#endif
+
+#if defined (PROCENV_BSD)
+#define PROCENV_CPU_SET_TYPE cpuset_t
+#include <pthread_np.h>
 #endif
 
 /* Horrid hack for Hurd... :-( */
@@ -746,6 +755,7 @@ int is_console (int fd);
 long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
+void show_cpu_affinities (void);
 void show_threads (void);
 void append (char **str, const char *new);
 void appendn (char **str, const char *new, size_t len);
