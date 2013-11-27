@@ -1882,13 +1882,13 @@ void
 show_cpu_affinities (void)
 {
 	int                   ret;
-	size_t                max;
+	long                  max;
 	size_t                size;
 #if defined (PROCENV_BSD)
 	PROCENV_CPU_SET_TYPE  cpu_set_real;
 #endif
 	PROCENV_CPU_SET_TYPE *cpu_set;
-	size_t                cpu;
+	long                  cpu;
 	char                 *cpu_list = NULL;
 
 	/* TRUE if any enabled cpus have been displayed yet */
@@ -1902,6 +1902,8 @@ show_cpu_affinities (void)
 	size_t                first = 0;
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+	if (max < 0)
+		die ("Failed to query cpu count");
 
 #if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
 	cpu_set = CPU_ALLOC (max);
