@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2013-07-16" "User Commands"
+.TH PROCENV "1" "2013-11-27" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -129,8 +129,7 @@ See
 .BR getpidcon (3) "" " (Linux), "
 .BR sysconf (3) "" ", "
 .BR kvm_getprocs (3) "" " (BSD), "
-.BR getpriority (2) "" " and "
-.BR getpagesize (2) "" .
+.BR getpriority (2) "" .
 .\"
 .TP
 \fB\-\-indent\fR
@@ -337,6 +336,14 @@ See
 Display sysconf details.
 See
 .BR sysconf (3) "" " and " posixoptions (7) "" " (Linux)."
+.PP
+.\"
+.TP
+\fB\-Y\fR, \fB\-\-memory\fR
+Display memory details.
+See
+.BR getpagesize (2) "" ", "
+.BR numa (3) "" " (Linux) and " numa (7) "" " (Linux)."
 .PP
 .\"
 .TP

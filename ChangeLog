@@ -1,3 +1,22 @@
+2013-11-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Check for libnuma.
+	* man/procenv.1:
+	  - Updated date.
+	  - Add -Y/--memory.
+	* src/procenv.c:
+	  - show_misc(): Memory page size moved to show_memory().
+	  - show_memory(): New function.
+	  - dump():
+	    - Added missing call to show_cpu().
+	    - Added call to show_memory().
+	  - show_numa_memory(): New function to display NUMA details (LP: #1251209).
+	* src/procenv.h: Bumped PROCENV_FORMAT_VERSION.
+	* src/tests/check_all_args.in:
+	  - Check explicitly for xmlwf.
+	  - Added test to ensure all options produce output in default output
+	    mode too.
+
 2013-11-22  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c: show_cpu_affinities(): New function that displays basic

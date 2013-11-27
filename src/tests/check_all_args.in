@@ -10,6 +10,8 @@ procenv="@abs_builddir@/procenv"
 
 template="/tmp/${script_name}.XXXXXXXXXX"
 
+xml_checker=xmlwf
+
 die ()
 {
 	local msg="$*"
@@ -26,12 +28,24 @@ msg ()
 [ -f "$procenv" ] || die "cannot find binary: $procenv"
 
 #---------------------------------------------------------------------
+# Init
+
+command -v "$xml_checker" >/dev/null 2>&1 || die "need command $xml_checker"
+
+#---------------------------------------------------------------------
 msg "Ensure $procenv runs with no errors"
 
 stdout=$(mktemp "$template")
 stderr=$(mktemp "$template")
 $procenv 1>"$stdout" 2>"$stderr"
 rm -f "$stdout" "$stderr"
+
+# Save all sections that are displayed by default for later checks
+sections=$($procenv|grep "^[^ ].*:$")
+
+# pathconf cannot be handled below as it is indented under the mount
+# output, so just check we can find some evidence of it being displayed.
+$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
 
 #---------------------------------------------------------------------
 msg "Ensure --file=<file> works"
@@ -128,7 +142,7 @@ $procenv $arg 1>"$stdout" 2>"$stderr"
 [ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 [ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 
-[ -z "$(xmlwf "$stdout")" ] || die "XML output not well-formed"
+[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 
 rm -f "$stdout" "$stderr"
 
@@ -159,9 +173,28 @@ do
 	# No format option
 	cmd="$procenv $arg"
 	msg "Running '$cmd'"
+
 	eval '$cmd 1>"$stdout" 2>"$stderr"'
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+
+	# Establish the name of the section
+	section=$(head -1 "$stdout"|grep "^[^ ].*:$")
+	[ -z "$section" ] && die "No section title found running '$cmd'"
+
+	if [ "$section" != "version:" ]
+	then
+		# XXX: pathconf has already been handled above.
+		if [ "$section" != "pathconf:" ]
+		then
+			# Check that that same section appears in the
+			# default output. If not, we forgot to update
+			# dump().
+			echo "$sections"|grep -q "^${section}$" || \
+			die "Failed to find section '$section' in default $procenv output"
+		fi
+	fi
+
 	rm -f "$stdout" "$stderr"
 
 	# Text format
@@ -187,7 +220,7 @@ do
 	eval '$cmd 1>"$stdout" 2>"$stderr"'
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-	[ -z "$(xmlwf "$stdout")" ] || die "XML output not well-formed"
+	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 	rm -f "$stdout" "$stderr"
 done
 

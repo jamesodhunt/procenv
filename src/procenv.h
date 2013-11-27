@@ -61,7 +61,7 @@
 #endif
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.24"
+#define PACKAGE_VERSION "0.28"
 #endif
 
 #ifndef PACKAGE_STRING
@@ -75,10 +75,15 @@
  *
  * Version of output format.
  *
+ * VERSION 2:
+ *   - Added --memory.
+ *   - Expanded --cpu.
+ *   - Added missing --cpu to default output.
+ *   - Moved memory page size from --misc to --memory.
+ *
  * XXX: must be updated for every change.
  **/
-
-#define PROCENV_FORMAT_VERSION 1
+#define PROCENV_FORMAT_VERSION 2
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -137,6 +142,9 @@
 
 #include <linux/prctl.h>
 #include <linux/version.h>
+
+#include <numa.h>
+#include <numaif.h>
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -756,6 +764,7 @@ long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
 void show_cpu_affinities (void);
+void show_memory (void);
 void show_threads (void);
 void append (char **str, const char *new);
 void appendn (char **str, const char *new, size_t len);
@@ -771,7 +780,7 @@ int get_major_minor (const char *path, unsigned int *_major, unsigned int *_mino
 bool uid_match (uid_t uid);
 char * get_path (const char *argv0);
 bool is_big_endian (void);
-char * get_thread_scheduler_name (int sched);
+const char *get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
 void show_data_model (void);
 const char *get_net_family_name (sa_family_t family);
@@ -802,6 +811,8 @@ void show_linux_prctl (void);
 void show_linux_cpu (void);
 char * get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
+void show_numa_memory (void);
+const char *get_numa_policy (int policy);
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)

@@ -628,6 +628,13 @@ struct procenv_map thread_sched_policy_map[] = {
 	mk_map_entry (SCHED_RR)
 };
 
+struct procenv_map numa_mempolicy_map[] = {
+	mk_map_entry (MPOL_DEFAULT),
+	mk_map_entry (MPOL_PREFERRED),
+	mk_map_entry (MPOL_BIND),
+	mk_map_entry (MPOL_INTERLEAVE),
+};
+
 void
 usage (void)
 {
@@ -1793,8 +1800,6 @@ show_misc (void)
 	section_close ();
 #endif
 
-	entry ("memory page size", "%d bytes", getpagesize ());
-
 #if defined (PROCENV_LINUX)
 #ifdef LINUX_VERSION_CODE
 	entry ("kernel headers version", "%u.%u.%u",
@@ -1856,6 +1861,20 @@ show_cpu (void)
 	footer ();
 }
 
+void
+show_memory (void)
+{
+	header ("memory");
+
+	entry ("page size", "%d bytes", getpagesize ());
+
+#if defined (PROCENV_LINUX)
+	show_numa_memory ();
+#endif
+
+	footer ();
+}
+
 /* Display cpu affinities in the same compressed but reasonably
  * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
  */ 
@@ -1873,14 +1892,14 @@ show_cpu_affinities (void)
 	char                 *cpu_list = NULL;
 
 	/* TRUE if any enabled cpus have been displayed yet */
-	int         displayed = FALSE;
+	int                   displayed = FALSE;
 
 	/* Number of cpu's in *current* range */
-	size_t      count = 0;
+	size_t                count = 0;
 
 	/* Only valid to read these when count is >0 */
-	size_t      last = 0;
-	size_t      first = 0;
+	size_t                last = 0;
+	size_t                first = 0;
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 
@@ -2541,6 +2560,7 @@ dump (void)
 #ifndef PROCENV_ANDROID
 	show_confstrs ();
 #endif
+	show_cpu ();
 	show_env ();
 	show_fds ();
 #ifndef PROCENV_ANDROID
@@ -2548,6 +2568,7 @@ dump (void)
 #endif
 	show_rlimits ();
 	show_locale ();
+	show_memory ();
 	show_misc ();
 	show_msg_queues ();
 	show_mounts (SHOW_ALL);
@@ -3006,6 +3027,112 @@ linux_kernel_version (int major, int minor, int revision)
 		return TRUE;
 
 	return FALSE;
+}
+
+void
+show_numa_memory (void)
+{
+	int              policy;
+	const char      *policy_name;
+	struct bitmask  *allowed;
+	char            *allowed_list = NULL;
+	int              ret;
+	unsigned long    node;
+
+	/* TRUE if any numa nodes have been displayed yet */
+	int              displayed = FALSE;
+
+	/* Number of numa nodes in *current* range */
+	size_t           count = 0;
+
+	/* Only valid to read these when count is >0 */
+	size_t           last = 0;
+	size_t           first = 0;
+
+	header ("numa");
+
+	if (numa_available () < 0)
+		/* NUMA not supported on this system */
+		goto out;
+
+	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
+
+	if (ret < 0) {
+		show ("policy", "%s", UNKNOWN_STR);
+		goto out;
+	}
+
+	policy_name = get_numa_policy (policy);
+
+	entry ("policy", "%s", policy_name ? policy_name : UNKNOWN_STR);
+
+	entry ("maximum nodes", "%d", numa_num_possible_nodes ());
+	entry ("configured nodes", "%d", numa_num_configured_nodes ());
+
+	allowed = numa_get_mems_allowed ();
+	if (! allowed)
+		die ("failed to query NUMA allowed list");
+
+	for (node = 0; node < allowed->size; node++) {
+		if (numa_bitmask_isbitset (allowed, node)) {
+			/* Record first entry in the range */
+			if (! count)
+				first = node;
+
+			last = node;
+			count++;
+		} else {
+			if (count) {
+				if (first == last) {
+					appendf (&allowed_list, "%s%d",
+							displayed ? "," : "",
+							first);
+				} else {
+					appendf (&allowed_list, "%s%d-%d",
+							displayed ? "," : "",
+							first, last);
+				}
+				displayed = TRUE;
+			}
+
+			/* Reset */
+			count = 0;
+		}
+	}
+
+	if (count) {
+		if (first == last) {
+			appendf (&allowed_list, "%s%d",
+					displayed ? "," : "",
+					first);
+		} else {
+			appendf (&allowed_list, "%s%d-%d",
+					displayed ? "," : "",
+					first, last);
+		}
+				displayed = TRUE;
+	}
+
+	entry ("allowed list", "%s", allowed_list);
+
+	free (allowed_list);
+	free (allowed);
+
+out:
+	footer ();
+}
+
+const char *
+get_numa_policy (int policy)
+{
+	struct procenv_map *p;
+
+	for (p = numa_mempolicy_map; p && p->name; p++) {
+		if (p->num == policy)
+			return p->name;
+	}
+
+	return NULL;
 }
 
 #endif
@@ -5907,7 +6034,7 @@ show_threads (void)
 	footer ();
 }
 
-char *
+const char *
 get_thread_scheduler_name (int sched)
 {
 	struct procenv_map *p;
@@ -6003,6 +6130,7 @@ main (int    argc,
 		{"capabilities"    , no_argument, NULL, 'w'},
 		{"pathconf"        , no_argument, NULL, 'x'},
 		{"sysconf"         , no_argument, NULL, 'y'},
+		{"memory"          , no_argument, NULL, 'Y'},
 		{"timezone"        , no_argument, NULL, 'z'},
 		{"exec"            , no_argument      , NULL, 0},
 		{"file"            , required_argument, NULL, 0},
@@ -6031,7 +6159,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyz",
+				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -6240,6 +6368,10 @@ main (int    argc,
 
 		case 'y':
 			show_sysconf ();
+			break;
+
+		case 'Y':
+			show_memory ();
 			break;
 
 		case 'z':
