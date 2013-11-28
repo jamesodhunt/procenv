@@ -60,6 +60,7 @@
 #define PACKAGE_NAME "procenv"
 #endif
 
+/* FIXME: ugh */
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.28"
 #endif
@@ -101,6 +102,10 @@
 
 #if defined (PROCENV_LINUX) && defined (__BIONIC__)
 #define PROCENV_ANDROID
+#endif
+
+#if defined (PROCENV_LINUX) && defined (__FreeBSD_kernel__)
+#define PROCENV_LINUX_BSD_KERNEL
 #endif
 
 #ifdef __GNU__
@@ -224,11 +229,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
-#define PROCENV_CPU_SET_TYPE cpu_set_t
-#endif
-
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 #include <kvm.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
@@ -243,13 +244,15 @@
 #include <net/if.h>
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 #include <sys/mount.h>
 #endif
 
 #if defined (PROCENV_BSD)
 #define PROCENV_CPU_SET_TYPE cpuset_t
 #include <pthread_np.h>
+#elif defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
+#define PROCENV_CPU_SET_TYPE cpu_set_t
 #endif
 
 /* Horrid hack for Hurd... :-( */
@@ -286,7 +289,7 @@
  * higher-level network family entries for the interface in
  * question.
  */
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 #define	PROCENV_LINK_LEVEL_FAMILY AF_LINK
 #elif defined (PROCENV_LINUX)
 #define PROCENV_LINK_LEVEL_FAMILY AF_PACKET
@@ -295,7 +298,7 @@
 #if defined (PROCENV_BSD)
 #define statfs_int_type uint64_t
 #define statfs_int_fmt  PRIu64
-#elif defined (__FreeBSD_kernel__)
+#elif defined (PROCENV_LINUX_BSD_KERNEL)
 #define statfs_int_type uint64_t
 #define statfs_int_fmt  "lu"
 #endif
@@ -608,7 +611,7 @@ struct procenv_user {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	char proc_name[16];
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	char proc_name[COMMLEN+1];
 #endif
 
@@ -636,7 +639,7 @@ struct procenv_misc {
 	char   root[PATH_MAX];
 	mode_t umask_value;
 	int cpu;
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	int    in_jail;
 #endif
 };
@@ -815,9 +818,9 @@ void show_numa_memory (void);
 const char *get_numa_policy (int policy);
 #endif /* PROCENV_LINUX */
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
 void show_linux_proc_branch (void);
-#endif /* PROCENV_LINUX || __FreeBSD_kernel__ */
+#endif /* PROCENV_LINUX || PROCENV_LINUX_BSD_KERNEL */
 
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
@@ -830,7 +833,7 @@ void show_msg_queues_linux (void);
 void show_linux_mounts (ShowMountType what);
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 char * get_bsd_mount_opts (uint64_t flags);
 void show_bsd_mounts (ShowMountType what);
 void show_bsd_network (void);
@@ -840,7 +843,7 @@ void show_bsd_cpu (void);
 void show_shared_mem_bsd (void);
 void show_semaphores_bsd (void);
 void show_msg_queues_bsd (void);
-#endif /* PROCENV_BSD + __FreeBSD_kernel__ */
+#endif /* PROCENV_BSD + PROCENV_LINUX_BSD_KERNEL */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 /* semctl(2) on Linux tells us _we_ must define this */
@@ -853,6 +856,5 @@ union semun {
 };
 
 #endif
-
 
 #endif /* PROCENV_H */

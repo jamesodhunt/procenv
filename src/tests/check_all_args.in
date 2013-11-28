@@ -43,6 +43,9 @@ rm -f "$stdout" "$stderr"
 # Save all sections that are displayed by default for later checks
 sections=$($procenv|grep "^[^ ].*:$")
 
+remaining_file=$(mktemp "$template")
+echo "$sections" > "$remaining_file"
+
 # pathconf cannot be handled below as it is indented under the mount
 # output, so just check we can find some evidence of it being displayed.
 $procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
@@ -195,6 +198,10 @@ do
 		fi
 	fi
 
+	# Remove this section as it's now been handled
+	remaining=$(cat "$remaining_file"|grep -v "^${section}$" || :)
+	echo "$remaining"> "$remaining_file"
+
 	rm -f "$stdout" "$stderr"
 
 	# Text format
@@ -223,5 +230,16 @@ do
 	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 	rm -f "$stdout" "$stderr"
 done
+
+# If there are any remaining sections that were produced by default
+# output but which have not been handed by command-line options, we
+# forgot to update usage().
+msg "Checking for missing arguments"
+remaining=$(cat "$remaining_file")
+
+[ -n "$remaining" ] && \
+	die "No command-line option found for the following section(s): '$remaining'"
+
+rm -f "$remaining_file"
 
 #---------------------------------------------------------------------

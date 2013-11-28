@@ -161,7 +161,7 @@ struct procenv_priority priority;
 
 struct utsname uts;
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 struct mntopt_map {
 	uint64_t   flag;
 	char      *name;
@@ -173,7 +173,7 @@ struct mntopt_map {
 	{ MNT_GJOURNAL     , "gjournal" },
 	{ MNT_LOCAL        , "local" },
 	{ MNT_MULTILABEL   , "multilabel" },
-#ifndef __FreeBSD_kernel__
+#ifndef PROCENV_LINUX_BSD_KERNEL
 	{ MNT_NFS4ACLS     , "nfsv4acls" },
 #endif
 	{ MNT_NOATIME      , "noatime" },
@@ -186,7 +186,7 @@ struct mntopt_map {
 	{ MNT_RDONLY       , "read-only" },
 	{ MNT_SOFTDEP      , "soft-updates" },
 	{ MNT_SUIDDIR      , "suiddir" },
-#ifndef __FreeBSD_kernel__
+#ifndef PROCENV_LINUX_BSD_KERNEL
 	{ MNT_SUJ          , "journaled soft-updates" },
 #endif
 	{ MNT_SYNCHRONOUS  , "synchronous" },
@@ -264,7 +264,7 @@ struct if_flag_map {
 	mk_map_entry (IFF_SLAVE),
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	mk_map_entry (IFF_SIMPLEX),
 #endif
 
@@ -628,12 +628,14 @@ struct procenv_map thread_sched_policy_map[] = {
 	mk_map_entry (SCHED_RR)
 };
 
+#if defined (PROCENV_LINUX)
 struct procenv_map numa_mempolicy_map[] = {
 	mk_map_entry (MPOL_DEFAULT),
 	mk_map_entry (MPOL_PREFERRED),
 	mk_map_entry (MPOL_BIND),
 	mk_map_entry (MPOL_INTERLEAVE),
 };
+#endif
 
 void
 usage (void)
@@ -707,6 +709,7 @@ usage (void)
 	show ("  -w, --capabilities      : Display capaibility details (Linux only).");
 	show ("  -x, --pathconf          : Display pathconf details.");
 	show ("  -y, --sysconf           : Display sysconf details.");
+	show ("  -Y, --memory            : Display memory details.");
 	show ("  -z, --timezone          : Display timezone details.");
 	show ("");
 	show ("Notes:");
@@ -1627,7 +1630,7 @@ get_misc (void)
 #if defined (PROCENV_LINUX)
 	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	get_bsd_misc ();
 #endif
 }
@@ -1905,7 +1908,8 @@ show_cpu_affinities (void)
 	if (max < 0)
 		die ("Failed to query cpu count");
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
+
 	cpu_set = CPU_ALLOC (max);
 	assert (cpu_set);
 
@@ -1917,7 +1921,7 @@ show_cpu_affinities (void)
 
 	size = sizeof (PROCENV_CPU_SET_TYPE);
 
-#endif /* PROCENV_LINUX || __FreeBSD_kernel__ */
+#endif /* PROCENV_LINUX || PROCENV_LINUX_BSD_KERNEL || PROCENV_HURD */
 
 	/* We could use sched_getaffinity(2) rather than
 	 * sched_getaffinity() on Linux (2.5.8+) but
@@ -1925,14 +1929,14 @@ show_cpu_affinities (void)
 	 * Except it is missing on kFreeBSD systems (!) so we have to
 	 * use sched_getaffinity() there. :(
 	 */
-#if defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
 	ret = pthread_getaffinity_np (pthread_self (), size, cpu_set);
 #endif
 
 	if (ret < 0)
-		die ("failed to query cpu affinity");
+		goto out;
 
 	for (cpu = 0; cpu < max; cpu++) {
 
@@ -1976,9 +1980,10 @@ show_cpu_affinities (void)
 		displayed = TRUE;
 	}
 
-	entry ("affinity list", "%s", cpu_list);
+out:
+	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
 	CPU_FREE (cpu_set);
 #endif
 
@@ -2724,7 +2729,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *mac_address = NULL;
 	int            i;
 	int            valid = FALSE;
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
@@ -2737,7 +2742,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
@@ -2756,7 +2761,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -2793,7 +2798,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	/* NOP */
 #else
 	close (sock);
@@ -3150,7 +3155,7 @@ show_mounts (ShowMountType what)
 	show_linux_mounts (what);
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	show_bsd_mounts (what);
 #endif
 
@@ -3167,7 +3172,7 @@ get_net_family_name (sa_family_t family)
 		break;
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 	case AF_LINK:
 		return "AF_LINK";
 		break;
@@ -3455,7 +3460,7 @@ show_network (void)
 }
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 
 char *
 get_bsd_mount_opts (uint64_t flags)
@@ -3779,7 +3784,7 @@ show_proc_branch (void)
 {
 	common_assert ();
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
 	show_linux_proc_branch ();
 #endif
 
@@ -4252,7 +4257,7 @@ show_linux_prctl (void)
 
 #endif
 
-#if defined (PROCENV_LINUX) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
 void
 show_linux_proc_branch (void)
 {
@@ -4615,7 +4620,7 @@ get_os (void)
 	return "iSeries (OS/400)";
 #endif
 
-#if defined (__FreeBSD_kernel__) && defined (__GNUC__)
+#if defined (PROCENV_LINUX_BSD_KERNEL) && defined (__GNUC__)
 	return "GNU/kFreeBSD";
 #endif
 
@@ -4819,7 +4824,7 @@ show_clocks (void)
 
 	show_clock_res (CLOCK_MONOTONIC);
 
-#if defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
+#if defined (__FreeBSD__) || defined (PROCENV_LINUX_BSD_KERNEL)
 	show_clock_res (CLOCK_MONOTONIC_PRECISE);
 	show_clock_res (CLOCK_MONOTONIC_FAST);
 	show_clock_res (CLOCK_UPTIME);
@@ -5660,7 +5665,7 @@ has_ctty (void)
 	return TRUE;
 }
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 void
 show_bsd_cpu (void)
 {

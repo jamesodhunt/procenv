@@ -1,5 +1,12 @@
 # TODO
 
+- Tests:
+  - check man page options vs. 'procenv --help' to look for
+    inconsistencies.
+  - --indent=
+  - --indent-char=
+  - --crumb-separator=
+  - --separator=
 - XXX: run show_compiler_details *before* build to help diagnose
   failures.
 - Add YAML output format?
@@ -9,11 +16,6 @@
 - Non-root queryable hdd attributes?
 - Hurd:
   - establish how to determine process ancestry.
-- Tests:
-  - --indent=
-  - --indent-char=
-  - --crumb-separator=
-  - --separator=
 - Create a versioned XML schema.
 - Restructure code into separate files.
 - Use weak symbols/VPATH to avoid ifdefs!
