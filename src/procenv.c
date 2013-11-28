@@ -1631,7 +1631,7 @@ get_misc (void)
 	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
 #endif
 #if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
-	get_bsd_misc ();
+	get_misc_bsd ();
 #endif
 }
 
@@ -1795,11 +1795,11 @@ show_misc (void)
 	entry ("container", "%s", container_type ());
 
 #if defined (PROCENV_LINUX)
-	show_linux_prctl ();
+	show_prctl_linux ();
 
 	section_open ("linux security module");
-	show_linux_security_module ();
-	show_linux_security_module_context ();
+	show_security_module_linux ();
+	show_security_module_context_linux ();
 	section_close ();
 #endif
 
@@ -1851,11 +1851,11 @@ show_cpu (void)
 	header ("cpu");
 
 #if defined (PROCENV_LINUX)
-	show_linux_cpu ();
+	show_cpu_linux ();
 #endif
 
 #if defined (PROCENV_BSD)
-	show_bsd_cpu ();
+	show_cpu_bsd ();
 #endif
 	show_cpu_affinities ();
 
@@ -2558,10 +2558,8 @@ dump (void)
 	show_meta ();
 	show_arguments ();
 
-#if defined (PROCENV_LINUX)
 	show_capabilities ();
-	show_linux_cgroups ();
-#endif
+	show_cgroups ();
 	show_clocks ();
 	show_compiler ();
 #ifndef PROCENV_ANDROID
@@ -2580,9 +2578,7 @@ dump (void)
 	show_msg_queues ();
 	show_mounts (SHOW_ALL);
 	show_network ();
-#if defined (PROCENV_LINUX)
 	show_oom ();
-#endif
 	show_platform ();
 	show_proc ();
 	show_ranges ();
@@ -2809,7 +2805,7 @@ out:
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void
-show_linux_mounts (ShowMountType what)
+show_mounts_linux (ShowMountType what)
 {
 	FILE            *mtab;
 	struct mntent   *mnt;
@@ -3152,11 +3148,11 @@ show_mounts (ShowMountType what)
 	header (what == SHOW_PATHCONF ? "pathconf" : "mounts");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_linux_mounts (what);
+	show_mounts_linux (what);
 #endif
 
 #if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
-	show_bsd_mounts (what);
+	show_mounts_bsd (what);
 #endif
 
 	footer ();
@@ -3463,7 +3459,7 @@ show_network (void)
 #if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 
 char *
-get_bsd_mount_opts (uint64_t flags)
+get_mount_opts_bsd (uint64_t flags)
 {
 	struct mntopt_map  *opt;
 	char               *str = NULL;
@@ -3513,7 +3509,7 @@ get_bsd_mount_opts (uint64_t flags)
 }
 
 void
-show_bsd_mounts (ShowMountType what)
+show_mounts_bsd (ShowMountType what)
 {
 	int               count;
 	struct statfs    *mounts;
@@ -3540,7 +3536,7 @@ show_bsd_mounts (ShowMountType what)
 	for (i = 0; i < count; i++) {
 		char *opts = NULL;
 
-		opts = get_bsd_mount_opts (mnt->f_flags);
+		opts = get_mount_opts_bsd (mnt->f_flags);
 		if (! opts)
 			die ("cannot determine FS flags for mountpoint '%s'",
 					mnt->f_mntonname);
@@ -3785,7 +3781,7 @@ show_proc_branch (void)
 	common_assert ();
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
-	show_linux_proc_branch ();
+	show_proc_branch_linux ();
 #endif
 
 #if defined (PROCENV_HURD)
@@ -3793,14 +3789,14 @@ show_proc_branch (void)
 #endif
 
 #if defined (PROCENV_BSD)
-	show_bsd_proc_branch ();
+	show_proc_branch_bsd ();
 #endif
 }
 
 #if defined (PROCENV_BSD)
 /* Who would have thought handling PIDs was so tricky? */
 void
-show_bsd_proc_branch (void)
+show_proc_branch_bsd (void)
 {
 	int                  count = 0;
 	int                  i;
@@ -3923,7 +3919,7 @@ show_bsd_proc_branch (void)
 
 #if defined (PROCENV_LINUX)
 void
-show_linux_prctl (void)
+show_prctl_linux (void)
 {
 	int  rc;
 	int  arg2;
@@ -4259,7 +4255,7 @@ show_linux_prctl (void)
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
 void
-show_linux_proc_branch (void)
+show_proc_branch_linux (void)
 {
 	char    buffer[1024];
 	char    path[PATH_MAX];
@@ -4852,16 +4848,9 @@ void
 show_timezone (void)
 {
 #if defined (PROCENV_LINUX)
-	tzset ();
-
-	header ("timezone");
-
-	entry ("tzname[0]", "'%s'", tzname[0]);
-	entry ("tzname[1]", "'%s'", tzname[1]);
-	entry ("timezone", "%ld", timezone);
-	entry ("daylight", "%d", daylight);
-
-	footer ();
+	show_timezone_linux ();
+#else
+	show_timezone_stub ();
 #endif
 }
 
@@ -5246,10 +5235,40 @@ show_uname (void)
 	footer ();
 }
 
+void
+show_cgroups (void)
+{
 #if defined (PROCENV_LINUX)
+	show_cgroups_linux ();
+#else
+	show_cgroups_stub ();
+#endif
+}
+
+void
+show_oom (void)
+{
+#if defined (PROCENV_LINUX)
+	show_oom_linux ();
+#else
+	show_oom_stub ();
+#endif
+}
 
 void
 show_capabilities (void)
+{
+#if defined (PROCENV_LINUX)
+	show_capabilities_linux ();
+#else
+	show_capabilities_stub ();
+#endif
+}
+
+#if defined (PROCENV_LINUX)
+
+void
+show_capabilities_linux (void)
 {
 	int ret;
 
@@ -5356,7 +5375,22 @@ show_capabilities (void)
 }
 
 void
-show_linux_security_module (void)
+show_timezone_linux (void)
+{
+	tzset ();
+
+	header ("timezone");
+
+	entry ("tzname[0]", "'%s'", tzname[0]);
+	entry ("tzname[1]", "'%s'", tzname[1]);
+	entry ("timezone", "%ld", timezone);
+	entry ("daylight", "%d", daylight);
+
+	footer ();
+}	
+
+void
+show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
 #if defined (HAVE_APPARMOR)
@@ -5371,7 +5405,7 @@ show_linux_security_module (void)
 }
 
 void
-show_linux_security_module_context (void)
+show_security_module_context_linux (void)
 {
 	char   *context = NULL;
 	char   *mode = NULL;
@@ -5399,7 +5433,7 @@ show_linux_security_module_context (void)
 }
 
 void
-show_linux_cgroups (void)
+show_cgroups_linux (void)
 {
 	const  char  *delim = ":";
 	char         *file = "/proc/self/cgroup";
@@ -5536,7 +5570,7 @@ show_fds_linux (void)
 }
 
 void
-show_oom (void)
+show_oom_linux (void)
 {
 	char    *dir = "/proc/self";
 	char    *files[] = { "oom_score", "oom_adj", "oom_score_adj", NULL };
@@ -5590,7 +5624,7 @@ get_scheduler_name (int sched)
 }
 
 void
-show_linux_cpu (void)
+show_cpu_linux (void)
 {
 	int cpu;
 	long max;
@@ -5648,6 +5682,35 @@ get_tty_locked_status (struct termios *lock_status)
 	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0)
 		die ("failed to query terminal lock status");
 }
+#else
+
+void
+show_cgroups_stub (void)
+{
+	header ("cgroups");
+	footer ();
+}
+
+void
+show_oom_stub (void)
+{
+	header ("oom");
+	footer ();
+}
+
+void
+show_timezone_stub (void)
+{
+	header ("timezone");
+	footer ();
+}
+
+void
+show_capabilities_stub (void)
+{
+	header ("capabilities");
+	footer ();
+}
 
 #endif /* PROCENV_LINUX */
 
@@ -5667,7 +5730,7 @@ has_ctty (void)
 
 #if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
 void
-show_bsd_cpu (void)
+show_cpu_bsd (void)
 {
 	long                max;
 	kvm_t              *kvm;
@@ -5698,7 +5761,7 @@ show_bsd_cpu (void)
 }
 
 void
-get_bsd_misc (void)
+get_misc_bsd (void)
 {
 	char                 errors[_POSIX2_LINE_MAX];
 	kvm_t               *kvm;
@@ -6238,9 +6301,7 @@ main (int    argc,
 			break;
 
 		case 'c':
-#if defined (PROCENV_LINUX)
-			show_linux_cgroups ();
-#endif
+			show_cgroups ();
 			break;
 
 		case 'C':
@@ -6313,9 +6374,7 @@ main (int    argc,
 			break;
 
 		case 'o':
-#if defined (PROCENV_LINUX)
 			show_oom ();
-#endif
 			break;
 
 		case 'p':
@@ -6364,9 +6423,7 @@ main (int    argc,
 			break;
 
 		case 'w':
-#if defined (PROCENV_LINUX)
 			show_capabilities ();
-#endif
 			break;
 
 		case 'x':

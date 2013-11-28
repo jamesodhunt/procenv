@@ -732,8 +732,8 @@ void get_config_from_env (void);
 void check_config (void);
 void show_proc_branch (void);
 void show_tty_attrs (void);
-const char * get_speed (speed_t speed);
-const char * get_signal_name (int signum);
+const char *get_speed (speed_t speed);
+const char *get_signal_name (int signum);
 void show_arguments (void);
 void show_meta (void);
 char *get_os (void);
@@ -781,7 +781,7 @@ void show_stat (void);
 void show_locale (void);
 int get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor);
 bool uid_match (uid_t uid);
-char * get_path (const char *argv0);
+char *get_path (const char *argv0);
 bool is_big_endian (void);
 const char *get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
@@ -797,29 +797,41 @@ void set_breadcrumb (const char *name);
 void add_breadcrumb (const char *name);
 void remove_breadcrumb (void);
 void clear_breadcrumbs (void);
+void show_cgroups (void);
+void show_oom (void);
+void show_capabilities (void);
 
 #if defined (PROCENV_LINUX)
+
 void decode_if_flags (unsigned int flags);
 void decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);
-void show_linux_cgroups (void);
-void show_oom (void);
-void show_capabilities (void);
-void show_linux_security_module (void);
-void show_linux_security_module_context (void);
-void show_linux_network (void);
-void show_linux_prctl (void);
-void show_linux_cpu (void);
-char * get_scheduler_name (int sched);
+void show_cgroups_linux (void);
+void show_oom_linux (void);
+void show_timezone_linux (void);
+void show_capabilities_linux (void);
+void show_security_module_linux (void);
+void show_security_module_context_linux (void);
+void show_prctl_linux (void);
+void show_cpu_linux (void);
+char *get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
 void show_numa_memory (void);
 const char *get_numa_policy (int policy);
+
+#else /* ! PROCENV_LINUX */
+
+void show_cgroups_stub (void);
+void show_oom_stub (void);
+void show_capabilities_stub (void);
+void show_timezone_stub (void);
+
 #endif /* PROCENV_LINUX */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
-void show_linux_proc_branch (void);
+void show_proc_branch_linux (void);
 #endif /* PROCENV_LINUX || PROCENV_LINUX_BSD_KERNEL */
 
 
@@ -830,16 +842,16 @@ void show_msg_queues_linux (void);
 #endif /* PROCENV_LINUX || PROCENV_HURD */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-void show_linux_mounts (ShowMountType what);
+void show_mounts_linux (ShowMountType what);
 #endif
 
 #if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
-char * get_bsd_mount_opts (uint64_t flags);
-void show_bsd_mounts (ShowMountType what);
-void show_bsd_network (void);
-void get_bsd_misc (void);
-void show_bsd_proc_branch (void);
-void show_bsd_cpu (void);
+char *get_mount_opts_bsd (uint64_t flags);
+void show_mounts_bsd (ShowMountType what);
+void show_network_bsd (void);
+void get_misc_bsd (void);
+void show_proc_branch_bsd (void);
+void show_cpu_bsd (void);
 void show_shared_mem_bsd (void);
 void show_semaphores_bsd (void);
 void show_msg_queues_bsd (void);

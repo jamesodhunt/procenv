@@ -5,6 +5,10 @@
 	    kFreeBSD systems.
 	  - Tweaks to hide NUMA from BSD systems.
 	  - usage(): Added missing entry for --memory (as caught by new test).
+	  - Made os-specific function names saner.
+	  - Make Linux-specific functions still display a heading by using
+	    stubs. This fixes the tests, makes the code slightly clearer
+	    (hopefully not at the expense of the user).
 	* src/procenv.h:
 	  - Added PROCENV_LINUX_BSD_KERNEL for kFreeBSD systems.
 	* src/tests/check_all_args.in:
