@@ -161,7 +161,7 @@ struct procenv_priority priority;
 
 struct utsname uts;
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 struct mntopt_map {
 	uint64_t   flag;
 	char      *name;
@@ -173,7 +173,7 @@ struct mntopt_map {
 	{ MNT_GJOURNAL     , "gjournal" },
 	{ MNT_LOCAL        , "local" },
 	{ MNT_MULTILABEL   , "multilabel" },
-#ifndef PROCENV_LINUX_BSD_KERNEL
+#ifndef PROCENV_GNU_BSD
 	{ MNT_NFS4ACLS     , "nfsv4acls" },
 #endif
 	{ MNT_NOATIME      , "noatime" },
@@ -186,7 +186,7 @@ struct mntopt_map {
 	{ MNT_RDONLY       , "read-only" },
 	{ MNT_SOFTDEP      , "soft-updates" },
 	{ MNT_SUIDDIR      , "suiddir" },
-#ifndef PROCENV_LINUX_BSD_KERNEL
+#ifndef PROCENV_GNU_BSD
 	{ MNT_SUJ          , "journaled soft-updates" },
 #endif
 	{ MNT_SYNCHRONOUS  , "synchronous" },
@@ -264,7 +264,7 @@ struct if_flag_map {
 	mk_map_entry (IFF_SLAVE),
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	mk_map_entry (IFF_SIMPLEX),
 #endif
 
@@ -1630,7 +1630,7 @@ get_misc (void)
 #if defined (PROCENV_LINUX)
 	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
 #endif
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	get_misc_bsd ();
 #endif
 }
@@ -1908,7 +1908,7 @@ show_cpu_affinities (void)
 	if (max < 0)
 		die ("Failed to query cpu count");
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 
 	cpu_set = CPU_ALLOC (max);
 	assert (cpu_set);
@@ -1921,7 +1921,7 @@ show_cpu_affinities (void)
 
 	size = sizeof (PROCENV_CPU_SET_TYPE);
 
-#endif /* PROCENV_LINUX || PROCENV_LINUX_BSD_KERNEL || PROCENV_HURD */
+#endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
 
 	/* We could use sched_getaffinity(2) rather than
 	 * sched_getaffinity() on Linux (2.5.8+) but
@@ -1929,7 +1929,7 @@ show_cpu_affinities (void)
 	 * Except it is missing on kFreeBSD systems (!) so we have to
 	 * use sched_getaffinity() there. :(
 	 */
-#if defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
+#if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
 	ret = pthread_getaffinity_np (pthread_self (), size, cpu_set);
@@ -1983,7 +1983,7 @@ show_cpu_affinities (void)
 out:
 	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL) || defined (PROCENV_HURD)
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 	CPU_FREE (cpu_set);
 #endif
 
@@ -2725,7 +2725,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *mac_address = NULL;
 	int            i;
 	int            valid = FALSE;
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
@@ -2738,7 +2738,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
@@ -2757,7 +2757,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -2794,7 +2794,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	/* NOP */
 #else
 	close (sock);
@@ -3151,7 +3151,7 @@ show_mounts (ShowMountType what)
 	show_mounts_linux (what);
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	show_mounts_bsd (what);
 #endif
 
@@ -3168,7 +3168,7 @@ get_net_family_name (sa_family_t family)
 		break;
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	case AF_LINK:
 		return "AF_LINK";
 		break;
@@ -3456,7 +3456,7 @@ show_network (void)
 }
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 
 char *
 get_mount_opts_bsd (uint64_t flags)
@@ -3603,30 +3603,6 @@ show_mounts_bsd (ShowMountType what)
 
 		free (opts);
 	}
-}
-
-/* FIXME: not implemented */
-void
-show_shared_mem_bsd (void)
-{
-	header ("shared memory");
-	footer ();
-}
-
-/* FIXME: not implemented */
-void
-show_semaphores_bsd (void)
-{
-	header ("semaphores");
-	footer ();
-}
-
-/* FIXME: not implemented */
-void
-show_msg_queues_bsd (void)
-{
-	header ("message queues");
-	footer ();
 }
 
 #endif
@@ -3780,7 +3756,7 @@ show_proc_branch (void)
 {
 	common_assert ();
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
 	show_proc_branch_linux ();
 #endif
 
@@ -4253,7 +4229,7 @@ show_prctl_linux (void)
 
 #endif
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
 void
 show_proc_branch_linux (void)
 {
@@ -4616,7 +4592,7 @@ get_os (void)
 	return "iSeries (OS/400)";
 #endif
 
-#if defined (PROCENV_LINUX_BSD_KERNEL) && defined (__GNUC__)
+#if defined (PROCENV_GNU_BSD) && defined (__GNUC__)
 	return "GNU/kFreeBSD";
 #endif
 
@@ -4820,7 +4796,7 @@ show_clocks (void)
 
 	show_clock_res (CLOCK_MONOTONIC);
 
-#if defined (__FreeBSD__) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (__FreeBSD__) || defined (PROCENV_GNU_BSD)
 	show_clock_res (CLOCK_MONOTONIC_PRECISE);
 	show_clock_res (CLOCK_MONOTONIC_FAST);
 	show_clock_res (CLOCK_UPTIME);
@@ -5712,6 +5688,27 @@ show_capabilities_stub (void)
 	footer ();
 }
 
+void
+show_shared_mem_stub (void)
+{
+	header ("shared memory");
+	footer ();
+}
+
+void
+show_semaphores_stub (void)
+{
+	header ("semaphores");
+	footer ();
+}
+
+void
+show_msg_queues_stub (void)
+{
+	header ("message queues");
+	footer ();
+}
+
 #endif /* PROCENV_LINUX */
 
 bool
@@ -5728,7 +5725,7 @@ has_ctty (void)
 	return TRUE;
 }
 
-#if defined (PROCENV_BSD) || defined (PROCENV_LINUX_BSD_KERNEL)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 void
 show_cpu_bsd (void)
 {
@@ -6527,8 +6524,11 @@ get_group_name (gid_t gid)
 int
 encode_string (char **str)
 {
-	int    ret = 0;
-	char   *new;
+	int      ret = 0;
+	char    *new;
+	char    *p, *q;
+	size_t   non_printables;
+	size_t   len = 0;
 
 	assert (str);
 	assert (*str);
@@ -6557,9 +6557,95 @@ encode_string (char **str)
 		break;
 	}
 
+	if (ret < 0)
+		return ret;
+
+	/* Now, search for evil non-printable characters and encode those
+	 * appropriately.
+	 */
+	for (p = *str, non_printables = 0; p && *p; p++) {
+		if (! isprint (*p))
+			non_printables++;
+	}
+
+	if (non_printables &&
+		(output_format == OUTPUT_FORMAT_XML
+		 || output_format == OUTPUT_FORMAT_JSON)) {
+
+		size_t   new_size = 0;
+		char    *json_format = "\\u%4.4x";
+
+		/* XXX:
+		 *
+		 * Although this format spec _may_ produce valid XML,
+		 * the rules are arcane and some(?) control characters
+		 * cannot be used within an XML document, hence the
+		 * "may".
+		 *
+		 * Aside from simply discarding non-printable characters
+		 * (thus distorting the output), we are left with
+		 * attempting to produce some sort of encoded
+		 * representation which may well choke a validating
+		 * parser.
+		 *
+		 * Realistically, the problem is confined to handling
+		 * control characters set in environment variables when
+		 * attempting to output XML. This may occur if you run
+		 * GNU Screen since it sets $TERMCAP which includes
+		 * binary characters.
+		 *
+		 * FIXME:
+		 *
+		 * If you hit this issue, raise a bug so we can consider
+		 * simply discarding all non-printables when attempting
+		 * XML output.
+		 */
+		char    *xml_format = "&#x%2.2x;";
+
+		len = strlen (*str);
+
+		/* Calculate expanded size of string by removing
+		 * count of non-printable byte and adding back the
+		 * number of bytes required to encode them in expanded
+		 * form.
+		 */
+		switch (output_format) {
+		case OUTPUT_FORMAT_XML:
+			new_size = (len - non_printables) + (non_printables * strlen ("&#x..;"));
+			break;
+
+		case OUTPUT_FORMAT_JSON:
+			new_size = (len - non_printables) + (non_printables * strlen ("\\u...."));
+			break;
+		default:
+			break;
+		}
+
+		new = calloc (1+new_size, 1);
+		if (! new)
+			return -1;
+
+		for (p = *str, q = new; p && *p; p++) {
+			if (isprint (*p)) {
+				*q = *p;
+				q++;
+			} else {
+				ret = sprintf (q,
+						output_format == OUTPUT_FORMAT_JSON
+						? json_format : xml_format,
+						*p);
+				q += ret;
+			}
+		}
+
+		free (*str);
+		*str = new;
+	}
+
 	return ret;
 }
 
+/* Performs simple substitution on the input */
 char *
 translate (const char *str)
 {
@@ -7408,10 +7494,8 @@ show_shared_mem (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_shared_mem_linux ();
-#endif
-
-#if defined (PROCENV_BSD)
-	show_shared_mem_bsd ();
+#else
+	show_shared_mem_stub ();
 #endif
 }
 
@@ -7420,10 +7504,8 @@ show_semaphores (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_semaphores_linux ();
-#endif
-
-#if defined (PROCENV_BSD)
-	show_semaphores_bsd ();
+#else
+	show_semaphores_stub ();
 #endif
 }
 
@@ -7432,9 +7514,8 @@ show_msg_queues (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_msg_queues_linux ();
-#endif
-#if defined (PROCENV_BSD)
-	show_msg_queues_bsd ();
+#else
+	show_msg_queues_stub ();
 #endif
 }
 

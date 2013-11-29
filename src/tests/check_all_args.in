@@ -11,6 +11,7 @@ procenv="@abs_builddir@/procenv"
 template="/tmp/${script_name}.XXXXXXXXXX"
 
 xml_checker=xmlwf
+json_checker=json_pp
 
 die ()
 {
@@ -25,12 +26,27 @@ msg ()
 	echo "INFO: $msg"
 }
 
+run_command()
+{
+	local cmdline="$*"
+
+	[ -z "$cmdline" ] && die "need command"
+
+	[ -n "$PROCENV_TEST_DEBUG" ] && msg "Running: '$cmdline'"
+
+	{ eval "$cmdline"; ret=$?; } || :
+	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
+}
+
 [ -f "$procenv" ] || die "cannot find binary: $procenv"
 
 #---------------------------------------------------------------------
 # Init
 
-command -v "$xml_checker" >/dev/null 2>&1 || die "need command $xml_checker"
+for cmd in $xml_checker $json_checker
+do
+	command -v "$cmd" >/dev/null 2>&1 || die "need command '$cmd'"
+done
 
 #---------------------------------------------------------------------
 msg "Ensure $procenv runs with no errors"
@@ -176,13 +192,13 @@ do
 	# No format option
 	cmd="$procenv $arg"
 	msg "Running '$cmd'"
+	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
 
-	eval '$cmd 1>"$stdout" 2>"$stderr"'
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 
 	# Establish the name of the section
-	section=$(head -1 "$stdout"|grep "^[^ ].*:$")
+	section=$(head -1 "$stdout"|grep "^[^ ].*:$" || :)
 	[ -z "$section" ] && die "No section title found running '$cmd'"
 
 	if [ "$section" != "version:" ]
@@ -207,7 +223,8 @@ do
 	# Text format
 	cmd="$procenv --format=text $arg"
 	msg "Running '$cmd'"
-	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 	rm -f "$stdout" "$stderr"
@@ -215,16 +232,20 @@ do
 	# JSON format
 	cmd="$procenv --format=json $arg"
 	msg "Running '$cmd'"
-	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-	json_pp < "$stdout" >/dev/null
+
+	run_command "$json_checker < \"$stdout\" >/dev/null"
+
 	rm -f "$stdout" "$stderr"
 
 	# XML format
 	cmd="$procenv --format=xml $arg"
 	msg "Running '$cmd'"
-	eval '$cmd 1>"$stdout" 2>"$stderr"'
+	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
 	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
