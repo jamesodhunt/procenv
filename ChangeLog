@@ -1,3 +1,7 @@
+2013-11-29  Dave Love  <fx@gnu.org>
+
+	* Fix for building on RHEL 5 (LP: #1256415).
+
 2013-11-29  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

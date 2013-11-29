@@ -276,7 +276,9 @@ struct if_flag_map {
 	mk_map_entry (IFF_DYNAMIC),
 	mk_map_entry (IFF_LOWER_UP),
 	mk_map_entry (IFF_DORMANT),
+#  ifdef IFF_ECHO
 	mk_map_entry (IFF_ECHO),
+#  endif
 #endif
 
 	{ 0, NULL }
@@ -328,7 +330,9 @@ struct if_extended_flag_map {
 	mk_map_entry (IFF_MASTER_ALB),
 	mk_map_entry (IFF_BONDING),
 	mk_map_entry (IFF_SLAVE_NEEDARP),
+#  ifdef IFF_ISATAP
 	mk_map_entry (IFF_ISATAP),
+#  endif
 
 	{ 0, NULL }
 };
