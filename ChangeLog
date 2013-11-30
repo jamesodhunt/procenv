@@ -1,3 +1,11 @@
+2013-11-30  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/tests/check_all_args.in: Don't run XML tests if control
+	  characters found in the environment (for example in $TERMCAP
+	  when running under GNU Screen) since XMl validation will fail
+	  (which is only partly reasonable given that such charactes
+	  cannot be reliably encoded in XML anyway).
+
 2013-11-29  Dave Love  <fx@gnu.org>
 
 	* Fix for building on RHEL 5 (LP: #1256415).

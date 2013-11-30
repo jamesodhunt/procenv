@@ -13,11 +13,23 @@ template="/tmp/${script_name}.XXXXXXXXXX"
 xml_checker=xmlwf
 json_checker=json_pp
 
+# XML disallows reliable encoding of control characters. Since the only
+# anticipated possible source of such literal control characters is
+# environment variables, such tests will be skipped if this variable has
+# the value 1.
+control_chars_in_env=0
+
 die ()
 {
 	local msg="$*"
 	echo "ERROR: $msg" >&2
 	exit 1
+}
+
+warn ()
+{
+	local msg="$*"
+	echo "WARNING: $msg" >&2
 }
 
 msg ()
@@ -28,7 +40,7 @@ msg ()
 
 run_command()
 {
-	local cmdline="$*"
+	local cmdline="$1"
 
 	[ -z "$cmdline" ] && die "need command"
 
@@ -47,6 +59,8 @@ for cmd in $xml_checker $json_checker
 do
 	command -v "$cmd" >/dev/null 2>&1 || die "need command '$cmd'"
 done
+
+env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
 #---------------------------------------------------------------------
 msg "Ensure $procenv runs with no errors"
@@ -152,18 +166,23 @@ rm -f "$stdout" "$stderr"
 
 #---------------------------------------------------------------------
 arg='--format=xml'
-msg "Ensure '$arg' works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv $arg 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-
-[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-
-rm -f "$stdout" "$stderr"
+if [ "$control_chars_in_env" -eq 1 ]
+then
+	warn "Skipping '$arg' test as control characters found in environment"
+else
+	msg "Ensure '$arg' works"
+	
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv $arg 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+	
+	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+	
+	rm -f "$stdout" "$stderr"
+fi
 
 #---------------------------------------------------------------------
 arg='--format=json'
@@ -243,12 +262,18 @@ do
 
 	# XML format
 	cmd="$procenv --format=xml $arg"
-	msg "Running '$cmd'"
-	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+	if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
+	then
+		warn "Skipping '$cmd' as control characters found in environment"
+	else
+		msg "Running '$cmd'"
+		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+		[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 
-	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+	fi
+
 	rm -f "$stdout" "$stderr"
 done
 
