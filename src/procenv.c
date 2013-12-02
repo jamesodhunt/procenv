@@ -2833,11 +2833,11 @@ show_mounts_linux (ShowMountType what)
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
 			unsigned multiplier = 0;
-			fsblkcnt_t blocks;
-			fsblkcnt_t bfree;
-			fsblkcnt_t bavail;
-			fsblkcnt_t used_blocks;
-			fsblkcnt_t used_files;
+			fsblkcnt_t blocks = 0;
+			fsblkcnt_t bfree = 0;
+			fsblkcnt_t bavail = 0;
+			fsblkcnt_t used_blocks = 0;
+			fsblkcnt_t used_files = 0;
 
 			if (statvfs (mnt->mnt_dir, &fs) < 0) {
 				have_stats = FALSE;
@@ -5041,7 +5041,9 @@ show_compiler (void)
 	entry ("compile time (__TIME__)", "%s", __TIME__);
 	entry ("translation unit (__FILE__)", "%s", __FILE__);
 	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
+#ifdef __TIMESTAMP__
 	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
+#endif
 
 	section_open ("feature test macros");
 
