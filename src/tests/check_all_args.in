@@ -11,7 +11,6 @@ procenv="@abs_builddir@/procenv"
 template="/tmp/${script_name}.XXXXXXXXXX"
 
 xml_checker=xmlwf
-json_checker=json_pp
 
 # XML disallows reliable encoding of control characters. Since the only
 # anticipated possible source of such literal control characters is
@@ -21,21 +20,27 @@ control_chars_in_env=0
 
 die ()
 {
-	local msg="$*"
-	echo "ERROR: $msg" >&2
+	local str="$*"
+	echo "ERROR: $str" >&2
 	exit 1
 }
 
 warn ()
 {
-	local msg="$*"
-	echo "WARNING: $msg" >&2
+	local str="$*"
+	echo "WARNING: $str" >&2
+}
+
+debug ()
+{
+	local str="$*"
+	[ -n "$PROCENV_TEST_DEBUG" ] && echo "DEBUG: $str" || :
 }
 
 msg ()
 {
-	local msg="$*"
-	echo "INFO: $msg"
+	local str="$*"
+	echo "INFO: $str"
 }
 
 run_command()
@@ -44,21 +49,41 @@ run_command()
 
 	[ -z "$cmdline" ] && die "need command"
 
-	[ -n "$PROCENV_TEST_DEBUG" ] && msg "Running: '$cmdline'"
+	debug "Running: '$cmdline'"
 
 	{ eval "$cmdline"; ret=$?; } || :
 	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
 }
 
-[ -f "$procenv" ] || die "cannot find binary: $procenv"
+
+get_python_json_command()
+{
+	for python in python3 python
+	do
+		for module in json.tool json
+		do
+			cmd="$python -m${module}"
+			debug "Checking python '$python' for module '$module'"
+			{ eval "echo {}|$cmd >/dev/null 2>&1"; ret=$?; } || :
+			[ $ret -eq 0 ] && json_checker="$cmd" && return
+		done
+	done
+
+	die "failed to find a python that can check JSON"
+}
 
 #---------------------------------------------------------------------
 # Init
 
-for cmd in $xml_checker $json_checker
+[ -f "$procenv" ] || die "cannot find binary: $procenv"
+
+for cmd in $xml_checker
 do
 	command -v "$cmd" >/dev/null 2>&1 || die "need command '$cmd'"
 done
+
+get_python_json_command
+[ -z "$json_checker" ] && die "failed to find a JSON checker"
 
 env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
@@ -195,7 +220,7 @@ $procenv $arg 1>"$stdout" 2>"$stderr"
 [ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 [ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 
-json_pp < "$stdout" >/dev/null
+$json_checker < "$stdout" >/dev/null
 
 rm -f "$stdout" "$stderr"
 

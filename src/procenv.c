@@ -3046,6 +3046,11 @@ show_numa_memory (void)
 	int              ret;
 	unsigned long    node;
 
+	/* part of the libnuma public API - stop the library calling
+	 * exit(3) on error.
+	 */
+	numa_exit_on_error = 0;
+
 	/* TRUE if any numa nodes have been displayed yet */
 	int              displayed = FALSE;
 

@@ -1,3 +1,17 @@
+2013-12-03  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac:
+	  - Put AC_COPYRIGHT onto one line for older automakes.
+	  - Removed unused AC_TYPE_* checks.
+	  - "Fix" to handle the automake 1.13 "serial-tests" fiasco
+	     and always display test verbose test output.
+	  - Conditionally use format-security compiler flag.
+	* src/procenv.c: show_numa_memory(): Tell libnuma not to call exit(3). 
+	* src/tests/check_all_args.in:
+	  - Add debug handling.
+	  - Use python rather than json_pp since the latter is not available
+	    on older perl installations.
+
 2013-12-02  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

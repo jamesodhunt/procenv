@@ -3,7 +3,7 @@ AM_CFLAGS = \
 	-std=gnu99 \
 	-Wall -Wunused \
 	-fstack-protector \
-	-Wformat -Werror=format-security
+	-Wformat
 
 bin_PROGRAMS = procenv
 procenv_SOURCES = \
