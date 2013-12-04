@@ -96,7 +96,7 @@ $procenv 1>"$stdout" 2>"$stderr"
 rm -f "$stdout" "$stderr"
 
 # Save all sections that are displayed by default for later checks
-sections=$($procenv|grep "^[^ ].*:$")
+sections=$($procenv|grep "^[a-z0-9][a-z0-9 ]*:$")
 
 remaining_file=$(mktemp "$template")
 echo "$sections" > "$remaining_file"

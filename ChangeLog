@@ -1,3 +1,9 @@
+2013-12-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/tests/check_all_args.in: Fix to sections regex to avoid
+	  matching the TERMCAP variable (which contains various nasty
+	  characters).
+
 2013-12-03  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac:
