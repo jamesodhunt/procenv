@@ -54,7 +54,7 @@ AM_INIT_AUTOMAKE(m4_esyscmd([
 	version=`automake --version|head -n 1|grep -o "[0-9][0-9]*\.[0-9][0-9]*"`
 	major=`echo $version|cut -d\. -f1`
 	minor=`echo $version|cut -d\. -f2`
-	if [ "$major" = 1 -a "$minor" -gt 13 ]; then
+	if [ "$major" = 1 -a "$minor" -ge 13 ]; then
 		echo serial-tests
 	elif [ "$major" -gt 1 ]; then
 		echo serial-tests

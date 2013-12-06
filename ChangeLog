@@ -1,3 +1,8 @@
+2013-12-06  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: AM_INIT_AUTOMAKE: Ensure automake v1.13 is
+	  passed 'serial-tests'.
+
 2013-12-04  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/tests/check_all_args.in: Fix to sections regex to avoid
