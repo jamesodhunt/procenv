@@ -1936,10 +1936,25 @@ show_cpu_affinities (void)
 #if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
-	ret = pthread_getaffinity_np (pthread_self (), size, cpu_set);
+	/* On a hyperthreaded system, "size" as above may not actually
+	   be big enough, and we get EINVAL.  (hwloc has a similar
+	   workaround.)  */
+	{
+		int mult = 0;
+		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
+		       == EINVAL) {
+			CPU_FREE (cpu_set);
+			/* Bail out at an arbitrary value.  */
+			if (mult > 128) break;
+			mult += 2;
+			cpu_set = CPU_ALLOC(mult * max);
+			size = CPU_ALLOC_SIZE(mult * max);
+			CPU_ZERO_S (size, cpu_set);
+		}
+	}
 #endif
 
-	if (ret < 0)
+	if (ret)
 		goto out;
 
 	for (cpu = 0; cpu < max; cpu++) {
@@ -3128,7 +3143,7 @@ show_numa_memory (void)
 	entry ("allowed list", "%s", allowed_list);
 
 	free (allowed_list);
-	free (allowed);
+	numa_free_nodemask (allowed);
 
 out:
 	footer ();
@@ -4846,55 +4861,68 @@ show_sizeof (void)
 
 	entry ("bits/byte (CHAR_BIT)", "%d", CHAR_BIT);
 
-	/* fundamental types and non-aggregate typedefs */
-
+	show_sizeof_type (blkcnt_t);
+	show_sizeof_type (blksize_t);
 	show_sizeof_type (char);
-	show_sizeof_type (short int);
-	show_sizeof_type (int);
-
-	show_sizeof_type (long int);
-
-	show_sizeof_type (long long int);
-
-	show_sizeof_type (float);
-
-	show_sizeof_type (double);
-
-	show_sizeof_type (long double);
-
-	show_sizeof_type (size_t);
-	show_sizeof_type (ssize_t);
-	show_sizeof_type (ptrdiff_t);
-	show_sizeof_type (void *);
-	show_sizeof_type (wchar_t);
-
-	show_sizeof_type (intmax_t);
-	show_sizeof_type (uintmax_t);
-	show_sizeof_type (imaxdiv_t);
-	show_sizeof_type (intptr_t);
-	show_sizeof_type (uintptr_t);
-
-	show_sizeof_type (time_t);
+	show_sizeof_type (clockid_t);
 	show_sizeof_type (clock_t);
-
-	show_sizeof_type (sig_atomic_t);
-	show_sizeof_type (off_t);
-	show_sizeof_type (fpos_t);
-	show_sizeof_type (mode_t);
-
-	show_sizeof_type (pid_t);
-	show_sizeof_type (uid_t);
-	show_sizeof_type (gid_t);
-
-	show_sizeof_type (rlim_t);
+	show_sizeof_type (dev_t);
+	show_sizeof_type (div_t);
+	show_sizeof_type (double);
 	show_sizeof_type (fenv_t);
 	show_sizeof_type (fexcept_t);
-
-	show_sizeof_type (wint_t);
-	show_sizeof_type (div_t);
+	show_sizeof_type (float);
+	show_sizeof_type (fpos_t);
+	show_sizeof_type (fsblkcnt_t);
+	show_sizeof_type (fsfilcnt_t);
+	show_sizeof_type (gid_t);
+	show_sizeof_type (id_t);
+	show_sizeof_type (imaxdiv_t);
+	show_sizeof_type (ino_t);
+	show_sizeof_type (int);
+	show_sizeof_type (intmax_t);
+	show_sizeof_type (intptr_t);
+	show_sizeof_type (key_t);
 	show_sizeof_type (ldiv_t);
 	show_sizeof_type (lldiv_t);
+	show_sizeof_type (long double);
+	show_sizeof_type (long int);
+	show_sizeof_type (long long int);
 	show_sizeof_type (mbstate_t);
+	show_sizeof_type (mode_t);
+	show_sizeof_type (mode_t);
+	show_sizeof_type (nlink_t);
+	show_sizeof_type (off_t);
+	show_sizeof_type (pid_t);
+	show_sizeof_type (pthread_attr_t);
+	show_sizeof_type (pthread_barrierattr_t);
+	show_sizeof_type (pthread_barrier_t);
+	show_sizeof_type (pthread_condattr_t);
+	show_sizeof_type (pthread_cond_t);
+	show_sizeof_type (pthread_key_t);
+	show_sizeof_type (pthread_mutexattr_t);
+	show_sizeof_type (pthread_mutex_t);
+	show_sizeof_type (pthread_once_t);
+	show_sizeof_type (pthread_rwlockattr_t);
+	show_sizeof_type (pthread_rwlock_t);
+	show_sizeof_type (pthread_spinlock_t);
+	show_sizeof_type (pthread_t);
+	show_sizeof_type (ptrdiff_t);
+	show_sizeof_type (rlim_t);
+	show_sizeof_type (short int);
+	show_sizeof_type (sig_atomic_t);
+	show_sizeof_type (size_t);
+	show_sizeof_type (ssize_t);
+	show_sizeof_type (suseconds_t);
+	show_sizeof_type (timer_t);
+	show_sizeof_type (time_t);
+	show_sizeof_type (uid_t);
+	show_sizeof_type (uintmax_t);
+	show_sizeof_type (uintptr_t);
+	show_sizeof_type (useconds_t);
+	show_sizeof_type (void *);
+	show_sizeof_type (wchar_t);
+	show_sizeof_type (wint_t);
 
 	footer ();
 }
@@ -5436,7 +5464,7 @@ show_cgroups_linux (void)
 		goto out;
 
 	while (fgets (buffer, sizeof (buffer), f)) {
-		char  *buf;
+		char  *buf, *b;
 		char  *hierarchy;
 		char  *subsystems;
 		char  *path;
@@ -5445,19 +5473,19 @@ show_cgroups_linux (void)
 		/* Remove NL */
 		buffer[len-1] = '\0';
 
-		buf = strdup (buffer);
+		buf = b = strdup (buffer);
 		if (! buf)
 			die ("failed to alloate storage");
 
-		hierarchy = strsep (&buf, delim);
+		hierarchy = strsep (&b, delim);
 		if (! hierarchy)
 			goto next;
 
-		subsystems = strsep (&buf, delim);
+		subsystems = strsep (&b, delim);
 		if (! subsystems)
 			goto next;
 
-		path = strsep (&buf, delim);
+		path = strsep (&b, delim);
 		if (! path)
 			goto next;
 

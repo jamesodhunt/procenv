@@ -1,5 +1,7 @@
 # TODO
 
+- ensure that --sizeof covers all types from types.h(P)
+- --cpu: zero or 1-based indexing consistently!
 - Tests:
   - check man page options vs. 'procenv --help' to look for
     inconsistencies.

@@ -1,3 +1,16 @@
+2014-01-08  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_cpu_affinities(): Fix for hyper-threaded systems
+	    (LP: #1251209) - thanks Dave Love.
+	  - show_numa_memory(): Fix memory leak (calling free(2) rather than
+	    numa_free_nodemask()).
+	  - show_sizeof():
+	    - Added lots of missing standard types (as documented in types.h(P)).
+	    - Sorted list.
+	  - show_cgroups_linux(): Fixed memory leak caused by misuse of
+	    strsep(3).
+
 2013-12-06  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac: AM_INIT_AUTOMAKE: Ensure automake v1.13 is
