@@ -11,6 +11,7 @@ procenv="@abs_builddir@/procenv"
 template="/tmp/${script_name}.XXXXXXXXXX"
 
 xml_checker=xmlwf
+json_checker=json_pp
 
 # XML disallows reliable encoding of control characters. Since the only
 # anticipated possible source of such literal control characters is
@@ -28,7 +29,7 @@ die ()
 warn ()
 {
 	local str="$*"
-	echo "WARNING: $str" >&2
+	echo "WARNING: $str"
 }
 
 debug ()
@@ -55,35 +56,17 @@ run_command()
 	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
 }
 
-
-get_python_json_command()
-{
-	for python in python3 python
-	do
-		for module in json.tool json
-		do
-			cmd="$python -m${module}"
-			debug "Checking python '$python' for module '$module'"
-			{ eval "echo {}|$cmd >/dev/null 2>&1"; ret=$?; } || :
-			[ $ret -eq 0 ] && json_checker="$cmd" && return
-		done
-	done
-
-	die "failed to find a python that can check JSON"
-}
-
 #---------------------------------------------------------------------
 # Init
 
+[ -n "$PROCENV_TEST_DISABLE" ] && msg "Tests disabled" && exit 0
+
 [ -f "$procenv" ] || die "cannot find binary: $procenv"
 
-for cmd in $xml_checker
+for cmd in "$xml_checker" "$json_checker"
 do
 	command -v "$cmd" >/dev/null 2>&1 || die "need command '$cmd'"
 done
-
-get_python_json_command
-[ -z "$json_checker" ] && die "failed to find a JSON checker"
 
 env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 

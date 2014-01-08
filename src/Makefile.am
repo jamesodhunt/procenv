@@ -20,6 +20,8 @@ if HAVE_APPARMOR
     procenv_CPPFLAGS += -DHAVE_APPARMOR
 endif
 
+if ENABLE_TESTS
+
 TESTS =
 CLEANFILES =
 
@@ -38,6 +40,8 @@ TESTS += procenv
 TESTS += check_all_args
 
 CLEANFILES += check_all_args
+
+endif
 
 EXTRA_DIST = \
     tests/show_compiler_details \

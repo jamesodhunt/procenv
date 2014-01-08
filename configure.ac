@@ -43,6 +43,13 @@ AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
 AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 
+AC_ARG_ENABLE([tests],
+	AS_HELP_STRING([--disable-tests],
+		[Disable unit tests]),
+		[enable_tests=no], [enable_tests=yes])
+
+AM_CONDITIONAL([ENABLE_TESTS], test "$enable_tests" = yes)
+
 # Other checks
 
 # automake-1.13 defaults to running tests in parallel. As a consequence,
