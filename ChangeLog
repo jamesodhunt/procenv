@@ -3,7 +3,7 @@
 	* src/procenv.c:
 	  - show_cpu_affinities(): Fix for hyper-threaded systems
 	    (LP: #1251209) - thanks Dave Love.
-	  - show_numa_memory(): Fix memory leak (calling free(2) rather than
+	  - show_numa_memory(): Fix memory leak (calling free(3) rather than
 	    numa_free_nodemask()).
 	  - show_sizeof():
 	    - Added lots of missing standard types (as documented in types.h(P)).
