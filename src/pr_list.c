@@ -125,7 +125,7 @@ pr_list_remove (PRList *entry)
 	entry->prev->next = entry->next;
 	entry->next->prev = entry->prev;
 
-	/* No long attached to list */
+	/* No longer attached to list */
 	entry->next = entry->prev = entry;
 
 	return entry;
