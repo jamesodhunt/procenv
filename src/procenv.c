@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright 2012-2013 James Hunt.
+ * Copyright 2012-2014 James Hunt.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1936,9 +1936,12 @@ show_cpu_affinities (void)
 #if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
+
+#if defined (PROCENV_LINUX)
 	/* On a hyperthreaded system, "size" as above may not actually
 	   be big enough, and we get EINVAL.  (hwloc has a similar
 	   workaround.)  */
+
 	{
 		int mult = 0;
 		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
@@ -1952,6 +1955,8 @@ show_cpu_affinities (void)
 			CPU_ZERO_S (size, cpu_set);
 		}
 	}
+#endif /* PROCENV_LINUX */
+
 #endif
 
 	if (ret)
@@ -4712,10 +4717,17 @@ get_arch (void)
 #endif
 
 #if defined (__powerpc64__) || defined (__ppc64__)
+
+#if defined (_LITTLE_ENDIAN)
+	return "PPC64LE";
+#endif
 	return "PPC64/PowerPC64";
 #endif
 
 #ifdef __powerpc__
+#if defined (__SPE__) && __SIZEOF_POINTER__ == 4
+	return "PPCspe";
+#endif
 	return "PowerPC";
 #endif
 

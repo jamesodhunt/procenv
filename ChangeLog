@@ -1,3 +1,15 @@
+2014-01-10  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Updated dates.
+	* src/pr_list.c: Added header.
+	* src/pr_list.h: Added header.
+	* src/procenv.c:
+	  - Update date.
+	  - show_cpu_affinities(): Fix for FreeBSD which does
+	    not provide dynamic cpu sets (CPU_ALLOC(3) et al).
+	  - get_arch(): Added PPCspe and PPC64LE.
+	* src/procenv.h: Added header.
+
 2014-01-08  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:
