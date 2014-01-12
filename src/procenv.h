@@ -1,3 +1,21 @@
+/*--------------------------------------------------------------------
+ * Copyright 2012-2014 James Hunt.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *--------------------------------------------------------------------
+ */
+
 #ifndef PROCENV_H
 #define PROCENV_H
 
@@ -60,8 +78,9 @@
 #define PACKAGE_NAME "procenv"
 #endif
 
+/* FIXME: ugh */
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.24"
+#define PACKAGE_VERSION "0.28"
 #endif
 
 #ifndef PACKAGE_STRING
@@ -75,10 +94,15 @@
  *
  * Version of output format.
  *
+ * VERSION 2:
+ *   - Added --memory.
+ *   - Expanded --cpu.
+ *   - Added missing --cpu to default output.
+ *   - Moved memory page size from --misc to --memory.
+ *
  * XXX: must be updated for every change.
  **/
-
-#define PROCENV_FORMAT_VERSION 1
+#define PROCENV_FORMAT_VERSION 2
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -96,6 +120,11 @@
 
 #if defined (PROCENV_LINUX) && defined (__BIONIC__)
 #define PROCENV_ANDROID
+#endif
+
+#if defined (__FreeBSD_kernel__) && defined (__GNUC__)
+/* Debian kFreeBSD (GNU userland + BSD kernel) */
+#define PROCENV_GNU_BSD
 #endif
 
 #ifdef __GNU__
@@ -137,6 +166,9 @@
 
 #include <linux/prctl.h>
 #include <linux/version.h>
+
+#include <numa.h>
+#include <numaif.h>
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -216,7 +248,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 #include <kvm.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
@@ -231,8 +263,15 @@
 #include <net/if.h>
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 #include <sys/mount.h>
+#endif
+
+#if defined (PROCENV_BSD)
+#define PROCENV_CPU_SET_TYPE cpuset_t
+#include <pthread_np.h>
+#elif defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+#define PROCENV_CPU_SET_TYPE cpu_set_t
 #endif
 
 /* Horrid hack for Hurd... :-( */
@@ -269,7 +308,7 @@
  * higher-level network family entries for the interface in
  * question.
  */
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 #define	PROCENV_LINK_LEVEL_FAMILY AF_LINK
 #elif defined (PROCENV_LINUX)
 #define PROCENV_LINK_LEVEL_FAMILY AF_PACKET
@@ -278,7 +317,7 @@
 #if defined (PROCENV_BSD)
 #define statfs_int_type uint64_t
 #define statfs_int_fmt  PRIu64
-#elif defined (__FreeBSD_kernel__)
+#elif defined (PROCENV_GNU_BSD)
 #define statfs_int_type uint64_t
 #define statfs_int_fmt  "lu"
 #endif
@@ -591,7 +630,7 @@ struct procenv_user {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	char proc_name[16];
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	char proc_name[COMMLEN+1];
 #endif
 
@@ -619,7 +658,7 @@ struct procenv_misc {
 	char   root[PATH_MAX];
 	mode_t umask_value;
 	int cpu;
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	int    in_jail;
 #endif
 };
@@ -712,8 +751,8 @@ void get_config_from_env (void);
 void check_config (void);
 void show_proc_branch (void);
 void show_tty_attrs (void);
-const char * get_speed (speed_t speed);
-const char * get_signal_name (int signum);
+const char *get_speed (speed_t speed);
+const char *get_signal_name (int signum);
 void show_arguments (void);
 void show_meta (void);
 char *get_os (void);
@@ -746,6 +785,8 @@ int is_console (int fd);
 long get_kernel_bits (void);
 bool has_ctty (void);
 void show_cpu (void);
+void show_cpu_affinities (void);
+void show_memory (void);
 void show_threads (void);
 void append (char **str, const char *new);
 void appendn (char **str, const char *new, size_t len);
@@ -759,9 +800,9 @@ void show_stat (void);
 void show_locale (void);
 int get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor);
 bool uid_match (uid_t uid);
-char * get_path (const char *argv0);
+char *get_path (const char *argv0);
 bool is_big_endian (void);
-char * get_thread_scheduler_name (int sched);
+const char *get_thread_scheduler_name (int sched);
 int qsort_compar (const void *a, const void *b);
 void show_data_model (void);
 const char *get_net_family_name (sa_family_t family);
@@ -775,25 +816,46 @@ void set_breadcrumb (const char *name);
 void add_breadcrumb (const char *name);
 void remove_breadcrumb (void);
 void clear_breadcrumbs (void);
+void show_cgroups (void);
+void show_oom (void);
+void show_capabilities (void);
 
 #if defined (PROCENV_LINUX)
+
 void decode_if_flags (unsigned int flags);
 void decode_extended_if_flags (const char *interface, unsigned short *flags);
 void get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);
-void show_linux_cgroups (void);
-void show_oom (void);
-void show_capabilities (void);
-void show_linux_security_module (void);
-void show_linux_security_module_context (void);
-void show_linux_network (void);
-void show_linux_proc_branch (void);
-void show_linux_prctl (void);
-void show_linux_cpu (void);
-char * get_scheduler_name (int sched);
+void show_cgroups_linux (void);
+void show_oom_linux (void);
+void show_timezone_linux (void);
+void show_capabilities_linux (void);
+void show_security_module_linux (void);
+void show_security_module_context_linux (void);
+void show_prctl_linux (void);
+void show_cpu_linux (void);
+char *get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
+void show_numa_memory (void);
+const char *get_numa_policy (int policy);
+
+#else /* ! PROCENV_LINUX */
+
+void show_cgroups_stub (void);
+void show_oom_stub (void);
+void show_capabilities_stub (void);
+void show_timezone_stub (void);
+void show_shared_mem_stub (void);
+void show_semaphores_stub ();
+void show_msg_queues_stub (void);
+
 #endif /* PROCENV_LINUX */
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
+void show_proc_branch_linux (void);
+#endif /* PROCENV_LINUX || PROCENV_GNU_BSD */
+
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void show_shared_mem_linux (void);
@@ -802,22 +864,19 @@ void show_msg_queues_linux (void);
 #endif /* PROCENV_LINUX || PROCENV_HURD */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-void show_linux_mounts (ShowMountType what);
+void show_mounts_linux (ShowMountType what);
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-char * get_bsd_mount_opts (uint64_t flags);
-void show_bsd_mounts (ShowMountType what);
-void show_bsd_network (void);
-void get_bsd_misc (void);
-void show_bsd_proc_branch (void);
-void show_bsd_cpu (void);
-void show_shared_mem_bsd (void);
-void show_semaphores_bsd (void);
-void show_msg_queues_bsd (void);
-#endif /* PROCENV_BSD + __FreeBSD_kernel__ */
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+char *get_mount_opts_bsd (uint64_t flags);
+void show_mounts_bsd (ShowMountType what);
+void show_network_bsd (void);
+void get_misc_bsd (void);
+void show_proc_branch_bsd (void);
+void show_cpu_bsd (void);
+#endif /* PROCENV_BSD + PROCENV_GNU_BSD */
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 /* semctl(2) on Linux tells us _we_ must define this */
 
 union semun {
@@ -828,6 +887,5 @@ union semun {
 };
 
 #endif
-
 
 #endif /* PROCENV_H */

@@ -1,13 +1,23 @@
 # TODO
 
-- Introduce "value()" that can take a bare value. This will allow for
-  example mount options to be displayed in a container.
-- Non-root queryable hdd attributes?
+- ensure that --sizeof covers all types from types.h(P)
+- --cpu: zero or 1-based indexing consistently!
 - Tests:
+  - check man page options vs. 'procenv --help' to look for
+    inconsistencies.
   - --indent=
   - --indent-char=
   - --crumb-separator=
   - --separator=
+- XXX: run show_compiler_details *before* build to help diagnose
+  failures.
+- Add YAML output format?
+- Sort *all* output values.
+- Introduce "value()" that can take a bare value. This will allow for
+  example mount options to be displayed in an output container.
+- Non-root queryable hdd attributes?
+- Hurd:
+  - establish how to determine process ancestry.
 - Create a versioned XML schema.
 - Restructure code into separate files.
 - Use weak symbols/VPATH to avoid ifdefs!
