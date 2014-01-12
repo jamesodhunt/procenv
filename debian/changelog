@@ -1,6 +1,7 @@
 procenv (0.28-1) unstable; urgency=medium
 
   * New upstream release.
+  * debian/control: Add libnuma-dev to Build-Depends.
 
  -- James Hunt <james.hunt@ubuntu.com>  Sun, 12 Jan 2014 15:39:02 +0000
 
