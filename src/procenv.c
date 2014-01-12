@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright 2012-2013 James Hunt.
+ * Copyright 2012-2014 James Hunt.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -161,7 +161,7 @@ struct procenv_priority priority;
 
 struct utsname uts;
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 struct mntopt_map {
 	uint64_t   flag;
 	char      *name;
@@ -173,7 +173,7 @@ struct mntopt_map {
 	{ MNT_GJOURNAL     , "gjournal" },
 	{ MNT_LOCAL        , "local" },
 	{ MNT_MULTILABEL   , "multilabel" },
-#ifndef __FreeBSD_kernel__
+#ifndef PROCENV_GNU_BSD
 	{ MNT_NFS4ACLS     , "nfsv4acls" },
 #endif
 	{ MNT_NOATIME      , "noatime" },
@@ -186,7 +186,7 @@ struct mntopt_map {
 	{ MNT_RDONLY       , "read-only" },
 	{ MNT_SOFTDEP      , "soft-updates" },
 	{ MNT_SUIDDIR      , "suiddir" },
-#ifndef __FreeBSD_kernel__
+#ifndef PROCENV_GNU_BSD
 	{ MNT_SUJ          , "journaled soft-updates" },
 #endif
 	{ MNT_SYNCHRONOUS  , "synchronous" },
@@ -264,7 +264,7 @@ struct if_flag_map {
 	mk_map_entry (IFF_SLAVE),
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	mk_map_entry (IFF_SIMPLEX),
 #endif
 
@@ -276,7 +276,9 @@ struct if_flag_map {
 	mk_map_entry (IFF_DYNAMIC),
 	mk_map_entry (IFF_LOWER_UP),
 	mk_map_entry (IFF_DORMANT),
+#  ifdef IFF_ECHO
 	mk_map_entry (IFF_ECHO),
+#  endif
 #endif
 
 	{ 0, NULL }
@@ -328,7 +330,9 @@ struct if_extended_flag_map {
 	mk_map_entry (IFF_MASTER_ALB),
 	mk_map_entry (IFF_BONDING),
 	mk_map_entry (IFF_SLAVE_NEEDARP),
+#  ifdef IFF_ISATAP
 	mk_map_entry (IFF_ISATAP),
+#  endif
 
 	{ 0, NULL }
 };
@@ -628,6 +632,15 @@ struct procenv_map thread_sched_policy_map[] = {
 	mk_map_entry (SCHED_RR)
 };
 
+#if defined (PROCENV_LINUX)
+struct procenv_map numa_mempolicy_map[] = {
+	mk_map_entry (MPOL_DEFAULT),
+	mk_map_entry (MPOL_PREFERRED),
+	mk_map_entry (MPOL_BIND),
+	mk_map_entry (MPOL_INTERLEAVE),
+};
+#endif
+
 void
 usage (void)
 {
@@ -700,6 +713,7 @@ usage (void)
 	show ("  -w, --capabilities      : Display capaibility details (Linux only).");
 	show ("  -x, --pathconf          : Display pathconf details.");
 	show ("  -y, --sysconf           : Display sysconf details.");
+	show ("  -Y, --memory            : Display memory details.");
 	show ("  -z, --timezone          : Display timezone details.");
 	show ("");
 	show ("Notes:");
@@ -716,7 +730,7 @@ usage (void)
 	show ("  - Any long option name may be shortened as long as it remains unique.");
 	show ("  - The 'crumb' output format is designed for easy parsing: it displays");
 	show ("    the data in a flattened format with each value on a separate line");
-	show ("    preceeded by all appropriate headings which are separated by the");
+	show ("    preceded by all appropriate headings which are separated by the");
 	show ("    current separator.");
 	show ("");
 }
@@ -1461,6 +1475,9 @@ show_signals (void)
 			blocked = 1;
 
 		signal_name = get_signal_name (i);
+		if (! signal_name)
+			continue;
+
 		signal_desc = strsignal (i);
 
 		object_open (FALSE);
@@ -1617,8 +1634,8 @@ get_misc (void)
 #if defined (PROCENV_LINUX)
 	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
 #endif
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-	get_bsd_misc ();
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+	get_misc_bsd ();
 #endif
 }
 
@@ -1782,15 +1799,13 @@ show_misc (void)
 	entry ("container", "%s", container_type ());
 
 #if defined (PROCENV_LINUX)
-	show_linux_prctl ();
+	show_prctl_linux ();
 
 	section_open ("linux security module");
-	show_linux_security_module ();
-	show_linux_security_module_context ();
+	show_security_module_linux ();
+	show_security_module_context_linux ();
 	section_close ();
 #endif
-
-	entry ("memory page size", "%d bytes", getpagesize ());
 
 #if defined (PROCENV_LINUX)
 #ifdef LINUX_VERSION_CODE
@@ -1840,16 +1855,165 @@ show_cpu (void)
 	header ("cpu");
 
 #if defined (PROCENV_LINUX)
-	show_linux_cpu ();
+	show_cpu_linux ();
 #endif
 
 #if defined (PROCENV_BSD)
-	show_bsd_cpu ();
+	show_cpu_bsd ();
 #endif
+	show_cpu_affinities ();
+
 	show_priorities ();
 
 	footer ();
 }
+
+void
+show_memory (void)
+{
+	header ("memory");
+
+	entry ("page size", "%d bytes", getpagesize ());
+
+#if defined (PROCENV_LINUX)
+	show_numa_memory ();
+#endif
+
+	footer ();
+}
+
+/* Display cpu affinities in the same compressed but reasonably
+ * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
+ */ 
+void
+show_cpu_affinities (void)
+{
+	int                   ret;
+	long                  max;
+	size_t                size;
+#if defined (PROCENV_BSD)
+	PROCENV_CPU_SET_TYPE  cpu_set_real;
+#endif
+	PROCENV_CPU_SET_TYPE *cpu_set;
+	long                  cpu;
+	char                 *cpu_list = NULL;
+
+	/* TRUE if any enabled cpus have been displayed yet */
+	int                   displayed = FALSE;
+
+	/* Number of cpu's in *current* range */
+	size_t                count = 0;
+
+	/* Only valid to read these when count is >0 */
+	size_t                last = 0;
+	size_t                first = 0;
+
+	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+	if (max < 0)
+		die ("Failed to query cpu count");
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+
+	cpu_set = CPU_ALLOC (max);
+	assert (cpu_set);
+
+	size = CPU_ALLOC_SIZE (max);
+	CPU_ZERO_S (size, cpu_set);
+
+#elif defined (PROCENV_BSD)
+	cpu_set = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+#endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
+
+	/* We could use sched_getaffinity(2) rather than
+	 * sched_getaffinity() on Linux (2.5.8+) but
+	 * pthread_getaffinity_np() provides the same information...
+	 * Except it is missing on kFreeBSD systems (!) so we have to
+	 * use sched_getaffinity() there. :(
+	 */
+#if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+	ret = sched_getaffinity (0, size, cpu_set);
+#else
+
+#if defined (PROCENV_LINUX)
+	/* On a hyperthreaded system, "size" as above may not actually
+	   be big enough, and we get EINVAL.  (hwloc has a similar
+	   workaround.)  */
+
+	{
+		int mult = 0;
+		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
+		       == EINVAL) {
+			CPU_FREE (cpu_set);
+			/* Bail out at an arbitrary value.  */
+			if (mult > 128) break;
+			mult += 2;
+			cpu_set = CPU_ALLOC(mult * max);
+			size = CPU_ALLOC_SIZE(mult * max);
+			CPU_ZERO_S (size, cpu_set);
+		}
+	}
+#endif /* PROCENV_LINUX */
+
+#endif
+
+	if (ret)
+		goto out;
+
+	for (cpu = 0; cpu < max; cpu++) {
+
+		if (CPU_ISSET (cpu, cpu_set)) {
+
+			/* Record first entry in the range */
+			if (! count)
+				first = cpu;
+
+			last = cpu;
+			count++;
+		} else {
+			if (count) {
+				if (first == last) {
+					appendf (&cpu_list, "%s%d",
+							displayed ? "," : "",
+							first);
+				} else {
+					appendf (&cpu_list, "%s%d-%d",
+							displayed ? "," : "",
+							first, last);
+				}
+				displayed = TRUE;
+			}
+
+			/* Reset */
+			count = 0;
+		}
+	}
+
+	if (count) {
+		if (first == last) {
+			appendf (&cpu_list, "%s%d",
+					displayed ? "," : "",
+					first);
+		} else {
+			appendf (&cpu_list, "%s%d-%d",
+					displayed ? "," : "",
+					first, last);
+		}
+		displayed = TRUE;
+	}
+
+out:
+	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+	CPU_FREE (cpu_set);
+#endif
+
+	free (cpu_list);
+}
+
 
 void
 show_fds (void)
@@ -1870,7 +2034,7 @@ show_fds_generic (void)
 
 	container_open ("file descriptors");
 
-	max = sysconf (_SC_OPEN_MAX);
+	max = get_sysconf (_SC_OPEN_MAX);
 
 	for (fd = 0; fd < max; fd++) {
 		int    is_tty = isatty (fd);
@@ -2074,49 +2238,49 @@ append (char **str, const char *new)
 void
 appendf (char **str, const char *fmt, ...)
 {
-    va_list   ap;
-    char     *new = NULL;
+	va_list   ap;
+	char     *new = NULL;
 
-    assert (str);
-    assert (fmt);
+	assert (str);
+	assert (fmt);
 
-    va_start (ap, fmt);
+	va_start (ap, fmt);
 
-    if (vasprintf (&new, fmt, ap) < 0) {
-        perror ("vasprintf");
-        exit (EXIT_FAILURE);
-    }
+	if (vasprintf (&new, fmt, ap) < 0) {
+		perror ("vasprintf");
+		exit (EXIT_FAILURE);
+	}
 
-    va_end (ap);
+	va_end (ap);
 
-    if (*str) {
-	    append (str, new);
-	    free (new);
-    } else {
-	    *str = new;
-    }
+	if (*str) {
+		append (str, new);
+		free (new);
+	} else {
+		*str = new;
+	}
 }
 
 /* append @fmt and args to @str */
 void
 appendva (char **str, const char *fmt, va_list ap)
 {
-    char  *new = NULL;
+	char  *new = NULL;
 
-    assert (str);
-    assert (fmt);
+	assert (str);
+	assert (fmt);
 
-    if (vasprintf (&new, fmt, ap) < 0) {
-        perror ("vasprintf");
-        exit (EXIT_FAILURE);
-    }
+	if (vasprintf (&new, fmt, ap) < 0) {
+		perror ("vasprintf");
+		exit (EXIT_FAILURE);
+	}
 
-    if (*str) {
-	    append (str, new);
-	    free (new);
-    } else {
-	    *str = new;
-    }
+	if (*str) {
+		append (str, new);
+		free (new);
+	} else {
+		*str = new;
+	}
 }
 
 void
@@ -2401,9 +2565,9 @@ get_kernel_bits (void)
 	long value;
 
 	errno = 0;
-	value = sysconf (_SC_LONG_BIT);
+	value = get_sysconf (_SC_LONG_BIT);
 	if (value == -1 && errno != 0)
-		die ("failed to determine kernel bits");
+		return -1;
 	return value;
 #endif
 	return -1;
@@ -2418,15 +2582,14 @@ dump (void)
 	show_meta ();
 	show_arguments ();
 
-#if defined (PROCENV_LINUX)
 	show_capabilities ();
-	show_linux_cgroups ();
-#endif
+	show_cgroups ();
 	show_clocks ();
 	show_compiler ();
 #ifndef PROCENV_ANDROID
 	show_confstrs ();
 #endif
+	show_cpu ();
 	show_env ();
 	show_fds ();
 #ifndef PROCENV_ANDROID
@@ -2434,13 +2597,12 @@ dump (void)
 #endif
 	show_rlimits ();
 	show_locale ();
+	show_memory ();
 	show_misc ();
 	show_msg_queues ();
 	show_mounts (SHOW_ALL);
 	show_network ();
-#if defined (PROCENV_LINUX)
 	show_oom ();
-#endif
 	show_platform ();
 	show_proc ();
 	show_ranges ();
@@ -2515,34 +2677,34 @@ const char *
 get_ipv6_scope_name (uint32_t scope)
 {
 	switch (scope) {
-		case 0x0:
-		case 0xf:
-			return "reserved";
-			break;
+	case 0x0:
+	case 0xf:
+		return "reserved";
+		break;
 
-		case 0x1:
-			return "interface-local";
-			break;
+	case 0x1:
+		return "interface-local";
+		break;
 
-		case 0x2:
-			return "link-local";
-			break;
+	case 0x2:
+		return "link-local";
+		break;
 
-		case 0x4:
-			return "admin-local";
-			break;
+	case 0x4:
+		return "admin-local";
+		break;
 
-		case 0x5:
-			return "site-local";
-			break;
+	case 0x5:
+		return "site-local";
+		break;
 
-		case 0x8:
-			return "organization-local";
-			break;
+	case 0x8:
+		return "organization-local";
+		break;
 
-		case 0xe:
-			return "global";
-			break;
+	case 0xe:
+		return "global";
+		break;
 	}
 
 	return UNKNOWN_STR;
@@ -2587,7 +2749,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *mac_address = NULL;
 	int            i;
 	int            valid = FALSE;
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
@@ -2600,7 +2762,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
@@ -2619,7 +2781,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -2656,7 +2818,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 	/* NOP */
 #else
 	close (sock);
@@ -2667,7 +2829,7 @@ out:
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 void
-show_linux_mounts (ShowMountType what)
+show_mounts_linux (ShowMountType what)
 {
 	FILE            *mtab;
 	struct mntent   *mnt;
@@ -2691,11 +2853,11 @@ show_linux_mounts (ShowMountType what)
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
 			unsigned multiplier = 0;
-			fsblkcnt_t blocks;
-			fsblkcnt_t bfree;
-			fsblkcnt_t bavail;
-			fsblkcnt_t used_blocks;
-			fsblkcnt_t used_files;
+			fsblkcnt_t blocks = 0;
+			fsblkcnt_t bfree = 0;
+			fsblkcnt_t bavail = 0;
+			fsblkcnt_t used_blocks = 0;
+			fsblkcnt_t used_files = 0;
 
 			if (statvfs (mnt->mnt_dir, &fs) < 0) {
 				have_stats = FALSE;
@@ -2709,10 +2871,11 @@ show_linux_mounts (ShowMountType what)
 				used_files = fs.f_files - fs.f_ffree;
 			}
 
-			get_major_minor (mnt->mnt_dir,
+			(void)get_major_minor (mnt->mnt_dir,
 					&major,
 					&minor);
 
+			assert (mnt->mnt_dir);
 			section_open (mnt->mnt_dir);
 
 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
@@ -2893,6 +3056,117 @@ linux_kernel_version (int major, int minor, int revision)
 	return FALSE;
 }
 
+void
+show_numa_memory (void)
+{
+	int              policy;
+	const char      *policy_name;
+	struct bitmask  *allowed;
+	char            *allowed_list = NULL;
+	int              ret;
+	unsigned long    node;
+
+	/* part of the libnuma public API - stop the library calling
+	 * exit(3) on error.
+	 */
+	numa_exit_on_error = 0;
+
+	/* TRUE if any numa nodes have been displayed yet */
+	int              displayed = FALSE;
+
+	/* Number of numa nodes in *current* range */
+	size_t           count = 0;
+
+	/* Only valid to read these when count is >0 */
+	size_t           last = 0;
+	size_t           first = 0;
+
+	header ("numa");
+
+	if (numa_available () < 0)
+		/* NUMA not supported on this system */
+		goto out;
+
+	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
+
+	if (ret < 0) {
+		show ("policy", "%s", UNKNOWN_STR);
+		goto out;
+	}
+
+	policy_name = get_numa_policy (policy);
+
+	entry ("policy", "%s", policy_name ? policy_name : UNKNOWN_STR);
+
+	entry ("maximum nodes", "%d", numa_num_possible_nodes ());
+	entry ("configured nodes", "%d", numa_num_configured_nodes ());
+
+	allowed = numa_get_mems_allowed ();
+	if (! allowed)
+		die ("failed to query NUMA allowed list");
+
+	for (node = 0; node < allowed->size; node++) {
+		if (numa_bitmask_isbitset (allowed, node)) {
+			/* Record first entry in the range */
+			if (! count)
+				first = node;
+
+			last = node;
+			count++;
+		} else {
+			if (count) {
+				if (first == last) {
+					appendf (&allowed_list, "%s%d",
+							displayed ? "," : "",
+							first);
+				} else {
+					appendf (&allowed_list, "%s%d-%d",
+							displayed ? "," : "",
+							first, last);
+				}
+				displayed = TRUE;
+			}
+
+			/* Reset */
+			count = 0;
+		}
+	}
+
+	if (count) {
+		if (first == last) {
+			appendf (&allowed_list, "%s%d",
+					displayed ? "," : "",
+					first);
+		} else {
+			appendf (&allowed_list, "%s%d-%d",
+					displayed ? "," : "",
+					first, last);
+		}
+				displayed = TRUE;
+	}
+
+	entry ("allowed list", "%s", allowed_list);
+
+	free (allowed_list);
+	numa_free_nodemask (allowed);
+
+out:
+	footer ();
+}
+
+const char *
+get_numa_policy (int policy)
+{
+	struct procenv_map *p;
+
+	for (p = numa_mempolicy_map; p && p->name; p++) {
+		if (p->num == policy)
+			return p->name;
+	}
+
+	return NULL;
+}
+
 #endif
 
 void
@@ -2903,11 +3177,11 @@ show_mounts (ShowMountType what)
 	header (what == SHOW_PATHCONF ? "pathconf" : "mounts");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_linux_mounts (what);
+	show_mounts_linux (what);
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-	show_bsd_mounts (what);
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+	show_mounts_bsd (what);
 #endif
 
 	footer ();
@@ -2918,24 +3192,24 @@ get_net_family_name (sa_family_t family)
 {
 	switch (family) {
 #if defined (PROCENV_LINUX)
-		case AF_PACKET:
-			return "AF_PACKET";
-			break;
+	case AF_PACKET:
+		return "AF_PACKET";
+		break;
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
-		case AF_LINK:
-			return "AF_LINK";
-			break;
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+	case AF_LINK:
+		return "AF_LINK";
+		break;
 #endif
 
-		case AF_INET:
-			return "AF_INET";
-			break;
+	case AF_INET:
+		return "AF_INET";
+		break;
 
-		case AF_INET6:
-			return "AF_INET6";
-			break;
+	case AF_INET6:
+		return "AF_INET6";
+		break;
 	}
 
 	return UNKNOWN_STR;
@@ -2954,12 +3228,13 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	family = ifa->ifa_addr->sa_family;
 
+	assert (ifa->ifa_name);
 	section_open (ifa->ifa_name);
 
 	entry ("family", "%s (0x%x)", get_net_family_name (family), family);
 
 	/*******************************/
-	
+
 	section_open ("flags");
 
 	entry ("value", "0x%x", ifa->ifa_flags);
@@ -3210,10 +3485,10 @@ show_network (void)
 }
 #endif
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 
 char *
-get_bsd_mount_opts (uint64_t flags)
+get_mount_opts_bsd (uint64_t flags)
 {
 	struct mntopt_map  *opt;
 	char               *str = NULL;
@@ -3263,7 +3538,7 @@ get_bsd_mount_opts (uint64_t flags)
 }
 
 void
-show_bsd_mounts (ShowMountType what)
+show_mounts_bsd (ShowMountType what)
 {
 	int               count;
 	struct statfs    *mounts;
@@ -3276,7 +3551,6 @@ show_bsd_mounts (ShowMountType what)
 	statfs_int_type   bfree;
 	statfs_int_type   bavail;
 	statfs_int_type   used;
-	int               ret;
 
 	common_assert ();
 
@@ -3287,19 +3561,17 @@ show_bsd_mounts (ShowMountType what)
 		die ("unable to query mount info");
 
 	mnt = mounts;
-	
+
 	for (i = 0; i < count; i++) {
 		char *opts = NULL;
 
-		opts = get_bsd_mount_opts (mnt->f_flags);
+		opts = get_mount_opts_bsd (mnt->f_flags);
 		if (! opts)
 			die ("cannot determine FS flags for mountpoint '%s'",
 					mnt->f_mntonname);
 
 		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			char *str = NULL;
-
-			ret = get_major_minor (mnt->f_mntonname,
+			(void)get_major_minor (mnt->f_mntonname,
 					&major,
 					&minor);
 
@@ -3309,6 +3581,7 @@ show_bsd_mounts (ShowMountType what)
 			bavail = mnt->f_bavail * multiplier;
 			used = blocks - bfree;
 
+			assert (mnt->f_mntfromname);
 			section_open (mnt->f_mntfromname);
 
 			entry ("dir", "'%s'", mnt->f_mntonname);
@@ -3321,11 +3594,11 @@ show_bsd_mounts (ShowMountType what)
 			section_close ();
 
 			entry ("fsid", "%.*x%.*x", 
-				/* Always zero on BSD? */
-				sizeof (mnt->f_fsid.val[0]),
-				mnt->f_fsid.val[0],
-				sizeof (mnt->f_fsid.val[1]),
-				mnt->f_fsid.val[1]);
+					/* Always zero on BSD? */
+					sizeof (mnt->f_fsid.val[0]),
+					mnt->f_fsid.val[0],
+					sizeof (mnt->f_fsid.val[1]),
+					mnt->f_fsid.val[1]);
 
 			entry ("optimal block size", "%" statfs_int_fmt,
 					mnt->f_bsize);
@@ -3359,33 +3632,6 @@ show_bsd_mounts (ShowMountType what)
 
 		free (opts);
 	}
-}
-
-/* FIXME */
-void
-show_shared_mem_bsd (void)
-{
-	header ("shared memory");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
-}
-
-/* FIXME */
-void
-show_semaphores_bsd (void)
-{
-	header ("semaphores");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
-}
-
-/* FIXME */
-void
-show_msg_queues_bsd (void)
-{
-	header ("message queues");
-
-	show ("%s", NOT_IMPLEMENTED_STR);
 }
 
 #endif
@@ -3539,19 +3785,23 @@ show_proc_branch (void)
 {
 	common_assert ();
 
-#if defined (PROCENV_LINUX)
-	show_linux_proc_branch ();
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
+	show_proc_branch_linux ();
+#endif
+
+#if defined (PROCENV_HURD)
+	/* FIXME: how can this be queried in Hurd?? */
 #endif
 
 #if defined (PROCENV_BSD)
-	show_bsd_proc_branch ();
+	show_proc_branch_bsd ();
 #endif
 }
 
 #if defined (PROCENV_BSD)
 /* Who would have thought handling PIDs was so tricky? */
 void
-show_bsd_proc_branch (void)
+show_proc_branch_bsd (void)
 {
 	int                  count = 0;
 	int                  i;
@@ -3674,7 +3924,7 @@ show_bsd_proc_branch (void)
 
 #if defined (PROCENV_LINUX)
 void
-show_linux_prctl (void)
+show_prctl_linux (void)
 {
 	int  rc;
 	int  arg2;
@@ -4006,8 +4256,11 @@ show_linux_prctl (void)
 	section_close ();
 }
 
+#endif
+
+#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
 void
-show_linux_proc_branch (void)
+show_proc_branch_linux (void)
 {
 	char    buffer[1024];
 	char    path[PATH_MAX];
@@ -4317,7 +4570,7 @@ show_locale (void)
 		free (saved);
 	}
 
-    footer ();
+	footer ();
 }
 
 const char *
@@ -4368,7 +4621,7 @@ get_os (void)
 	return "iSeries (OS/400)";
 #endif
 
-#if defined (__FreeBSD_kernel__) && defined (__GNUC__)
+#if defined (PROCENV_GNU_BSD) && defined (__GNUC__)
 	return "GNU/kFreeBSD";
 #endif
 
@@ -4429,9 +4682,6 @@ get_arch (void)
 {
 
 #ifdef __arm__
-#ifdef __aarch64__
-	return "ARM64";
-#endif
 #ifdef __ARM_PCS_VFP
 	return "ARMhf";
 #endif
@@ -4439,6 +4689,11 @@ get_arch (void)
 	return "ARMEL";
 #endif
 	return "ARM";
+#endif
+
+	/* not arm apparently! :) */
+#ifdef __aarch64__
+	return "ARM64/AARCH64";
 #endif
 
 #ifdef __hppa__
@@ -4461,7 +4716,18 @@ get_arch (void)
 	return "MIPS";
 #endif
 
+#if defined (__powerpc64__) || defined (__ppc64__)
+
+#if defined (_LITTLE_ENDIAN)
+	return "PPC64LE";
+#endif
+	return "PPC64/PowerPC64";
+#endif
+
 #ifdef __powerpc__
+#if defined (__SPE__) && __SIZEOF_POINTER__ == 4
+	return "PPCspe";
+#endif
 	return "PowerPC";
 #endif
 
@@ -4483,6 +4749,10 @@ get_arch (void)
 #ifdef __ILP32__
 	if (sizeof (void *) == 4)
 		return "x32";
+#endif
+
+#ifdef __sh__
+	return "SuperH";
 #endif
 
 #if defined (__s390__) || defined (__zarch__) || defined (__SYSC_ZARCH__) || defined (__THW_370__)
@@ -4509,6 +4779,8 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 		return 0;
 
 	path = info->dlpi_name;
+	assert (path);
+
 	name = strrchr (path, '/');
 
 	if (name) {
@@ -4560,7 +4832,7 @@ show_clocks (void)
 
 	show_clock_res (CLOCK_MONOTONIC);
 
-#if defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
+#if defined (__FreeBSD__) || defined (PROCENV_GNU_BSD)
 	show_clock_res (CLOCK_MONOTONIC_PRECISE);
 	show_clock_res (CLOCK_MONOTONIC_FAST);
 	show_clock_res (CLOCK_UPTIME);
@@ -4581,23 +4853,16 @@ show_clocks (void)
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
 #endif
 
-    footer ();
+	footer ();
 }
 
 void
 show_timezone (void)
 {
 #if defined (PROCENV_LINUX)
-	tzset ();
-
-	header ("timezone");
-
-	entry ("tzname[0]", "'%s'", tzname[0]);
-	entry ("tzname[1]", "'%s'", tzname[1]);
-	entry ("timezone", "%ld", timezone);
-	entry ("daylight", "%d", daylight);
-
-    footer ();
+	show_timezone_linux ();
+#else
+	show_timezone_stub ();
 #endif
 }
 
@@ -4608,55 +4873,68 @@ show_sizeof (void)
 
 	entry ("bits/byte (CHAR_BIT)", "%d", CHAR_BIT);
 
-	/* fundamental types and non-aggregate typedefs */
-
+	show_sizeof_type (blkcnt_t);
+	show_sizeof_type (blksize_t);
 	show_sizeof_type (char);
-	show_sizeof_type (short int);
-	show_sizeof_type (int);
-
-	show_sizeof_type (long int);
-
-	show_sizeof_type (long long int);
-
-	show_sizeof_type (float);
-
-	show_sizeof_type (double);
-
-	show_sizeof_type (long double);
-
-	show_sizeof_type (size_t);
-	show_sizeof_type (ssize_t);
-	show_sizeof_type (ptrdiff_t);
-	show_sizeof_type (void *);
-	show_sizeof_type (wchar_t);
-
-	show_sizeof_type (intmax_t);
-	show_sizeof_type (uintmax_t);
-	show_sizeof_type (imaxdiv_t);
-	show_sizeof_type (intptr_t);
-	show_sizeof_type (uintptr_t);
-
-	show_sizeof_type (time_t);
+	show_sizeof_type (clockid_t);
 	show_sizeof_type (clock_t);
-
-	show_sizeof_type (sig_atomic_t);
-	show_sizeof_type (off_t);
-	show_sizeof_type (fpos_t);
-	show_sizeof_type (mode_t);
-
-	show_sizeof_type (pid_t);
-	show_sizeof_type (uid_t);
-	show_sizeof_type (gid_t);
-
-	show_sizeof_type (rlim_t);
+	show_sizeof_type (dev_t);
+	show_sizeof_type (div_t);
+	show_sizeof_type (double);
 	show_sizeof_type (fenv_t);
 	show_sizeof_type (fexcept_t);
-
-	show_sizeof_type (wint_t);
-	show_sizeof_type (div_t);
+	show_sizeof_type (float);
+	show_sizeof_type (fpos_t);
+	show_sizeof_type (fsblkcnt_t);
+	show_sizeof_type (fsfilcnt_t);
+	show_sizeof_type (gid_t);
+	show_sizeof_type (id_t);
+	show_sizeof_type (imaxdiv_t);
+	show_sizeof_type (ino_t);
+	show_sizeof_type (int);
+	show_sizeof_type (intmax_t);
+	show_sizeof_type (intptr_t);
+	show_sizeof_type (key_t);
 	show_sizeof_type (ldiv_t);
 	show_sizeof_type (lldiv_t);
+	show_sizeof_type (long double);
+	show_sizeof_type (long int);
+	show_sizeof_type (long long int);
 	show_sizeof_type (mbstate_t);
+	show_sizeof_type (mode_t);
+	show_sizeof_type (mode_t);
+	show_sizeof_type (nlink_t);
+	show_sizeof_type (off_t);
+	show_sizeof_type (pid_t);
+	show_sizeof_type (pthread_attr_t);
+	show_sizeof_type (pthread_barrierattr_t);
+	show_sizeof_type (pthread_barrier_t);
+	show_sizeof_type (pthread_condattr_t);
+	show_sizeof_type (pthread_cond_t);
+	show_sizeof_type (pthread_key_t);
+	show_sizeof_type (pthread_mutexattr_t);
+	show_sizeof_type (pthread_mutex_t);
+	show_sizeof_type (pthread_once_t);
+	show_sizeof_type (pthread_rwlockattr_t);
+	show_sizeof_type (pthread_rwlock_t);
+	show_sizeof_type (pthread_spinlock_t);
+	show_sizeof_type (pthread_t);
+	show_sizeof_type (ptrdiff_t);
+	show_sizeof_type (rlim_t);
+	show_sizeof_type (short int);
+	show_sizeof_type (sig_atomic_t);
+	show_sizeof_type (size_t);
+	show_sizeof_type (ssize_t);
+	show_sizeof_type (suseconds_t);
+	show_sizeof_type (timer_t);
+	show_sizeof_type (time_t);
+	show_sizeof_type (uid_t);
+	show_sizeof_type (uintmax_t);
+	show_sizeof_type (uintptr_t);
+	show_sizeof_type (useconds_t);
+	show_sizeof_type (void *);
+	show_sizeof_type (wchar_t);
+	show_sizeof_type (wint_t);
 
 	footer ();
 }
@@ -4780,7 +5058,7 @@ show_ranges (void)
 
 	/******************************/
 
-    footer ();
+	footer ();
 }
 
 void
@@ -4808,7 +5086,9 @@ show_compiler (void)
 	entry ("compile time (__TIME__)", "%s", __TIME__);
 	entry ("translation unit (__FILE__)", "%s", __FILE__);
 	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
+#ifdef __TIMESTAMP__
 	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
+#endif
 
 	section_open ("feature test macros");
 
@@ -4954,7 +5234,7 @@ show_time (void)
 			tm->tm_hour,
 			tm->tm_min);
 
-    footer ();
+	footer ();
 }
 
 void
@@ -4979,13 +5259,43 @@ show_uname (void)
 	entry ("domainname", "%s", uts.domainname);
 #endif
 
-    footer ();
+	footer ();
+}
+
+void
+show_cgroups (void)
+{
+#if defined (PROCENV_LINUX)
+	show_cgroups_linux ();
+#else
+	show_cgroups_stub ();
+#endif
+}
+
+void
+show_oom (void)
+{
+#if defined (PROCENV_LINUX)
+	show_oom_linux ();
+#else
+	show_oom_stub ();
+#endif
+}
+
+void
+show_capabilities (void)
+{
+#if defined (PROCENV_LINUX)
+	show_capabilities_linux ();
+#else
+	show_capabilities_stub ();
+#endif
 }
 
 #if defined (PROCENV_LINUX)
 
 void
-show_capabilities (void)
+show_capabilities_linux (void)
 {
 	int ret;
 
@@ -5092,7 +5402,22 @@ show_capabilities (void)
 }
 
 void
-show_linux_security_module (void)
+show_timezone_linux (void)
+{
+	tzset ();
+
+	header ("timezone");
+
+	entry ("tzname[0]", "'%s'", tzname[0]);
+	entry ("tzname[1]", "'%s'", tzname[1]);
+	entry ("timezone", "%ld", timezone);
+	entry ("daylight", "%d", daylight);
+
+	footer ();
+}	
+
+void
+show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
 #if defined (HAVE_APPARMOR)
@@ -5107,7 +5432,7 @@ show_linux_security_module (void)
 }
 
 void
-show_linux_security_module_context (void)
+show_security_module_context_linux (void)
 {
 	char   *context = NULL;
 	char   *mode = NULL;
@@ -5135,7 +5460,7 @@ show_linux_security_module_context (void)
 }
 
 void
-show_linux_cgroups (void)
+show_cgroups_linux (void)
 {
 	const  char  *delim = ":";
 	char         *file = "/proc/self/cgroup";
@@ -5151,7 +5476,7 @@ show_linux_cgroups (void)
 		goto out;
 
 	while (fgets (buffer, sizeof (buffer), f)) {
-		char  *buf;
+		char  *buf, *b;
 		char  *hierarchy;
 		char  *subsystems;
 		char  *path;
@@ -5160,19 +5485,19 @@ show_linux_cgroups (void)
 		/* Remove NL */
 		buffer[len-1] = '\0';
 
-		buf = strdup (buffer);
+		buf = b = strdup (buffer);
 		if (! buf)
 			die ("failed to alloate storage");
 
-		hierarchy = strsep (&buf, delim);
+		hierarchy = strsep (&b, delim);
 		if (! hierarchy)
 			goto next;
 
-		subsystems = strsep (&buf, delim);
+		subsystems = strsep (&b, delim);
 		if (! subsystems)
 			goto next;
 
-		path = strsep (&buf, delim);
+		path = strsep (&b, delim);
 		if (! path)
 			goto next;
 
@@ -5272,7 +5597,7 @@ show_fds_linux (void)
 }
 
 void
-show_oom (void)
+show_oom_linux (void)
 {
 	char    *dir = "/proc/self";
 	char    *files[] = { "oom_score", "oom_adj", "oom_score_adj", NULL };
@@ -5326,7 +5651,7 @@ get_scheduler_name (int sched)
 }
 
 void
-show_linux_cpu (void)
+show_cpu_linux (void)
 {
 	int cpu;
 	long max;
@@ -5384,6 +5709,56 @@ get_tty_locked_status (struct termios *lock_status)
 	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0)
 		die ("failed to query terminal lock status");
 }
+#else
+
+void
+show_cgroups_stub (void)
+{
+	header ("cgroups");
+	footer ();
+}
+
+void
+show_oom_stub (void)
+{
+	header ("oom");
+	footer ();
+}
+
+void
+show_timezone_stub (void)
+{
+	header ("timezone");
+	footer ();
+}
+
+void
+show_capabilities_stub (void)
+{
+	header ("capabilities");
+	footer ();
+}
+
+void
+show_shared_mem_stub (void)
+{
+	header ("shared memory");
+	footer ();
+}
+
+void
+show_semaphores_stub (void)
+{
+	header ("semaphores");
+	footer ();
+}
+
+void
+show_msg_queues_stub (void)
+{
+	header ("message queues");
+	footer ();
+}
 
 #endif /* PROCENV_LINUX */
 
@@ -5401,9 +5776,9 @@ has_ctty (void)
 	return TRUE;
 }
 
-#if defined (PROCENV_BSD) || defined (__FreeBSD_kernel__)
+#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
 void
-show_bsd_cpu (void)
+show_cpu_bsd (void)
 {
 	long                max;
 	kvm_t              *kvm;
@@ -5434,7 +5809,7 @@ show_bsd_cpu (void)
 }
 
 void
-get_bsd_misc (void)
+get_misc_bsd (void)
 {
 	char                 errors[_POSIX2_LINE_MAX];
 	kvm_t               *kvm;
@@ -5777,7 +6152,7 @@ show_threads (void)
 	footer ();
 }
 
-char *
+const char *
 get_thread_scheduler_name (int sched)
 {
 	struct procenv_map *p;
@@ -5830,7 +6205,7 @@ show_data_model (void)
 
 int
 main (int    argc,
-      char  *argv[])
+		char  *argv[])
 {
 	int    option;
 	int    long_index;
@@ -5873,6 +6248,7 @@ main (int    argc,
 		{"capabilities"    , no_argument, NULL, 'w'},
 		{"pathconf"        , no_argument, NULL, 'x'},
 		{"sysconf"         , no_argument, NULL, 'y'},
+		{"memory"          , no_argument, NULL, 'Y'},
 		{"timezone"        , no_argument, NULL, 'z'},
 		{"exec"            , no_argument      , NULL, 0},
 		{"file"            , required_argument, NULL, 0},
@@ -5901,7 +6277,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyz",
+				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -5973,9 +6349,7 @@ main (int    argc,
 			break;
 
 		case 'c':
-#if defined (PROCENV_LINUX)
-			show_linux_cgroups ();
-#endif
+			show_cgroups ();
 			break;
 
 		case 'C':
@@ -6048,9 +6422,7 @@ main (int    argc,
 			break;
 
 		case 'o':
-#if defined (PROCENV_LINUX)
 			show_oom ();
-#endif
 			break;
 
 		case 'p':
@@ -6099,9 +6471,7 @@ main (int    argc,
 			break;
 
 		case 'w':
-#if defined (PROCENV_LINUX)
 			show_capabilities ();
-#endif
 			break;
 
 		case 'x':
@@ -6110,6 +6480,10 @@ main (int    argc,
 
 		case 'y':
 			show_sysconf ();
+			break;
+
+		case 'Y':
+			show_memory ();
 			break;
 
 		case 'z':
@@ -6173,7 +6547,7 @@ char *
 get_user_name (uid_t uid)
 {
 	struct passwd *p;
-       
+
 	p = getpwuid (uid);
 
 	return p ? p->pw_name : NULL;
@@ -6183,7 +6557,7 @@ char *
 get_group_name (gid_t gid)
 {
 	struct group *g;
-	       
+
 	g = getgrgid (gid);
 
 	return g ? g->gr_name : NULL;
@@ -6201,8 +6575,11 @@ get_group_name (gid_t gid)
 int
 encode_string (char **str)
 {
-	int    ret = 0;
-	char   *new;
+	int      ret = 0;
+	char    *new;
+	char    *p, *q;
+	size_t   non_printables;
+	size_t   len = 0;
 
 	assert (str);
 	assert (*str);
@@ -6231,9 +6608,95 @@ encode_string (char **str)
 		break;
 	}
 
+	if (ret < 0)
+		return ret;
+
+	/* Now, search for evil non-printable characters and encode those
+	 * appropriately.
+	 */
+	for (p = *str, non_printables = 0; p && *p; p++) {
+		if (! isprint (*p))
+			non_printables++;
+	}
+
+	if (non_printables &&
+		(output_format == OUTPUT_FORMAT_XML
+		 || output_format == OUTPUT_FORMAT_JSON)) {
+
+		size_t   new_size = 0;
+		char    *json_format = "\\u%4.4x";
+
+		/* XXX:
+		 *
+		 * Although this format spec _may_ produce valid XML,
+		 * the rules are arcane and some(?) control characters
+		 * cannot be used within an XML document, hence the
+		 * "may".
+		 *
+		 * Aside from simply discarding non-printable characters
+		 * (thus distorting the output), we are left with
+		 * attempting to produce some sort of encoded
+		 * representation which may well choke a validating
+		 * parser.
+		 *
+		 * Realistically, the problem is confined to handling
+		 * control characters set in environment variables when
+		 * attempting to output XML. This may occur if you run
+		 * GNU Screen since it sets $TERMCAP which includes
+		 * binary characters.
+		 *
+		 * FIXME:
+		 *
+		 * If you hit this issue, raise a bug so we can consider
+		 * simply discarding all non-printables when attempting
+		 * XML output.
+		 */
+		char    *xml_format = "&#x%2.2x;";
+
+		len = strlen (*str);
+
+		/* Calculate expanded size of string by removing
+		 * count of non-printable byte and adding back the
+		 * number of bytes required to encode them in expanded
+		 * form.
+		 */
+		switch (output_format) {
+		case OUTPUT_FORMAT_XML:
+			new_size = (len - non_printables) + (non_printables * strlen ("&#x..;"));
+			break;
+
+		case OUTPUT_FORMAT_JSON:
+			new_size = (len - non_printables) + (non_printables * strlen ("\\u...."));
+			break;
+		default:
+			break;
+		}
+
+		new = calloc (1+new_size, 1);
+		if (! new)
+			return -1;
+
+		for (p = *str, q = new; p && *p; p++) {
+			if (isprint (*p)) {
+				*q = *p;
+				q++;
+			} else {
+				ret = sprintf (q,
+						output_format == OUTPUT_FORMAT_JSON
+						? json_format : xml_format,
+						*p);
+				q += ret;
+			}
+		}
+
+		free (*str);
+		*str = new;
+	}
+
 	return ret;
 }
 
+/* Performs simple substitution on the input */
 char *
 translate (const char *str)
 {
@@ -7073,7 +7536,7 @@ show_version (void)
 	entry (_("name"), "%s", PACKAGE_NAME);
 	entry (_("version"), "%s", PACKAGE_VERSION);
 	entry (_("author"), "%s", PROGRAM_AUTHORS);
-	
+
 	footer ();
 }
 
@@ -7082,10 +7545,8 @@ show_shared_mem (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_shared_mem_linux ();
-#endif
-
-#if defined (PROCENV_BSD)
-	show_shared_mem_bsd ();
+#else
+	show_shared_mem_stub ();
 #endif
 }
 
@@ -7094,10 +7555,8 @@ show_semaphores (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_semaphores_linux ();
-#endif
-
-#if defined (PROCENV_BSD)
-	show_semaphores_bsd ();
+#else
+	show_semaphores_stub ();
 #endif
 }
 
@@ -7106,9 +7565,8 @@ show_msg_queues (void)
 {
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 	show_msg_queues_linux ();
-#endif
-#if defined (PROCENV_BSD)
-	show_msg_queues_bsd ();
+#else
+	show_msg_queues_stub ();
 #endif
 }
 
@@ -7188,7 +7646,7 @@ show_shared_mem_linux (void)
 		object_open (FALSE);
 
 		/* pad out to max pointer size represented in hex.
-		 */
+		*/
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
 		entry ("sequence", "%u", perm->__seq);
 
@@ -7223,11 +7681,11 @@ show_shared_mem_linux (void)
 		section_close ();
 
 		entry ("locked", "%s", locked == 0 ? NO_STR
-					: locked > 0 ? YES_STR
-					: NA_STR);
+				: locked > 0 ? YES_STR
+				: NA_STR);
 		entry ("destroy", "%s", destroy == 0 ? NO_STR
-					: destroy > 0 ? YES_STR
-					: NA_STR);
+				: destroy > 0 ? YES_STR
+				: NA_STR);
 
 		object_close (FALSE);
 
@@ -7245,7 +7703,7 @@ show_shared_mem_linux (void)
 	container_close ();
 
 out:
-    footer ();
+	footer ();
 }
 
 void
@@ -7321,7 +7779,7 @@ show_semaphores_linux (void)
 		object_open (FALSE);
 
 		/* pad out to max pointer size represented in hex.
-		 */
+		*/
 		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
 		entry ("sequence", "%u", perm->__seq);
 

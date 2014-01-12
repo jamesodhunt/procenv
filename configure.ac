@@ -1,10 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.68])
-AC_INIT(procenv, 0.27, [james.hunt@ubuntu.com])
-AC_COPYRIGHT([Copyright (C) 2012-2013 James Hunt <james.hunt@ubuntu.com>
- and Kees Cook <kees@ubuntu.com>])
+AC_INIT(procenv, 0.28, [james.hunt@ubuntu.com])
+AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -27,20 +25,16 @@ PKG_PROG_PKG_CONFIG
 AC_CHECK_HEADERS([linux/securebits.h])
 AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
 
-
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
-AC_TYPE_UID_T
-AC_TYPE_MODE_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
 
 # Checks for library functions.
 AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])
+
+AC_SEARCH_LIBS([numa_available], [numa])
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
@@ -49,12 +43,40 @@ AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
 AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 
+AC_ARG_ENABLE([tests],
+	AS_HELP_STRING([--disable-tests],
+		[Disable unit tests]),
+		[enable_tests=no], [enable_tests=yes])
+
+AM_CONDITIONAL([ENABLE_TESTS], test "$enable_tests" = yes)
+
 # Other checks
 
 # automake-1.13 defaults to running tests in parallel. As a consequence,
 # it also disables verbose output meaning that procenv output is not
-# visible in build logs. Therefore, force old behaviour.
-AM_INIT_AUTOMAKE([serial-tests])
+# visible in build logs. Therefore, force old behaviour by passing
+# 'serial-tests', but only for version of automake >= 1.13 since older
+# versions don't recognise that option.
+AM_INIT_AUTOMAKE(m4_esyscmd([
+	version=`automake --version|head -n 1|grep -o "[0-9][0-9]*\.[0-9][0-9]*"`
+	major=`echo $version|cut -d\. -f1`
+	minor=`echo $version|cut -d\. -f2`
+	if [ "$major" = 1 -a "$minor" -ge 13 ]; then
+		echo serial-tests
+	elif [ "$major" -gt 1 ]; then
+		echo serial-tests
+	fi
+]))
+
+original_cflags="$CFLAGS"
+CFLAGS=-Werror=format-security
+AC_MSG_CHECKING([whether CC supports -Werror=format-security])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+        [AM_CFLAGS=-Werror=format-security],
+	    [AC_MSG_RESULT([no])])
+CFLAGS="$original_cflags"
+AC_SUBST([AM_CFLAGS])
 
 AC_ARG_ENABLE([compiler-optimisations],
 	AS_HELP_STRING([--disable-compiler-optimisations],

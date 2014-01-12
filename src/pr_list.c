@@ -1,3 +1,23 @@
+/*--------------------------------------------------------------------
+ * procenv - generic list handling routines.
+ *
+ * Copyright 2012-2014 James Hunt.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *--------------------------------------------------------------------
+ */
+
 #include <pr_list.h>
 #include <string.h>
 #include <assert.h>
@@ -125,7 +145,7 @@ pr_list_remove (PRList *entry)
 	entry->prev->next = entry->next;
 	entry->next->prev = entry->prev;
 
-	/* No long attached to list */
+	/* No longer attached to list */
 	entry->next = entry->prev = entry;
 
 	return entry;
