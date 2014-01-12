@@ -817,7 +817,7 @@ void show_semaphores_bsd (void);
 void show_msg_queues_bsd (void);
 #endif /* PROCENV_BSD + __FreeBSD_kernel__ */
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+#if defined (PROCENV_LINUX)
 /* semctl(2) on Linux tells us _we_ must define this */
 
 union semun {

@@ -1,28 +1,3 @@
-2013-10-30  James Hunt  <james.hunt@ubuntu.com>
-
-	* src/procenv.c:
-	  - show_signals(): Check return from get_signal_name() in case a
-	    platform doesn't provide the signal in question.
-	  - get_kernel_bits(): Return error value rather than calling die().
-	  - show_bsd_mounts(): Removed unused variables.
-	  - Added a few extra asserts to ensure section_open() is passed a valid
-	    name.
-	* src/procenv.h: Need to define 'semun' on Hurd too.
-
-2013-10-25  James Hunt  <james.hunt@ubuntu.com>
-
-	* TODO: Stuff.
-	* src/procenv.c: get_arch(): Fix for AARCH64 which seemingly isn't
-	  considered to be "ARM" by gcc.
-
-2013-10-15  James Hunt  <james.hunt@ubuntu.com>
-
-	* man/procenv.1:
-	  - Fix for lintian bug: spelling-error-in-binary.
-	* src/procenv.c:
-	  - Fixes for lintian bugs: spelling-error-in-manpage,
-	    hyphen-used-as-minus-sign.
-
 2013-10-14  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac: Add '--debug' option.

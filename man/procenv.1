@@ -414,7 +414,7 @@ Any long option name may be shortened as long as it remains unique.
 The
 .I crumb
 output format is designed for easy parsing: it displays the data in a
-flattened format with each value on a separate line preceded by all
+flattened format with each value on a separate line preceeded by all
 appropriate headings which are separated by the current separator.
 .IP \(bu
 The \fB\-\-message\-queues\fR, \fB\-\-semaphores\fR and 
@@ -431,10 +431,10 @@ the values are queryable, there is no documented method to do so.
 \& # Send compiler information to syslog (note the order of the options).
 \& procenv \-\-output=syslog \-\-compiler
 \&
-\& # Run a command ('mycmd \-\-arg1 \-\-foo=bar') without creating a new
+\& # Run a command ('mycmd --arg1 --foo=bar') without creating a new
 \& # process, but have procenv run first and log its output to a
 \& # regular file.
-\& exec procenv \-\-file=/tmp/procenv.log \-\-exec \-\- mycmd \-\-arg1 \-\-foo=bar
+\& exec procenv \-\-file=/tmp/procenv.log --exec -- mycmd --arg1 --foo=bar
 \&
 \& # The following kernel command-line snippet will cause procenv to
 \& # write output to first serial tty device and then execute init(8)
@@ -442,16 +442,16 @@ the values are queryable, there is no documented method to do so.
 \& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
 \&
 \& # Display all data in JSON format using an indent of 4 spaces
-\& procenv \-\-format=json \-\-indent=4
+\& procenv --format=json --indent=4
 \&
 \& # Display all data in XML format using tabs for indents
-\& procenv \-\-format=xml \-\-indent-char="\t"
+\& procenv --format=xml --indent-char="\t"
 \&
 \& # Display resource limits in easily-parseable format
-\& procenv \-\-format=crumb \-\-limits
+\& procenv --format=crumb --limits
 \&
 \& # Produce output suitable for importing into a spreadsheet
-\& procenv \-\-format=crumb \-\-crumb-separator=\(aq,\(aq \-\-separator=\(aq,\(aq \-\-limits
+\& procenv --format=crumb --crumb-separator=\(aq,\(aq --separator=\(aq,\(aq --limits
 .Ve
 .Ve
 .\"
