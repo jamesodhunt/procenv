@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: James Hunt <james.hunt@ubuntu.com>
 Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, libkvm-dev [kfreebsd-any], pkg-config, automake (>= 1.12), perl, expat, libnuma-dev [linux-any]
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: https://code.launchpad.net/procenv
 XS-Testsuite: autopkgtest
 
