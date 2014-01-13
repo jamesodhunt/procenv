@@ -632,7 +632,7 @@ struct procenv_map thread_sched_policy_map[] = {
 	mk_map_entry (SCHED_RR)
 };
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) && defined (HAVE_NUMA_H)
 struct procenv_map numa_mempolicy_map[] = {
 	mk_map_entry (MPOL_DEFAULT),
 	mk_map_entry (MPOL_PREFERRED),
@@ -1877,7 +1877,7 @@ show_memory (void)
 
 #if defined (PROCENV_LINUX)
 	show_numa_memory ();
-#endif
+#endif /* PROCENV_LINUX */
 
 	footer ();
 }
@@ -3059,6 +3059,7 @@ linux_kernel_version (int major, int minor, int revision)
 void
 show_numa_memory (void)
 {
+#if defined (HAVE_NUMA_H)
 	int              policy;
 	const char      *policy_name;
 	struct bitmask  *allowed;
@@ -3080,9 +3081,11 @@ show_numa_memory (void)
 	/* Only valid to read these when count is >0 */
 	size_t           last = 0;
 	size_t           first = 0;
+#endif /* HAVE_NUMA_H */
 
 	header ("numa");
 
+#if defined (HAVE_NUMA_H)
 	if (numa_available () < 0)
 		/* NUMA not supported on this system */
 		goto out;
@@ -3151,9 +3154,11 @@ show_numa_memory (void)
 	numa_free_nodemask (allowed);
 
 out:
+#endif /* HAVE_NUMA_H */
 	footer ();
 }
 
+#if defined (HAVE_NUMA_H)
 const char *
 get_numa_policy (int policy)
 {
@@ -3166,8 +3171,9 @@ get_numa_policy (int policy)
 
 	return NULL;
 }
+#endif /* HAVE_NUMA_H */
 
-#endif
+#endif /* PROCENV_LINUX */
 
 void
 show_mounts (ShowMountType what)

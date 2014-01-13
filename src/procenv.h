@@ -167,8 +167,10 @@
 #include <linux/prctl.h>
 #include <linux/version.h>
 
+#if defined (HAVE_NUMA_H)
 #include <numa.h>
 #include <numaif.h>
+#endif /* HAVE_NUMA_H */
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -837,8 +839,12 @@ void show_prctl_linux (void);
 void show_cpu_linux (void);
 char *get_scheduler_name (int sched);
 bool linux_kernel_version (int major, int minor, int revision);
+
 void show_numa_memory (void);
+
+#if defined (HAVE_NUMA_H)
 const char *get_numa_policy (int policy);
+#endif /* HAVE_NUMA_H */
 
 #else /* ! PROCENV_LINUX */
 
