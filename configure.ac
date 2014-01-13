@@ -35,6 +35,7 @@ AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 
 AC_SEARCH_LIBS([numa_available], [numa])
+AC_CHECK_HEADERS([numa.h])
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
