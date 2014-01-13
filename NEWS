@@ -1,3 +1,8 @@
+0.29	2014-01-13
+
+	* FIX: Allow building on Linux systems whose
+	  architectures are not NUMA-capable.
+
 0.28	2014-01-10
 
 	* FIX: Process ancestry now displayed on kFreeBSD by default.

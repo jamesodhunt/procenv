@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(procenv, 0.28, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.29, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
@@ -35,6 +35,7 @@ AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_
 AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 
 AC_SEARCH_LIBS([numa_available], [numa])
+AC_CHECK_HEADERS([numa.h])
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
