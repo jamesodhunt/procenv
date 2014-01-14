@@ -1,3 +1,12 @@
+2014-01-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - get_tty_locked_status(): Assume unlocked if unable to query status
+	    (for example on Sparc64 running 2.6.32-5 kernel).
+	  - show_semaphores(): Calling semctl(SEM_INFO) without semun union was
+	    causing subsequent call to semctl(SEM_STAT) to SIGSEGV on Sparc and
+	    PPC architectures (Closes: #728684).
+
 2014-01-13  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac: Check for numa.h.

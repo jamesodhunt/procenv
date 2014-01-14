@@ -5712,8 +5712,10 @@ get_tty_locked_status (struct termios *lock_status)
 	assert (lock_status);
 	assert (user.tty_fd != -1);
 
-	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0)
-		die ("failed to query terminal lock status");
+	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0) {
+		/* Set to unlocked */
+		memset (lock_status, '\0', sizeof (struct termios));
+	}
 }
 #else
 
@@ -7728,7 +7730,8 @@ show_semaphores_linux (void)
 
 	header ("semaphores");
 
-	max = semctl (0, 0, SEM_INFO, &info);
+	arg.array = (unsigned short int *)(void *)&info;
+	max = semctl (0, 0, SEM_INFO, arg);
 	if (max < 0)
 		goto out;
 
