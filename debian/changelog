@@ -1,3 +1,10 @@
+procenv (0.29-2) unstable; urgency=medium
+
+  * debian/control: Add missing linux-ppc64 and linux-ppc64el architectures
+    to libnuma-dev Build-Depends (LP: #1268840).
+
+ -- James Hunt <james.hunt@ubuntu.com>  Tue, 14 Jan 2014 08:59:05 +0000
+
 procenv (0.29-1) unstable; urgency=medium
 
   * New upstream release.
