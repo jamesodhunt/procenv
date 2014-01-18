@@ -1,3 +1,7 @@
+0.30	2014-01-18
+
+	* FIX: Semaphore fix for PPC and Sparc platforms.
+
 0.29	2014-01-13
 
 	* FIX: Allow building on Linux systems whose
