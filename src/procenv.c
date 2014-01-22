@@ -1888,7 +1888,7 @@ show_memory (void)
 void
 show_cpu_affinities (void)
 {
-	int                   ret;
+	int                   ret = 0;
 	long                  max;
 	size_t                size;
 #if defined (PROCENV_BSD)
