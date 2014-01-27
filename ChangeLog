@@ -11,7 +11,6 @@
 	* src/procenv.c:
 	  - mntopt_map: Journaled Soft Updates fix for FreeBSD 8 and older.
 	  - usage():
-	    - Added --file-descriptors.
 	    - Typo fix.
 	  - show_fds_generic(): Added FreeBSD Capsicum capabilities for systems
 	    which support it (FreeBSD 9+, assuming kernel is appropriately
