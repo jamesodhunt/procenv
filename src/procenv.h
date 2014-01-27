@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <float.h>
 #include <wchar.h>
 #include <unistd.h>
@@ -94,15 +95,19 @@
  *
  * Version of output format.
  *
+ * XXX: must be updated for every change.
+ *
  * VERSION 2:
  *   - Added --memory.
  *   - Expanded --cpu.
  *   - Added missing --cpu to default output.
  *   - Moved memory page size from --misc to --memory.
  *
- * XXX: must be updated for every change.
+ * VERSION 3:
+ *   - --fds: Added Capsicum capabilities for FreeBSD (alas this version
+ *     is a NOP for non-BSD platforms).
  **/
-#define PROCENV_FORMAT_VERSION 2
+#define PROCENV_FORMAT_VERSION 3
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -272,9 +277,20 @@
 #if defined (PROCENV_BSD)
 #define PROCENV_CPU_SET_TYPE cpuset_t
 #include <pthread_np.h>
+
+#if defined (HAVE_SYS_CAPABILITY_H)
+#include <sys/capability.h>
+
+#define show_capsicum_cap(rights, cap) \
+	entry (#cap, "%s", cap_rights_is_set ((&rights), cap) ? YES_STR : NO_STR)
+#endif /* HAVE_SYS_CAPABILITY_H */
+
 #elif defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+
 #define PROCENV_CPU_SET_TYPE cpu_set_t
-#endif
+
+#endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
+
 
 /* Horrid hack for Hurd... :-( */
 #ifndef PATH_MAX
@@ -549,8 +565,6 @@
 	entry ("size", "%lu byte%s", \
 			(unsigned long int)sizeof (type), \
 			sizeof (type) == 1 ? "" : "s")
-
-typedef char bool;
 
 typedef enum {
 	SHOW_ALL,
@@ -881,6 +895,10 @@ void get_misc_bsd (void);
 void show_proc_branch_bsd (void);
 void show_cpu_bsd (void);
 #endif /* PROCENV_BSD + PROCENV_GNU_BSD */
+
+#if defined (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H)
+void show_capabilities_bsd (int fd);
+#endif /* (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H) */
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
 /* semctl(2) on Linux tells us _we_ must define this */

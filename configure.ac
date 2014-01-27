@@ -37,6 +37,11 @@ AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 AC_SEARCH_LIBS([numa_available], [numa])
 AC_CHECK_HEADERS([numa.h])
 
+# FreeBSD 9+ with appropriately configured kernel
+# (enabled by default in FreeBSD 10)
+AC_SEARCH_LIBS([cap_getmode], [c])
+AC_CHECK_HEADERS([sys/capability.h])
+
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])

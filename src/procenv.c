@@ -186,7 +186,7 @@ struct mntopt_map {
 	{ MNT_RDONLY       , "read-only" },
 	{ MNT_SOFTDEP      , "soft-updates" },
 	{ MNT_SUIDDIR      , "suiddir" },
-#ifndef PROCENV_GNU_BSD
+#if ! defined (PROCENV_GNU_BSD) && defined (MNT_SUJ)
 	{ MNT_SUJ          , "journaled soft-updates" },
 #endif
 	{ MNT_SYNCHRONOUS  , "synchronous" },
@@ -710,7 +710,7 @@ usage (void)
 	show ("  -u, --stat              : Display stat details.");
 	show ("  -U, --rusage            : Display rusage details.");
 	show ("  -v, --version           : Display version details.");
-	show ("  -w, --capabilities      : Display capaibility details (Linux only).");
+	show ("  -w, --capabilities      : Display capability details (Linux only).");
 	show ("  -x, --pathconf          : Display pathconf details.");
 	show ("  -y, --sysconf           : Display sysconf details.");
 	show ("  -Y, --memory            : Display memory details.");
@@ -2057,6 +2057,12 @@ show_fds_generic (void)
 		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
 		entry ("device", "%s", name ? name : NA_STR);
 
+		section_open ("capabilities");
+#if defined (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H)
+		show_capabilities_bsd (fd);
+#endif
+		section_close ();
+
 		section_close ();
 
 		object_close (FALSE);
@@ -2071,20 +2077,39 @@ void
 show_env (void)
 {
 	char    **env = environ;
+	char    **copy;
 	char     *name;
 	char     *value;
 	size_t    i;
+	size_t    max;
 
 	header ("environment");
 
 	/* Calculate size of environment array */
-	for (i=0; env[i]; i++)
+	for (max=0; env[max]; max++)
 		;
 
-	/* sort it */
+	copy = calloc (1+max, sizeof (char *));
+	if (! copy)
+		die ("failed to alloate storage");
+
+	/* Copy the environ array since modification is not allowed */
+	for (i=0; i < max; i++) {
+		copy[i] = calloc (1, 1+strlen (env[i]));
+		if (! copy[i])
+			die ("failed to alloate storage");
+		strcpy (copy[i], env[i]);
+	}
+
+	/* Terminate */
+	copy[max] = NULL;
+
+	/* Sort */
+	env = copy;
 	qsort (env, i, sizeof (env[0]), qsort_compar);
 
-	env = environ;
+	/* Display */
+	env = copy;
 	while (env && *env) {
 		name = *env;
 		value = strchr (name, '=');
@@ -2095,6 +2120,12 @@ show_env (void)
 		entry (name, "%s", value);
 		env++;
 	}
+
+	/* Tidy up */
+	for (i = 0; i < max; i++)
+		free (copy[i]);
+
+	free (copy);
 
 	footer ();
 }
@@ -3641,6 +3672,114 @@ show_mounts_bsd (ShowMountType what)
 }
 
 #endif
+
+#if defined (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H)
+void
+show_capabilities_bsd (int fd)
+{
+	int           ret;
+	u_int         mode;
+	cap_rights_t  rights;
+
+	ret = cap_getmode (&mode);
+	if (ret < 0) {
+		/* No Capsicum support */
+		goto out;
+	}
+
+	ret = cap_rights_get (fd, &rights);
+	if (ret < 0) {
+		/* Cannot query capabilities */
+		goto out;
+	}
+
+	show_capsicum_cap (rights, CAP_ACCEPT);
+	show_capsicum_cap (rights, CAP_ACL_CHECK);
+	show_capsicum_cap (rights, CAP_ACL_DELETE);
+	show_capsicum_cap (rights, CAP_ACL_GET);
+	show_capsicum_cap (rights, CAP_ACL_SET);
+	show_capsicum_cap (rights, CAP_BIND);
+	show_capsicum_cap (rights, CAP_BINDAT);
+	show_capsicum_cap (rights, CAP_CHFLAGSAT);
+	show_capsicum_cap (rights, CAP_CONNECT);
+	show_capsicum_cap (rights, CAP_CONNECTAT);
+	show_capsicum_cap (rights, CAP_CREATE);
+	show_capsicum_cap (rights, CAP_EVENT);
+	show_capsicum_cap (rights, CAP_EXTATTR_DELETE);
+	show_capsicum_cap (rights, CAP_EXTATTR_GET);
+	show_capsicum_cap (rights, CAP_EXTATTR_LIST);
+	show_capsicum_cap (rights, CAP_EXTATTR_SET);
+	show_capsicum_cap (rights, CAP_FCHDIR);
+	show_capsicum_cap (rights, CAP_FCHFLAGS);
+	show_capsicum_cap (rights, CAP_FCHMOD);
+	show_capsicum_cap (rights, CAP_FCHMODAT);
+	show_capsicum_cap (rights, CAP_FCHOWN);
+	show_capsicum_cap (rights, CAP_FCHOWNAT);
+	show_capsicum_cap (rights, CAP_FCNTL);
+	show_capsicum_cap (rights, CAP_FEXECVE);
+	show_capsicum_cap (rights, CAP_FLOCK);
+	show_capsicum_cap (rights, CAP_FPATHCONF);
+	show_capsicum_cap (rights, CAP_FSCK);
+	show_capsicum_cap (rights, CAP_FSTAT);
+	show_capsicum_cap (rights, CAP_FSTATAT);
+	show_capsicum_cap (rights, CAP_FSTATFS);
+	show_capsicum_cap (rights, CAP_FSYNC);
+	show_capsicum_cap (rights, CAP_FTRUNCATE);
+	show_capsicum_cap (rights, CAP_FUTIMES);
+	show_capsicum_cap (rights, CAP_FUTIMESAT);
+	show_capsicum_cap (rights, CAP_GETPEERNAME);
+	show_capsicum_cap (rights, CAP_GETSOCKNAME);
+	show_capsicum_cap (rights, CAP_GETSOCKOPT);
+	show_capsicum_cap (rights, CAP_IOCTL);
+	show_capsicum_cap (rights, CAP_KQUEUE);
+	show_capsicum_cap (rights, CAP_KQUEUE_CHANGE);
+	show_capsicum_cap (rights, CAP_KQUEUE_EVENT);
+	show_capsicum_cap (rights, CAP_LINKAT);
+	show_capsicum_cap (rights, CAP_LISTEN);
+	show_capsicum_cap (rights, CAP_LOOKUP);
+	show_capsicum_cap (rights, CAP_MAC_GET);
+	show_capsicum_cap (rights, CAP_MAC_SET);
+	show_capsicum_cap (rights, CAP_MKDIRAT);
+	show_capsicum_cap (rights, CAP_MKFIFOAT);
+	show_capsicum_cap (rights, CAP_MKNODAT);
+	show_capsicum_cap (rights, CAP_MMAP);
+	show_capsicum_cap (rights, CAP_MMAP_R);
+	show_capsicum_cap (rights, CAP_MMAP_RW);
+	show_capsicum_cap (rights, CAP_MMAP_RWX);
+	show_capsicum_cap (rights, CAP_MMAP_RX);
+	show_capsicum_cap (rights, CAP_MMAP_W);
+	show_capsicum_cap (rights, CAP_MMAP_WX);
+	show_capsicum_cap (rights, CAP_MMAP_X);
+	show_capsicum_cap (rights, CAP_PDGETPID);
+	show_capsicum_cap (rights, CAP_PDKILL);
+	show_capsicum_cap (rights, CAP_PDWAIT);
+	show_capsicum_cap (rights, CAP_PEELOFF);
+	show_capsicum_cap (rights, CAP_POLL_EVENT);
+	show_capsicum_cap (rights, CAP_PREAD);
+	show_capsicum_cap (rights, CAP_PWRITE);
+	show_capsicum_cap (rights, CAP_READ);
+	show_capsicum_cap (rights, CAP_RECV);
+	show_capsicum_cap (rights, CAP_RENAMEAT);
+	show_capsicum_cap (rights, CAP_SEEK);
+	show_capsicum_cap (rights, CAP_SEEK_TELL);
+	show_capsicum_cap (rights, CAP_SEM_GETVALUE);
+	show_capsicum_cap (rights, CAP_SEM_POST);
+	show_capsicum_cap (rights, CAP_SEM_WAIT);
+	show_capsicum_cap (rights, CAP_SEND);
+	show_capsicum_cap (rights, CAP_SETSOCKOPT);
+	show_capsicum_cap (rights, CAP_SHUTDOWN);
+	show_capsicum_cap (rights, CAP_SOCK_CLIENT);
+	show_capsicum_cap (rights, CAP_SOCK_SERVER);
+	show_capsicum_cap (rights, CAP_SYMLINKAT);
+	show_capsicum_cap (rights, CAP_TTYHOOK);
+	show_capsicum_cap (rights, CAP_UNLINKAT);
+	show_capsicum_cap (rights, CAP_WRITE);
+
+out:
+	/* clang requires this */
+	return;
+}
+#endif /* (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H) */
 
 void
 get_priorities (void)
@@ -7665,7 +7804,7 @@ show_shared_mem_linux (void)
 
 		section_open ("pids");
 		entry ("create", "%d (%s)", shmid_ds.shm_cpid, cpid ? cpid : UNKNOWN_STR);
-		entry ("last", "%d (%s)", shmid_ds.shm_cpid, lpid ? lpid : UNKNOWN_STR);
+		entry ("last", "%d (%s)", shmid_ds.shm_lpid, lpid ? lpid : UNKNOWN_STR);
 		section_close ();
 
 		entry ("attachers", "%lu", shmid_ds.shm_nattch);

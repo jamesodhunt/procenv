@@ -62,7 +62,7 @@
 - Add process arguments to show_proc_branch()?
 - Sort output of show_mounts().
 - Use CPUID instruction to detect XEN environments?
-  (http://libcpuid.sourceforge.net/)
+  (http://libcpuid.sourceforge.net/, http://www.etallen.com/cpuid.html)
 - Use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
