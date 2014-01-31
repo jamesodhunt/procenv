@@ -1,3 +1,50 @@
+2014-01-31  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Build procenv.spec from .in file to auto-update
+	  version number.
+	* procenv.spec.in: Renamed from procenv.spec.
+	* src/procenv.c: show_capabilities_bsd(): Fixes to allow
+	  building on FreeBSD 9.
+
+2014-01-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Check for FreeBSD Capsicum support.
+	* man/procenv.1:
+	  - --fds: Update for FreeBSD to mention Capsicum capabilities.
+	  - --capabilities: Explain this option is for Linux capabilities only
+	    (a different beast to Capsicum).
+	  - SEE ALSO: Further references.
+	  - Corrected BSD comment for --semaphores, --message-queues and
+	    --shared-memory.
+	* src/procenv.c:
+	  - mntopt_map: Journaled Soft Updates fix for FreeBSD 8 and older.
+	  - usage():
+	    - Typo fix.
+	  - show_fds_generic(): Added FreeBSD Capsicum capabilities for systems
+	    which support it (FreeBSD 9+, assuming kernel is appropriately
+	    configured).
+	  - show_env(): Copy environ before sorting since modification is
+	    disallowed.
+	  - show_capabilities_bsd(): New function to query Capsicum capabilities.
+	  - show_shared_mem_linux(): Fixed bug that incorrectly showed the
+	    current process name rather than the last.
+	* src/procenv.h:
+	  - Bumped PROCENV_FORMAT_VERSION (format-version) to 3 for FreeBSD
+	    capabilities.
+	  - Capsicum macro.
+	  - Replaced bool typedef with stdbool.h.
+
+2014-01-23  James Hunt  <james.hunt@ubuntu.com>
+
+	* procenv.spec: Added RPM specfile courtesy of Dave Love and
+	  updated for 0.30 (LP: #1100967).
+	* Makefile.am: Distribute spec file.
+
+2014-01-22  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_cpu_affinities(): Initialise variable to
+	  pacify clang on FreeBSD 10.
+
 2014-01-14  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

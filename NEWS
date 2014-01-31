@@ -1,3 +1,18 @@
+0.32	2014-01-31
+
+	* Generate .spec file to ensure version stays in sync with
+	  configure.ac.
+
+0.31	2014-01-31
+
+
+	* FEATURE: Added RPM specfile courtesy of Dave Love.
+	* FEATURE: --capabilities now displays Capsicum capabilities
+	  if available (FreeBSD 9/10+).
+	* FIX: Environment display could cause a crash.
+	* FIX: Last attacher process in shared memory display on Linux
+	  incorrectly showed the current process name rather than the last.
+
 0.30	2014-01-18
 
 	* FIX: Semaphore fix for PPC and Sparc platforms.

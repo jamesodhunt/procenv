@@ -79,8 +79,8 @@ subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.h.in COPYING TODO config/compile \
-	config/depcomp config/install-sh config/missing \
+	$(srcdir)/config.h.in $(srcdir)/procenv.spec.in COPYING TODO \
+	config/compile config/depcomp config/install-sh config/missing \
 	config/ltmain.sh $(top_srcdir)/config/compile \
 	$(top_srcdir)/config/install-sh $(top_srcdir)/config/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -91,7 +91,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = procenv.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -268,6 +268,7 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
+PROCENV_VERSION = @PROCENV_VERSION@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -317,7 +318,7 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = 
 SUBDIRS = src
 ACLOCAL_AMFLAGS = -I m4
-EXTRA_DIST = m4/ChangeLog man/procenv.1
+EXTRA_DIST = m4/ChangeLog man/procenv.1 procenv.spec
 man1_MANS = man/procenv.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -372,6 +373,8 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+procenv.spec: $(top_builddir)/config.status $(srcdir)/procenv.spec.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-man1: $(man1_MANS)
 	@$(NORMAL_INSTALL)
 	@list1='$(man1_MANS)'; \
