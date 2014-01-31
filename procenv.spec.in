@@ -1,5 +1,5 @@
-Name:           procenv
-Version:        0.30
+Name:           @PACKAGE@
+Version:        @PROCENV_VERSION@
 Release:        1%{?dist}
 Summary:        Utility to show process environment
 
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 
 %changelog
+* Fri Jan 31 2014 James Hunt <james.hunt@ubuntu.com> - 0.32-1
+- Update to 0.31.
+
 * Thu Jan 23 2014 James Hunt <james.hunt@ubuntu.com> - 0.30-1
 - Update to 0.30.
 

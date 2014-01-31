@@ -1,5 +1,8 @@
 2014-01-31  James Hunt  <james.hunt@ubuntu.com>
 
+	* configure.ac: Build procenv.spec from .in file to auto-update
+	  version number.
+	* procenv.spec.in: Renamed from procenv.spec.
 	* src/procenv.c: show_capabilities_bsd(): Fixes to allow
 	  building on FreeBSD 9.
 
