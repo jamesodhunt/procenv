@@ -1,12 +1,16 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(procenv, 0.30, [james.hunt@ubuntu.com])
+m4_define([procenv_version], 0.32)
+
+AC_INIT(procenv, [procenv_version], [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([config])
+
+AC_SUBST(PROCENV_VERSION, procenv_version)
 
 AC_GNU_SOURCE
 
@@ -36,6 +40,11 @@ AC_SEARCH_LIBS([kvm_openfiles], [kvm])
 
 AC_SEARCH_LIBS([numa_available], [numa])
 AC_CHECK_HEADERS([numa.h])
+
+# FreeBSD 9+ with appropriately configured kernel
+# (enabled by default in FreeBSD 10)
+AC_SEARCH_LIBS([cap_getmode], [c])
+AC_CHECK_HEADERS([sys/capability.h])
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
@@ -100,4 +109,4 @@ AC_ARG_ENABLE([debug],
 	       [[CFLAGS=`echo "$CFLAGS -DDEBUG"`
 	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG"`]])])
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile procenv.spec)

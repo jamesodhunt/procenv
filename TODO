@@ -1,7 +1,15 @@
 # TODO
 
-- ensure that --sizeof covers all types from types.h(P)
-- --cpu: zero or 1-based indexing consistently!
+- FreeBSD:
+  - MAC: mac_get_file(3), mac(3,4)
+- --stat:
+  - move current stat details into a stat/self section.
+  - add stat details for stat/root.
+- move "linux security module" into a new --security section?
+- --cpu:
+  - change 'number' to 'index' and make it zero-based for consistency
+    with affinity list
+  - XXX: bump 'format-version' to 3!!
 - Tests:
   - check man page options vs. 'procenv --help' to look for
     inconsistencies.
@@ -56,7 +64,7 @@
 - Add process arguments to show_proc_branch()?
 - Sort output of show_mounts().
 - Use CPUID instruction to detect XEN environments?
-  (http://libcpuid.sourceforge.net/)
+  (http://libcpuid.sourceforge.net/, http://www.etallen.com/cpuid.html)
 - Use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.

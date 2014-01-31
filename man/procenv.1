@@ -70,7 +70,7 @@ See
 .\"
 .TP
 \fB\-E\fR, \fB\-\-semaphores\fR
-Display semaphore details (not available on BSD).
+Display semaphore details (not queryable on BSD).
 See
 .BR semctl (2) "" .
 .\"
@@ -83,9 +83,15 @@ See
 .\"
 .TP
 \fB\-f\fR, \fB\-\-fds\fR
-Display file descriptor details.
+Display file descriptor details. Under FreeBSD, file descriptor
+capabilities will also be displayed assuming the kernel has Capsicum
+support.
 See
-.BR fcntl (2) "" " and " isatty (5) "" .
+.BR cap_getmode (2) "" " (BSD)" "" ", "
+.BR cap_rights_get (2) "" " (BSD)" "" ", "
+.BR cap_rights_is_set (3) "" " (BSD)" "" ", "
+.BR fcntl (2) "" ", "
+.BR isatty (5) "" "."
 .\"
 .TP
 \fB\-\-file=\fR\fIFILE\fR
@@ -176,7 +182,7 @@ See
 .\"
 .TP
 \fB\-M\fR, \fB\-\-message\-queues\fR
-Display message queue details (not available on BSD).
+Display message queue details (not queryable on BSD).
 See
 .BR msgctl (2) "" .
 .\"
@@ -275,7 +281,7 @@ as alternate delimiter for text format output (default=\(aq: \(aq).
 .\"
 .TP
 \fB\-S\fR, \fB\-\-shared\-memory\fR
-Display shared memory details (not available on BSD).
+Display shared memory details (not queryable on BSD).
 See
 .BR shmctl (2) "" .
 .PP
@@ -319,9 +325,10 @@ Display version details.
 .\"
 .TP
 \fB\-w\fR, \fB\-\-capabilities\fR
-Display capability details (Linux only).
+Display Linux capability details. For FreeBSD file descriptor
+capabilities, see \fB\-\-file\-descriptors\fR.
 See
-.BR prctl (2) "" .
+.BR prctl (2) "" " (Linux)" "" "."
 .PP
 .\"
 .TP
@@ -503,7 +510,8 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .\"
 .SH SEE ALSO
-.BR capabilities (7) "" ,
+.BR capabilities (7) "" " (Linux), "
+.BR capsicum (4) "" " (BSD)" "" ", "
 .BR cc (1) "" ,
 .BR credentials (7) "" ,
 .BR date (1) "" ,
@@ -521,6 +529,7 @@ There is NO WARRANTY, to the extent permitted by law.
 .BR mount (1) "" ,
 .BR proc (5) "" ,
 .BR ps (1) "" ,
+.BR rights (4) "" (BSD),
 .BR sh (1) "" ,
 .BR stat (1) "" ,
 .BR stty (1) "" ,
