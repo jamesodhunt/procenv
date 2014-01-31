@@ -281,6 +281,15 @@
 #if defined (HAVE_SYS_CAPABILITY_H)
 #include <sys/capability.h>
 
+#if defined (PROCENV_BSD) && __FreeBSD__ == 9
+/* FreeBSD 9 introduced optional capabilities. FreeBSD enabled them by
+ * default, changing some of the system calls in the process, so handle
+ * the name changes.
+ */
+#define cap_rights_get(fd, rightsp) cap_getrights (fd, (rightsp))
+#define cap_rights_is_set(rightsp, cap) ((*rightsp) & (cap))
+#endif /* PROCENV_BSD && __FreeBSD__ == 9 */
+
 #define show_capsicum_cap(rights, cap) \
 	entry (#cap, "%s", cap_rights_is_set ((&rights), cap) ? YES_STR : NO_STR)
 #endif /* HAVE_SYS_CAPABILITY_H */
@@ -911,5 +920,7 @@ union semun {
 };
 
 #endif
+
+extern char **environ;
 
 #endif /* PROCENV_H */

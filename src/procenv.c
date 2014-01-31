@@ -28,8 +28,6 @@
 
 #include <procenv.h>
 
-extern char **environ;
-
 /**
  * doc:
  *
@@ -3699,12 +3697,18 @@ show_capabilities_bsd (int fd)
 	show_capsicum_cap (rights, CAP_ACL_GET);
 	show_capsicum_cap (rights, CAP_ACL_SET);
 	show_capsicum_cap (rights, CAP_BIND);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_BINDAT);
 	show_capsicum_cap (rights, CAP_CHFLAGSAT);
+#endif
 	show_capsicum_cap (rights, CAP_CONNECT);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_CONNECTAT);
+#endif
 	show_capsicum_cap (rights, CAP_CREATE);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_EVENT);
+#endif
 	show_capsicum_cap (rights, CAP_EXTATTR_DELETE);
 	show_capsicum_cap (rights, CAP_EXTATTR_GET);
 	show_capsicum_cap (rights, CAP_EXTATTR_LIST);
@@ -3712,33 +3716,44 @@ show_capabilities_bsd (int fd)
 	show_capsicum_cap (rights, CAP_FCHDIR);
 	show_capsicum_cap (rights, CAP_FCHFLAGS);
 	show_capsicum_cap (rights, CAP_FCHMOD);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_FCHMODAT);
+#endif
 	show_capsicum_cap (rights, CAP_FCHOWN);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_FCHOWNAT);
+#endif
 	show_capsicum_cap (rights, CAP_FCNTL);
 	show_capsicum_cap (rights, CAP_FEXECVE);
 	show_capsicum_cap (rights, CAP_FLOCK);
 	show_capsicum_cap (rights, CAP_FPATHCONF);
 	show_capsicum_cap (rights, CAP_FSCK);
 	show_capsicum_cap (rights, CAP_FSTAT);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_FSTATAT);
+#endif
 	show_capsicum_cap (rights, CAP_FSTATFS);
 	show_capsicum_cap (rights, CAP_FSYNC);
 	show_capsicum_cap (rights, CAP_FTRUNCATE);
 	show_capsicum_cap (rights, CAP_FUTIMES);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_FUTIMESAT);
+#endif
 	show_capsicum_cap (rights, CAP_GETPEERNAME);
 	show_capsicum_cap (rights, CAP_GETSOCKNAME);
 	show_capsicum_cap (rights, CAP_GETSOCKOPT);
 	show_capsicum_cap (rights, CAP_IOCTL);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_KQUEUE);
 	show_capsicum_cap (rights, CAP_KQUEUE_CHANGE);
 	show_capsicum_cap (rights, CAP_KQUEUE_EVENT);
 	show_capsicum_cap (rights, CAP_LINKAT);
+#endif
 	show_capsicum_cap (rights, CAP_LISTEN);
 	show_capsicum_cap (rights, CAP_LOOKUP);
 	show_capsicum_cap (rights, CAP_MAC_GET);
 	show_capsicum_cap (rights, CAP_MAC_SET);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_MKDIRAT);
 	show_capsicum_cap (rights, CAP_MKFIFOAT);
 	show_capsicum_cap (rights, CAP_MKNODAT);
@@ -3750,29 +3765,42 @@ show_capabilities_bsd (int fd)
 	show_capsicum_cap (rights, CAP_MMAP_W);
 	show_capsicum_cap (rights, CAP_MMAP_WX);
 	show_capsicum_cap (rights, CAP_MMAP_X);
+#endif
 	show_capsicum_cap (rights, CAP_PDGETPID);
 	show_capsicum_cap (rights, CAP_PDKILL);
 	show_capsicum_cap (rights, CAP_PDWAIT);
 	show_capsicum_cap (rights, CAP_PEELOFF);
 	show_capsicum_cap (rights, CAP_POLL_EVENT);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_PREAD);
 	show_capsicum_cap (rights, CAP_PWRITE);
+#endif
 	show_capsicum_cap (rights, CAP_READ);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_RECV);
 	show_capsicum_cap (rights, CAP_RENAMEAT);
+#endif
 	show_capsicum_cap (rights, CAP_SEEK);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_SEEK_TELL);
+#endif
 	show_capsicum_cap (rights, CAP_SEM_GETVALUE);
 	show_capsicum_cap (rights, CAP_SEM_POST);
 	show_capsicum_cap (rights, CAP_SEM_WAIT);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_SEND);
+#endif
 	show_capsicum_cap (rights, CAP_SETSOCKOPT);
 	show_capsicum_cap (rights, CAP_SHUTDOWN);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_SOCK_CLIENT);
 	show_capsicum_cap (rights, CAP_SOCK_SERVER);
 	show_capsicum_cap (rights, CAP_SYMLINKAT);
+#endif
 	show_capsicum_cap (rights, CAP_TTYHOOK);
+#if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_UNLINKAT);
+#endif
 	show_capsicum_cap (rights, CAP_WRITE);
 
 out:
