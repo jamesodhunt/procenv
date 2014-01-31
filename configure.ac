@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(procenv, 0.30, [james.hunt@ubuntu.com])
+AC_INIT(procenv, 0.31, [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
