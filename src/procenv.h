@@ -106,8 +106,10 @@
  * VERSION 3:
  *   - --fds: Added Capsicum capabilities for FreeBSD (alas this version
  *     is a NOP for non-BSD platforms).
+ * VERSION 4:
+ *   - added "symbolic" values to --range output.
  **/
-#define PROCENV_FORMAT_VERSION 3
+#define PROCENV_FORMAT_VERSION 4
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 

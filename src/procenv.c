@@ -4869,6 +4869,10 @@ get_arch (void)
 	return "ARM64/AARCH64";
 #endif
 
+#if defined (__OR1K__) || defined (__or1k__)
+	return "OpenRISC";
+#endif
+
 #ifdef __hppa__
 	return "HP/PA RISC";
 #endif
@@ -5125,6 +5129,7 @@ show_ranges (void)
 	section_open ("unsigned");
 
 	entry ("decimal", "%u to %u", 0, UCHAR_MAX);
+	entry ("symbolic", "%u to %s", 0, "UCHAR_MAX");
 
 	entry ("scientific", "%e to %e", (double)0, (double)UCHAR_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
@@ -5134,7 +5139,8 @@ show_ranges (void)
 	section_close ();
 
 	section_open ("signed");
-	entry ("decimal", "%d to %d", CHAR_MIN, CHAR_MAX);
+	entry ("decimal", "%d to %d", SCHAR_MIN, SCHAR_MAX);
+	entry ("symbolic", "%s to %s", "SCHAR_MIN", "SCHAR_MAX");
 	section_close ();
 
 	section_close ();
@@ -5145,6 +5151,7 @@ show_ranges (void)
 	show_size (short int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, USHRT_MAX);
+	entry ("symbolic", "%u to %s", 0, "USHRT_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)USHRT_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (short int), 0,
@@ -5153,6 +5160,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%d to %d", SHRT_MIN, SHRT_MAX);
+	entry ("symbolic", "%s to %s", "SHRT_MIN", "SHRT_MAX");
 	section_close ();
 
 	section_close ();
@@ -5163,6 +5171,7 @@ show_ranges (void)
 	show_size (int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, UINT_MAX);
+	entry ("symbolic", "%u to %s", 0, "UINT_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)UINT_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (int), 0,
@@ -5171,6 +5180,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%d to %d", INT_MIN, INT_MAX);
+	entry ("symbolic", "%s to %s", "INT_MIN", "INT_MAX");
 	section_close ();
 
 	section_close ();
@@ -5181,6 +5191,7 @@ show_ranges (void)
 	show_size (long int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, ULONG_MAX);
+	entry ("symbolic", "%u to %s", 0, "ULONG_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)ULONG_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (long int), 0L,
@@ -5189,6 +5200,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%ld to %ld", LONG_MIN, LONG_MAX);
+	entry ("symbolic", "%s to %s", "LONG_MIN", "LONG_MAX");
 	section_close ();
 
 	section_close ();
@@ -5199,6 +5211,7 @@ show_ranges (void)
 	show_size (long long int);
 	section_open ("unsigned");
 	entry ("decimal", "%llu to %llu", 0, ULLONG_MAX);
+	entry ("symbolic", "%u to %s", 0, "ULLONG_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)ULLONG_MAX);
 	entry ("hex", "0x%.*llx to 0x%.*llx",
 			type_hex_width (long long int), 0LL,
@@ -5207,6 +5220,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%lld to %lld", LLONG_MIN, LLONG_MAX);
+	entry ("symbolic", "%s to %s", "LLONG_MIN", "LLONG_MAX");
 	section_close ();
 
 	section_close ();
@@ -5215,18 +5229,21 @@ show_ranges (void)
 	section_open ("float");
 	show_size (float);
 	entry ("signed", "%e to %e", FLT_MIN, FLT_MAX);
+	entry ("symbolic", "%s to %s", "FLT_MIN", "FLT_MAX");
 	section_close ();
 
 	/******************************/
 	section_open ("double");
 	show_size (double);
 	entry ("signed", "%le to %le", DBL_MIN, DBL_MAX);
+	entry ("symbolic", "%s to %s", "DBL_MIN", "DBL_MAX");
 	section_close ();
 
 	/******************************/
 	section_open ("long double");
 	show_size (long double);
 	entry ("signed", "%Le to %Le", LDBL_MIN, LDBL_MAX);
+	entry ("symbolic", "%s to %s", "LDBL_MIN", "LDBL_MAX");
 	section_close ();
 
 	/******************************/
