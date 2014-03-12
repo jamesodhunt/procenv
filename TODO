@@ -1,5 +1,8 @@
 # TODO
 
+- -- capabilities: fix to show not only whether cap is in bounding set,
+  but whether it is enabled for the process.
+  Requires either -lcap or -lcap-ng ? (prctl?)
 - --memory: show physical RAM:
 	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:
@@ -50,8 +53,6 @@
 - Networking details
   - IPv6 scope_id.
   - gateway.
-- Add to show_sizeof():
-  suseconds_t.
 - sort network interfaces.
 - add to show_sizeof():
   - intN_t group   
