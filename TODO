@@ -1,8 +1,5 @@
 # TODO
 
-- -- capabilities: fix to show not only whether cap is in bounding set,
-  but whether it is enabled for the process.
-  Requires either -lcap or -lcap-ng ? (prctl?)
 - --memory: show physical RAM:
 	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:
@@ -36,7 +33,6 @@
 - Use weak symbols/VPATH to avoid ifdefs!
 - Display numeric values for all symbols?:
 	- limits (RLIMIT_AS)
-	- capabilities (CAP_CHOWN)
 	- clocks (CLOCK_REALTIME)
 	- pathconf (_PC_LINK_MAX)
 	- sysconf (ARG_MAX)

@@ -5,7 +5,6 @@
 
 0.31	2014-01-31
 
-
 	* FEATURE: Added RPM specfile courtesy of Dave Love.
 	* FEATURE: --capabilities now displays Capsicum capabilities
 	  if available (FreeBSD 9/10+).

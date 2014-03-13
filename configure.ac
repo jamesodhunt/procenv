@@ -46,6 +46,8 @@ AC_CHECK_HEADERS([numa.h])
 AC_SEARCH_LIBS([cap_getmode], [c])
 AC_CHECK_HEADERS([sys/capability.h])
 
+AC_SEARCH_LIBS([cap_init], [cap])
+
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])

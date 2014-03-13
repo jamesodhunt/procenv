@@ -70,6 +70,7 @@
 #include <sys/sem.h>
 #include <sys/msg.h>
 #include <regex.h>
+#include <sys/capability.h>
 
 #include <pr_list.h>
 
@@ -108,8 +109,12 @@
  *     is a NOP for non-BSD platforms).
  * VERSION 4:
  *   - added "symbolic" values to --range output.
+ * VERSION 5:
+ *   - capabilities output changed on linux to show not just the
+ *     bounding set, but also permitted, inheritable and enabled values
+ *     along with the numeric value of the define.
  **/
-#define PROCENV_FORMAT_VERSION 4
+#define PROCENV_FORMAT_VERSION 5
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -195,26 +200,64 @@
 
 /**
  * show_capability:
+ * @caps: cap_t,
  * @cap: capability.
  *
  * Display specified capability, or NOT_DEFINED_STR if value is
  * unknown.
  **/
 #ifdef PR_CAPBSET_READ
-#define show_capability(cap) \
+#define show_capability(caps, cap) \
+	_show_capability (caps, cap, #cap)
+#define _show_capability(caps, cap, name) \
 { \
+	int ret; \
+	int effective; \
+	int inheritable; \
+	int permitted; \
+	\
 	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
 	\
-	object_open (FALSE); \
-	entry (#cap, "%s", ret < 0 \
-			? NOT_DEFINED_STR \
+	effective = get_capability_by_flag_type (caps, CAP_EFFECTIVE, cap); \
+	inheritable = get_capability_by_flag_type (caps, CAP_INHERITABLE, cap); \
+	permitted = get_capability_by_flag_type (caps, CAP_PERMITTED, cap); \
+	\
+	section_open (name); \
+	\
+	entry ("number", "%d", cap); \
+	\
+	entry ("in bounding set", "%s", \
+			ret < 0 \
+			? UNKNOWN_STR \
 			: ret \
 			? YES_STR \
 			: NO_STR); \
-	object_close (FALSE); \
+	\
+	entry ("effective", "%s", \
+			effective < 0 \
+			? NOT_DEFINED_STR \
+			: effective == CAP_SET \
+			? YES_STR \
+			: NO_STR); \
+	\
+	entry ("inheritable", "%s", \
+			inheritable < 0 \
+			? NOT_DEFINED_STR \
+			: inheritable == CAP_SET \
+			? YES_STR \
+			: NO_STR); \
+	\
+	entry ("permitted", "%s", \
+			permitted < 0 \
+			? NOT_DEFINED_STR \
+			: permitted == CAP_SET \
+			? YES_STR \
+			: NO_STR); \
+	\
+	section_close (); \
 }
 #else
-#define show_capability(cap)
+#define show_capability(caps, cap)
 #endif
 
 /**
@@ -857,6 +900,7 @@ void show_fds_linux (void);
 void show_cgroups_linux (void);
 void show_oom_linux (void);
 void show_timezone_linux (void);
+int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap);
 void show_capabilities_linux (void);
 void show_security_module_linux (void);
 void show_security_module_context_linux (void);

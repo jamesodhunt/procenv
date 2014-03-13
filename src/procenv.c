@@ -5484,70 +5484,129 @@ show_capabilities (void)
 
 #if defined (PROCENV_LINUX)
 
+int
+get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
+{
+    int               ret;
+    cap_flag_value_t  result;
+
+    assert (cap_p);
+
+    ret = cap_get_flag (cap_p, cap, type, &result);
+
+    return ret < 0 ? ret : result;
+}
+
 void
 show_capabilities_linux (void)
 {
-	int ret;
+	/* Most recently-added capability that procenv knew about at
+	 * compile time.
+	 */
+	int    last_known = CAP_LAST_CAP;
+
+	int    ret;
+	cap_t  caps;
 
 	header ("capabilities");
 
-	container_open ("list");
+	caps = cap_get_proc();
 
-	show_capability (CAP_CHOWN);
-	show_capability (CAP_DAC_OVERRIDE);
-	show_capability (CAP_DAC_READ_SEARCH);
-	show_capability (CAP_FOWNER);
-	show_capability (CAP_FSETID);
-	show_capability (CAP_KILL);
-	show_capability (CAP_SETGID);
-	show_capability (CAP_SETUID);
-	show_capability (CAP_SETPCAP);
-	show_capability (CAP_LINUX_IMMUTABLE);
-	show_capability (CAP_NET_BIND_SERVICE);
-	show_capability (CAP_NET_BROADCAST);
-	show_capability (CAP_NET_ADMIN);
-	show_capability (CAP_NET_RAW);
-	show_capability (CAP_IPC_LOCK);
-	show_capability (CAP_IPC_OWNER);
-	show_capability (CAP_SYS_MODULE);
-	show_capability (CAP_SYS_RAWIO);
-	show_capability (CAP_SYS_CHROOT);
-	show_capability (CAP_SYS_PTRACE);
-	show_capability (CAP_SYS_PACCT);
-	show_capability (CAP_SYS_ADMIN);
-	show_capability (CAP_SYS_BOOT);
-	show_capability (CAP_SYS_NICE);
-	show_capability (CAP_SYS_RESOURCE);
-	show_capability (CAP_SYS_TIME);
-	show_capability (CAP_SYS_TTY_CONFIG);
+	if (! caps)
+		goto out;
+
+	section_open ("known");
+
+	show_capability (caps, CAP_CHOWN);
+	show_capability (caps, CAP_DAC_OVERRIDE);
+	show_capability (caps, CAP_DAC_READ_SEARCH);
+	show_capability (caps, CAP_FOWNER);
+	show_capability (caps, CAP_FSETID);
+	show_capability (caps, CAP_KILL);
+	show_capability (caps, CAP_SETGID);
+	show_capability (caps, CAP_SETUID);
+	show_capability (caps, CAP_SETPCAP);
+	show_capability (caps, CAP_LINUX_IMMUTABLE);
+	show_capability (caps, CAP_NET_BIND_SERVICE);
+	show_capability (caps, CAP_NET_BROADCAST);
+	show_capability (caps, CAP_NET_ADMIN);
+	show_capability (caps, CAP_NET_RAW);
+	show_capability (caps, CAP_IPC_LOCK);
+	show_capability (caps, CAP_IPC_OWNER);
+	show_capability (caps, CAP_SYS_MODULE);
+	show_capability (caps, CAP_SYS_RAWIO);
+	show_capability (caps, CAP_SYS_CHROOT);
+	show_capability (caps, CAP_SYS_PTRACE);
+	show_capability (caps, CAP_SYS_PACCT);
+	show_capability (caps, CAP_SYS_ADMIN);
+	show_capability (caps, CAP_SYS_BOOT);
+	show_capability (caps, CAP_SYS_NICE);
+	show_capability (caps, CAP_SYS_RESOURCE);
+	show_capability (caps, CAP_SYS_TIME);
+	show_capability (caps, CAP_SYS_TTY_CONFIG);
 
 	if (LINUX_KERNEL_MM (2, 4)) {
-		show_capability (CAP_MKNOD);
-		show_capability (CAP_LEASE);
+		show_capability (caps, CAP_MKNOD);
+		show_capability (caps, CAP_LEASE);
 	}
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
-		show_capability (CAP_AUDIT_WRITE);
-		show_capability (CAP_AUDIT_CONTROL);
+		show_capability (caps, CAP_AUDIT_WRITE);
+		show_capability (caps, CAP_AUDIT_CONTROL);
 	}
 	if (LINUX_KERNEL_MMR (2, 6, 24))
-		show_capability (CAP_SETFCAP);
+		show_capability (caps, CAP_SETFCAP);
 	if (LINUX_KERNEL_MMR (2, 6, 25)) {
-		show_capability (CAP_MAC_OVERRIDE);
-		show_capability (CAP_MAC_ADMIN);
+		show_capability (caps, CAP_MAC_OVERRIDE);
+		show_capability (caps, CAP_MAC_ADMIN);
 	}
 
 #ifdef CAP_SYSLOG
 	if (LINUX_KERNEL_MMR (2, 6, 37))
-		show_capability (CAP_SYSLOG);
+		show_capability (caps, CAP_SYSLOG);
 
 #endif
 
 #ifdef CAP_WAKE_ALARM
 	if (LINUX_KERNEL_MM (3, 0))
-		show_capability (CAP_WAKE_ALARM);
+		show_capability (caps, CAP_WAKE_ALARM);
 #endif
 
-	container_close ();
+#ifdef CAP_BLOCK_SUSPEND
+	if (LINUX_KERNEL_MM (3, 5))
+		show_capability (caps, CAP_BLOCK_SUSPEND);
+#endif
+
+	section_close ();
+
+	/* It's possible that procenv is running on a system which has
+	 * more capabilities that the system it was built on (for
+	 * example, it might be running in a chroot with a newer kernel
+	 * than the chroot environment). So display any unknown
+	 * capabilities. We don't have their names, but it's useful to
+	 * see that there are additional capabilities in available in
+	 * the environment.
+	 */
+	section_open ("unknown");
+
+	for (int i = 1+last_known; ; i++) {
+		char  *name = NULL;
+
+		ret = prctl (PR_CAPBSET_READ, i, 0, 0, 0);
+		if (ret < 0)
+			break;
+
+		/* Found an "unknown" */
+
+		appendf (&name, "CAP_LAST_CAP+%d", i);
+
+		_show_capability (caps, i, name);
+
+		free (name);
+	}
+
+	section_close ();
+
+	entry ("CAP_LAST_CAP", "%d", CAP_LAST_CAP);
 
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
@@ -5588,6 +5647,7 @@ show_capabilities_linux (void)
 	}
 #endif
 
+out:
 	footer ();
 }
 
