@@ -11,7 +11,10 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 # fixme: should be autoconf >= 2.68, but Fedora packages or alien'ed dpkg
 # need a later m4 too
-BuildRequires:  gcc, make, binutils, autoconf, automake, pkgconfig
+BuildRequires:  gcc, make, binutils, autoconf, automake, pkgconfig, perl-JSON-PP, expat
+%ifnarch %{arm} s390 s390x
+BuildRequires:  numactl-devel
+%endif
 
 %description
 This package contains a command-line tool that displays as much
@@ -26,9 +29,13 @@ process runs in, and for comparing system environments.
 %configure
 make %{?_smp_mflags}
 
+
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
+
+%check
+make check
 
 %clean
 rm -rf $RPM_BUILD_ROOT

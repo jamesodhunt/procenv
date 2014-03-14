@@ -1,10 +1,21 @@
+0.33	2014-03-14
+
+	* Improved RPM spec file to include check phase and Conditional
+	  architecture dependency logic.
+	* Updated for OpenRISC.
+	* --ranges now also shows the symbolic names (such as "LONG_MAX").
+	* Reworked capabilities support to show effective, inheritable and
+	  permitted value for each capability in addition to the existing
+	  bounding set value. Will also display "unknown" capabilities if run on
+	  a system whose running kernel has more capabilities than the system
+	  procenv was built on.
+
 0.32	2014-01-31
 
 	* Generate .spec file to ensure version stays in sync with
 	  configure.ac.
 
 0.31	2014-01-31
-
 
 	* FEATURE: Added RPM specfile courtesy of Dave Love.
 	* FEATURE: --capabilities now displays Capsicum capabilities

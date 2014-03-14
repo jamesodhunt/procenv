@@ -1,5 +1,7 @@
 # TODO
 
+- --memory: show physical RAM:
+	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:
   - MAC: mac_get_file(3), mac(3,4)
 - --stat:
@@ -9,7 +11,7 @@
 - --cpu:
   - change 'number' to 'index' and make it zero-based for consistency
     with affinity list
-  - XXX: bump 'format-version' to 3!!
+  - XXX: bump 'format-version' !!
 - Tests:
   - check man page options vs. 'procenv --help' to look for
     inconsistencies.
@@ -31,11 +33,9 @@
 - Use weak symbols/VPATH to avoid ifdefs!
 - Display numeric values for all symbols?:
 	- limits (RLIMIT_AS)
-	- capabilities (CAP_CHOWN)
 	- clocks (CLOCK_REALTIME)
 	- pathconf (_PC_LINK_MAX)
 	- sysconf (ARG_MAX)
-	- etc
   XXX: must be consistent with existing signals (SIGHUP, etc)!!
 - BUG: all numbers are displayed as strings in json output.
 - Add in ability to specify a platform restriction for certain details by modifying
@@ -48,8 +48,6 @@
 - Networking details
   - IPv6 scope_id.
   - gateway.
-- Add to show_sizeof():
-  suseconds_t.
 - sort network interfaces.
 - add to show_sizeof():
   - intN_t group   
