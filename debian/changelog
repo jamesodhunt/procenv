@@ -1,9 +1,9 @@
-procenv (0.33-1) UNRELEASED; urgency=medium
+procenv (0.33-1) unstable; urgency=medium
 
   * debian/control: Add Build-Depends on libcap-dev for upcoming release.
   * New upstream release.
 
- -- James Hunt <james.hunt@ubuntu.com>  Fri, 14 Mar 2014 20:41:22 +0000
+ -- James Hunt <james.hunt@ubuntu.com>  Fri, 14 Mar 2014 20:44:41 +0000
 
 procenv (0.32-1) unstable; urgency=medium
 
