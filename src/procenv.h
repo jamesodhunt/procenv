@@ -70,7 +70,6 @@
 #include <sys/sem.h>
 #include <sys/msg.h>
 #include <regex.h>
-#include <sys/capability.h>
 
 #include <pr_list.h>
 
@@ -211,12 +210,12 @@
 	_show_capability (caps, cap, #cap)
 #define _show_capability(caps, cap, name) \
 { \
-	int ret; \
+	int bound; \
 	int effective; \
 	int inheritable; \
 	int permitted; \
 	\
-	ret = prctl (PR_CAPBSET_READ, cap, 0, 0, 0); \
+	bound = cap_get_bound (cap); \
 	\
 	effective = get_capability_by_flag_type (caps, CAP_EFFECTIVE, cap); \
 	inheritable = get_capability_by_flag_type (caps, CAP_INHERITABLE, cap); \
@@ -226,10 +225,14 @@
 	\
 	entry ("number", "%d", cap); \
 	\
+	entry ("supported", "%s", \
+			CAP_IS_SUPPORTED (cap) \
+			? YES_STR : NO_STR); \
+	\
 	entry ("in bounding set", "%s", \
-			ret < 0 \
+			bound < 0 \
 			? UNKNOWN_STR \
-			: ret \
+			: bound \
 			? YES_STR \
 			: NO_STR); \
 	\
@@ -340,6 +343,10 @@
 #endif /* HAVE_SYS_CAPABILITY_H */
 
 #elif defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+
+#if defined (HAVE_SYS_CAPABILITY_H)
+#include <sys/capability.h>
+#endif
 
 #define PROCENV_CPU_SET_TYPE cpu_set_t
 

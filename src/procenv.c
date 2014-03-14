@@ -5595,7 +5595,7 @@ show_capabilities_linux (void)
 	for (int i = 1+last_known; ; i++) {
 		char  *name = NULL;
 
-		ret = prctl (PR_CAPBSET_READ, i, 0, 0, 0);
+		ret = cap_get_bound (i);
 		if (ret < 0)
 			break;
 
@@ -5607,6 +5607,8 @@ show_capabilities_linux (void)
 
 		free (name);
 	}
+
+	cap_free (caps);
 
 	section_close ();
 

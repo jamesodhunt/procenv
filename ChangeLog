@@ -3,6 +3,12 @@
 	* src/procenv.c:
 	  - show_mounts_linux(): Don't quote unknown canonical name.
 	  - get_canonical(): Return value denoting if name was known.
+	  - show_capabilities_linux():
+	  - Use cap_get_bound() rather than prctl().
+	  - Memory leak fix.
+	* src/procenv.h: _show_capability(): 
+	  - Use cap_get_bound() rather than prctl().
+	  - Add "supported".
 
 2014-03-13  James Hunt  <james.hunt@ubuntu.com>
 
