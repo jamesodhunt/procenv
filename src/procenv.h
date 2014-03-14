@@ -894,7 +894,7 @@ void show_capabilities (void);
 
 void decode_if_flags (unsigned int flags);
 void decode_extended_if_flags (const char *interface, unsigned short *flags);
-void get_canonical (const char *path, char *canonical, size_t len);
+int get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);
 void show_cgroups_linux (void);

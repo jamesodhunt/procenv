@@ -2887,6 +2887,7 @@ show_mounts_linux (ShowMountType what)
 			fsblkcnt_t bavail = 0;
 			fsblkcnt_t used_blocks = 0;
 			fsblkcnt_t used_files = 0;
+			int        ret;
 
 			if (statvfs (mnt->mnt_dir, &fs) < 0) {
 				have_stats = FALSE;
@@ -2910,8 +2911,11 @@ show_mounts_linux (ShowMountType what)
 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
 
 #if defined (PROCENV_LINUX)
-			get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
-			entry ("canonical", "'%s'", canonical);
+			ret = get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
+			entry ("canonical", "%s%s%s",
+					ret ? "'" : "",
+					canonical,
+					ret ? "'" : "");
 #endif
 
 			entry ("type", "'%s'", mnt->mnt_type);
@@ -5510,7 +5514,7 @@ show_capabilities_linux (void)
 
 	header ("capabilities");
 
-	caps = cap_get_proc();
+	caps = cap_get_proc ();
 
 	if (! caps)
 		goto out;
@@ -5934,20 +5938,25 @@ unknown_sched_cpu:
  * FIXME: this should fully resolve not just sym links but replace all
  * occurences of '../' by the appropriate direcotry!
  **/
-void
+int
 get_canonical (const char *path, char *canonical, size_t len)
 {
 	ssize_t  bytes;
+	int      ret = TRUE;
 
 	assert (path);
 	assert (canonical);
 	assert (len);
 
 	bytes = readlink (path, canonical, len);
-	if (bytes < 0)
+	if (bytes < 0) {
 		sprintf (canonical, UNKNOWN_STR);
-	else
+		ret = FALSE;
+	} else {
 		canonical[bytes] = '\0';
+	}
+
+	return ret;
 }
 
 void

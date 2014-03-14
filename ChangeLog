@@ -1,3 +1,9 @@
+2014-03-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_mounts_linux(): Don't quote unknown canonical name.
+	  - get_canonical(): Return value denoting if name was known.
+
 2014-03-13  James Hunt  <james.hunt@ubuntu.com>
 
 	* NEWS: Corrected formatting.
