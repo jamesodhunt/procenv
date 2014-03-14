@@ -1,3 +1,9 @@
+procenv (0.33-2) unstable; urgency=medium
+
+  * debian/control: Only Build-Depend on libcap-dev on linux.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Fri, 14 Mar 2014 23:01:57 +0000
+
 procenv (0.33-1) unstable; urgency=medium
 
   * debian/control: Add Build-Depends on libcap-dev for upcoming release.
