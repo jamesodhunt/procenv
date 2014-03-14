@@ -2887,6 +2887,7 @@ show_mounts_linux (ShowMountType what)
 			fsblkcnt_t bavail = 0;
 			fsblkcnt_t used_blocks = 0;
 			fsblkcnt_t used_files = 0;
+			int        ret;
 
 			if (statvfs (mnt->mnt_dir, &fs) < 0) {
 				have_stats = FALSE;
@@ -2910,8 +2911,11 @@ show_mounts_linux (ShowMountType what)
 			entry ("filesystem", "'%s'", mnt->mnt_fsname);
 
 #if defined (PROCENV_LINUX)
-			get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
-			entry ("canonical", "'%s'", canonical);
+			ret = get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
+			entry ("canonical", "%s%s%s",
+					ret ? "'" : "",
+					canonical,
+					ret ? "'" : "");
 #endif
 
 			entry ("type", "'%s'", mnt->mnt_type);
@@ -4869,6 +4873,10 @@ get_arch (void)
 	return "ARM64/AARCH64";
 #endif
 
+#if defined (__OR1K__) || defined (__or1k__)
+	return "OpenRISC";
+#endif
+
 #ifdef __hppa__
 	return "HP/PA RISC";
 #endif
@@ -5125,6 +5133,7 @@ show_ranges (void)
 	section_open ("unsigned");
 
 	entry ("decimal", "%u to %u", 0, UCHAR_MAX);
+	entry ("symbolic", "%u to %s", 0, "UCHAR_MAX");
 
 	entry ("scientific", "%e to %e", (double)0, (double)UCHAR_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
@@ -5134,7 +5143,8 @@ show_ranges (void)
 	section_close ();
 
 	section_open ("signed");
-	entry ("decimal", "%d to %d", CHAR_MIN, CHAR_MAX);
+	entry ("decimal", "%d to %d", SCHAR_MIN, SCHAR_MAX);
+	entry ("symbolic", "%s to %s", "SCHAR_MIN", "SCHAR_MAX");
 	section_close ();
 
 	section_close ();
@@ -5145,6 +5155,7 @@ show_ranges (void)
 	show_size (short int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, USHRT_MAX);
+	entry ("symbolic", "%u to %s", 0, "USHRT_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)USHRT_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (short int), 0,
@@ -5153,6 +5164,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%d to %d", SHRT_MIN, SHRT_MAX);
+	entry ("symbolic", "%s to %s", "SHRT_MIN", "SHRT_MAX");
 	section_close ();
 
 	section_close ();
@@ -5163,6 +5175,7 @@ show_ranges (void)
 	show_size (int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, UINT_MAX);
+	entry ("symbolic", "%u to %s", 0, "UINT_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)UINT_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (int), 0,
@@ -5171,6 +5184,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%d to %d", INT_MIN, INT_MAX);
+	entry ("symbolic", "%s to %s", "INT_MIN", "INT_MAX");
 	section_close ();
 
 	section_close ();
@@ -5181,6 +5195,7 @@ show_ranges (void)
 	show_size (long int);
 	section_open ("unsigned");
 	entry ("decimal", "%u to %u", 0, ULONG_MAX);
+	entry ("symbolic", "%u to %s", 0, "ULONG_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)ULONG_MAX);
 	entry ("hex", "0x%.*x to 0x%.*x",
 			type_hex_width (long int), 0L,
@@ -5189,6 +5204,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%ld to %ld", LONG_MIN, LONG_MAX);
+	entry ("symbolic", "%s to %s", "LONG_MIN", "LONG_MAX");
 	section_close ();
 
 	section_close ();
@@ -5199,6 +5215,7 @@ show_ranges (void)
 	show_size (long long int);
 	section_open ("unsigned");
 	entry ("decimal", "%llu to %llu", 0, ULLONG_MAX);
+	entry ("symbolic", "%u to %s", 0, "ULLONG_MAX");
 	entry ("scientific", "%e to %e", (double)0, (double)ULLONG_MAX);
 	entry ("hex", "0x%.*llx to 0x%.*llx",
 			type_hex_width (long long int), 0LL,
@@ -5207,6 +5224,7 @@ show_ranges (void)
 
 	section_open ("signed");
 	entry ("decimal", "%lld to %lld", LLONG_MIN, LLONG_MAX);
+	entry ("symbolic", "%s to %s", "LLONG_MIN", "LLONG_MAX");
 	section_close ();
 
 	section_close ();
@@ -5215,18 +5233,21 @@ show_ranges (void)
 	section_open ("float");
 	show_size (float);
 	entry ("signed", "%e to %e", FLT_MIN, FLT_MAX);
+	entry ("symbolic", "%s to %s", "FLT_MIN", "FLT_MAX");
 	section_close ();
 
 	/******************************/
 	section_open ("double");
 	show_size (double);
 	entry ("signed", "%le to %le", DBL_MIN, DBL_MAX);
+	entry ("symbolic", "%s to %s", "DBL_MIN", "DBL_MAX");
 	section_close ();
 
 	/******************************/
 	section_open ("long double");
 	show_size (long double);
 	entry ("signed", "%Le to %Le", LDBL_MIN, LDBL_MAX);
+	entry ("symbolic", "%s to %s", "LDBL_MIN", "LDBL_MAX");
 	section_close ();
 
 	/******************************/
@@ -5467,70 +5488,131 @@ show_capabilities (void)
 
 #if defined (PROCENV_LINUX)
 
+int
+get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
+{
+    int               ret;
+    cap_flag_value_t  result;
+
+    assert (cap_p);
+
+    ret = cap_get_flag (cap_p, cap, type, &result);
+
+    return ret < 0 ? ret : result;
+}
+
 void
 show_capabilities_linux (void)
 {
-	int ret;
+	/* Most recently-added capability that procenv knew about at
+	 * compile time.
+	 */
+	int    last_known = CAP_LAST_CAP;
+
+	int    ret;
+	cap_t  caps;
 
 	header ("capabilities");
 
-	container_open ("list");
+	caps = cap_get_proc ();
 
-	show_capability (CAP_CHOWN);
-	show_capability (CAP_DAC_OVERRIDE);
-	show_capability (CAP_DAC_READ_SEARCH);
-	show_capability (CAP_FOWNER);
-	show_capability (CAP_FSETID);
-	show_capability (CAP_KILL);
-	show_capability (CAP_SETGID);
-	show_capability (CAP_SETUID);
-	show_capability (CAP_SETPCAP);
-	show_capability (CAP_LINUX_IMMUTABLE);
-	show_capability (CAP_NET_BIND_SERVICE);
-	show_capability (CAP_NET_BROADCAST);
-	show_capability (CAP_NET_ADMIN);
-	show_capability (CAP_NET_RAW);
-	show_capability (CAP_IPC_LOCK);
-	show_capability (CAP_IPC_OWNER);
-	show_capability (CAP_SYS_MODULE);
-	show_capability (CAP_SYS_RAWIO);
-	show_capability (CAP_SYS_CHROOT);
-	show_capability (CAP_SYS_PTRACE);
-	show_capability (CAP_SYS_PACCT);
-	show_capability (CAP_SYS_ADMIN);
-	show_capability (CAP_SYS_BOOT);
-	show_capability (CAP_SYS_NICE);
-	show_capability (CAP_SYS_RESOURCE);
-	show_capability (CAP_SYS_TIME);
-	show_capability (CAP_SYS_TTY_CONFIG);
+	if (! caps)
+		goto out;
+
+	section_open ("known");
+
+	show_capability (caps, CAP_CHOWN);
+	show_capability (caps, CAP_DAC_OVERRIDE);
+	show_capability (caps, CAP_DAC_READ_SEARCH);
+	show_capability (caps, CAP_FOWNER);
+	show_capability (caps, CAP_FSETID);
+	show_capability (caps, CAP_KILL);
+	show_capability (caps, CAP_SETGID);
+	show_capability (caps, CAP_SETUID);
+	show_capability (caps, CAP_SETPCAP);
+	show_capability (caps, CAP_LINUX_IMMUTABLE);
+	show_capability (caps, CAP_NET_BIND_SERVICE);
+	show_capability (caps, CAP_NET_BROADCAST);
+	show_capability (caps, CAP_NET_ADMIN);
+	show_capability (caps, CAP_NET_RAW);
+	show_capability (caps, CAP_IPC_LOCK);
+	show_capability (caps, CAP_IPC_OWNER);
+	show_capability (caps, CAP_SYS_MODULE);
+	show_capability (caps, CAP_SYS_RAWIO);
+	show_capability (caps, CAP_SYS_CHROOT);
+	show_capability (caps, CAP_SYS_PTRACE);
+	show_capability (caps, CAP_SYS_PACCT);
+	show_capability (caps, CAP_SYS_ADMIN);
+	show_capability (caps, CAP_SYS_BOOT);
+	show_capability (caps, CAP_SYS_NICE);
+	show_capability (caps, CAP_SYS_RESOURCE);
+	show_capability (caps, CAP_SYS_TIME);
+	show_capability (caps, CAP_SYS_TTY_CONFIG);
 
 	if (LINUX_KERNEL_MM (2, 4)) {
-		show_capability (CAP_MKNOD);
-		show_capability (CAP_LEASE);
+		show_capability (caps, CAP_MKNOD);
+		show_capability (caps, CAP_LEASE);
 	}
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
-		show_capability (CAP_AUDIT_WRITE);
-		show_capability (CAP_AUDIT_CONTROL);
+		show_capability (caps, CAP_AUDIT_WRITE);
+		show_capability (caps, CAP_AUDIT_CONTROL);
 	}
 	if (LINUX_KERNEL_MMR (2, 6, 24))
-		show_capability (CAP_SETFCAP);
+		show_capability (caps, CAP_SETFCAP);
 	if (LINUX_KERNEL_MMR (2, 6, 25)) {
-		show_capability (CAP_MAC_OVERRIDE);
-		show_capability (CAP_MAC_ADMIN);
+		show_capability (caps, CAP_MAC_OVERRIDE);
+		show_capability (caps, CAP_MAC_ADMIN);
 	}
 
 #ifdef CAP_SYSLOG
 	if (LINUX_KERNEL_MMR (2, 6, 37))
-		show_capability (CAP_SYSLOG);
+		show_capability (caps, CAP_SYSLOG);
 
 #endif
 
 #ifdef CAP_WAKE_ALARM
 	if (LINUX_KERNEL_MM (3, 0))
-		show_capability (CAP_WAKE_ALARM);
+		show_capability (caps, CAP_WAKE_ALARM);
 #endif
 
-	container_close ();
+#ifdef CAP_BLOCK_SUSPEND
+	if (LINUX_KERNEL_MM (3, 5))
+		show_capability (caps, CAP_BLOCK_SUSPEND);
+#endif
+
+	section_close ();
+
+	/* It's possible that procenv is running on a system which has
+	 * more capabilities that the system it was built on (for
+	 * example, it might be running in a chroot with a newer kernel
+	 * than the chroot environment). So display any unknown
+	 * capabilities. We don't have their names, but it's useful to
+	 * see that there are additional capabilities in available in
+	 * the environment.
+	 */
+	section_open ("unknown");
+
+	for (int i = 1+last_known; ; i++) {
+		char  *name = NULL;
+
+		ret = cap_get_bound (i);
+		if (ret < 0)
+			break;
+
+		/* Found an "unknown" */
+
+		appendf (&name, "CAP_LAST_CAP+%d", i);
+
+		_show_capability (caps, i, name);
+
+		free (name);
+	}
+
+	cap_free (caps);
+
+	section_close ();
+
+	entry ("CAP_LAST_CAP", "%d", CAP_LAST_CAP);
 
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
@@ -5571,6 +5653,7 @@ show_capabilities_linux (void)
 	}
 #endif
 
+out:
 	footer ();
 }
 
@@ -5857,20 +5940,25 @@ unknown_sched_cpu:
  * FIXME: this should fully resolve not just sym links but replace all
  * occurences of '../' by the appropriate direcotry!
  **/
-void
+int
 get_canonical (const char *path, char *canonical, size_t len)
 {
 	ssize_t  bytes;
+	int      ret = TRUE;
 
 	assert (path);
 	assert (canonical);
 	assert (len);
 
 	bytes = readlink (path, canonical, len);
-	if (bytes < 0)
+	if (bytes < 0) {
 		sprintf (canonical, UNKNOWN_STR);
-	else
+		ret = FALSE;
+	} else {
 		canonical[bytes] = '\0';
+	}
+
+	return ret;
 }
 
 void

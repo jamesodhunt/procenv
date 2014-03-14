@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([procenv_version], 0.32)
+m4_define([procenv_version], 0.33)
 
 AC_INIT(procenv, [procenv_version], [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
@@ -45,6 +45,8 @@ AC_CHECK_HEADERS([numa.h])
 # (enabled by default in FreeBSD 10)
 AC_SEARCH_LIBS([cap_getmode], [c])
 AC_CHECK_HEADERS([sys/capability.h])
+
+AC_SEARCH_LIBS([cap_init], [cap])
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])

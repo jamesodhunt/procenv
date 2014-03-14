@@ -1,3 +1,35 @@
+2014-03-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_mounts_linux(): Don't quote unknown canonical name.
+	  - get_canonical(): Return value denoting if name was known.
+	  - show_capabilities_linux():
+	  - Use cap_get_bound() rather than prctl().
+	  - Memory leak fix.
+	* src/procenv.h: _show_capability(): 
+	  - Use cap_get_bound() rather than prctl().
+	  - Add "supported".
+
+2014-03-13  James Hunt  <james.hunt@ubuntu.com>
+
+	* NEWS: Corrected formatting.
+	* TODO: Updates.
+	* configure.ac: Link to libcap if available.
+	* src/procenv.c:
+	  - get_capability_by_flag(): New function to query a capability value
+	    for a specified capability type.
+	  - show_capabilities_linux():
+	    - Make use of libcap calls.
+	    - Add missing CAP_BLOCK_SUSPEND.
+	    - Show "unknown" capabilities if detected (capabilities that the
+	      running kernel supports which procenv doesn't know about).
+	* src/procenv.h:
+	  - PROCENV_FORMAT_VERSION: bumped to version 5 for capabilities output
+	    format change.
+	  - show_capability(): Now calls _show_capability().
+	  - _show_capability(): Reworking of show_capability() macro that uses
+	    libcap calls and works for unknowns too.
+
 2014-01-31  James Hunt  <james.hunt@ubuntu.com>
 
 	* configure.ac: Build procenv.spec from .in file to auto-update
