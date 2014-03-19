@@ -352,6 +352,14 @@
 
 #endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
 
+#if defined (PROCENV_LINUX)
+#ifndef CAP_IS_SUPPORTED
+int cap_get_bound (cap_value_t cap);
+#define CAP_IS_SUPPORTED(cap) (cap_get_bound (cap) >= 0)
+#define PROCENV_NEED_LOCAL_CAP_GET_BOUND
+#endif
+#endif
+
 
 /* Horrid hack for Hurd... :-( */
 #ifndef PATH_MAX

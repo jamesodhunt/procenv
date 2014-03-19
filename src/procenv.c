@@ -5657,6 +5657,15 @@ out:
 	footer ();
 }
 
+#ifdef PROCENV_NEED_LOCAL_CAP_GET_BOUND
+
+int cap_get_bound (cap_value_t cap)
+{
+	return prctl (PR_CAPBSET_READ, cap);
+}
+
+#endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */
+
 void
 show_timezone_linux (void)
 {
