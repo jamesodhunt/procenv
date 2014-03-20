@@ -1,3 +1,9 @@
+2014-03-20  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: Add reference to personality(2).
+	* src/procenv.c: --misc: Add Linux personality type and flags.
+	* src/procenv.h: Bump PROCENV_FORMAT_VERSION to 6 for format change.
+
 2014-03-17  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: Add reference to libcap(3).

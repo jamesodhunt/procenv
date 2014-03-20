@@ -107,13 +107,15 @@
  *   - --fds: Added Capsicum capabilities for FreeBSD (alas this version
  *     is a NOP for non-BSD platforms).
  * VERSION 4:
- *   - added "symbolic" values to --range output.
+ *   - Added "symbolic" values to --range output.
  * VERSION 5:
- *   - capabilities output changed on linux to show not just the
+ *   - Capabilities output changed on linux to show not just the
  *     bounding set, but also permitted, inheritable and enabled values
  *     along with the numeric value of the define.
+ * VERSION 6:
+ *   - --misc: Added personality.
  **/
-#define PROCENV_FORMAT_VERSION 5
+#define PROCENV_FORMAT_VERSION 6
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -174,6 +176,7 @@
 
 #include <sys/inotify.h>
 #include <sys/prctl.h>
+#include <sys/personality.h>
 
 #include <linux/prctl.h>
 #include <linux/version.h>
@@ -929,6 +932,9 @@ void show_numa_memory (void);
 #if defined (HAVE_NUMA_H)
 const char *get_numa_policy (int policy);
 #endif /* HAVE_NUMA_H */
+
+const char *get_personality_name (unsigned int domain);
+char *get_personality_flags (unsigned int flags);
 
 #else /* ! PROCENV_LINUX */
 
