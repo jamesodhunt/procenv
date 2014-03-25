@@ -1,3 +1,10 @@
+0.34	2014-03-25
+
+	* Enable builds for systems with old versions of libcap.
+	* Add Linux binary personality (with flags) to '--misc' output.
+	* Fix for rpm spec file.
+	* Updated man page.
+
 0.33	2014-03-14
 
 	* Improved RPM spec file to include check phase and Conditional
