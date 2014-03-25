@@ -334,8 +334,54 @@ struct if_extended_flag_map {
 
 	{ 0, NULL }
 };
-#endif
 
+struct personality_map {
+	unsigned int  personality;
+	char         *name;
+} personality_map[] = {
+	mk_map_entry (PER_LINUX),
+	mk_map_entry (PER_LINUX_32BIT),
+	mk_map_entry (PER_SVR4),
+	mk_map_entry (PER_SVR3),
+	mk_map_entry (PER_SCOSVR3),
+	mk_map_entry (PER_OSR5),
+	mk_map_entry (PER_WYSEV386),
+	mk_map_entry (PER_ISCR4),
+	mk_map_entry (PER_BSD),
+	mk_map_entry (PER_SUNOS),
+	mk_map_entry (PER_XENIX),
+	mk_map_entry (PER_LINUX32),
+	mk_map_entry (PER_LINUX32_3GB),
+	mk_map_entry (PER_IRIX32),
+	mk_map_entry (PER_IRIXN32),
+	mk_map_entry (PER_IRIX64),
+	mk_map_entry (PER_RISCOS),
+	mk_map_entry (PER_SOLARIS),
+	mk_map_entry (PER_UW7),
+	mk_map_entry (PER_OSF4),
+	mk_map_entry (PER_HPUX),
+
+	{ 0, NULL }
+};
+
+struct personality_flag_map {
+	unsigned int  flag;
+	char         *name;
+} personality_flag_map[] = {
+	mk_map_entry (ADDR_COMPAT_LAYOUT),
+	mk_map_entry (ADDR_LIMIT_32BIT),
+	mk_map_entry (ADDR_LIMIT_3GB),
+	mk_map_entry (ADDR_NO_RANDOMIZE),
+	mk_map_entry (MMAP_PAGE_ZERO),
+	mk_map_entry (READ_IMPLIES_EXEC),
+	mk_map_entry (SHORT_INODE),
+	mk_map_entry (STICKY_TIMEOUTS),
+	mk_map_entry (WHOLE_SECONDS),
+
+	{ 0, NULL }
+};
+
+#endif
 
 /* Really, every single sysconf variable should be ifdef'ed since it
  * may not exist on a particular system, but that makes the code look
@@ -1783,6 +1829,18 @@ show_priorities (void)
 void
 show_misc (void)
 {
+#if defined (PROCENV_LINUX)
+	int            domain = 0x0;
+
+	/* magic value - see personality(2) */
+	unsigned int   persona = 0xFFFFFFFF;
+
+	unsigned int   mask = PER_MASK;
+
+	const char    *personality_name = NULL;
+	char          *personality_flags = NULL;
+#endif
+
 	header ("misc");
 
 	entry ("umask", "%4.4o", misc.umask_value);
@@ -1812,6 +1870,27 @@ show_misc (void)
 			((LINUX_VERSION_CODE >> 8) & 0xFF),
 			(LINUX_VERSION_CODE & 0xFF));
 #endif
+
+	domain = personality (persona);
+
+	personality_name = get_personality_name (domain & mask);
+
+	section_open ("personality");
+
+	entry ("type", "%s", personality_name
+			? personality_name
+		       	: UNKNOWN_STR);
+
+	personality_flags = get_personality_flags (domain & (-1 ^ mask));
+	entry ("flags", "%s",
+			personality_flags
+			? personality_flags
+			: "");
+
+	section_close ();
+
+	if (personality_flags)
+		free (personality_flags);
 #endif
 
 	footer ();
@@ -3205,6 +3284,38 @@ get_numa_policy (int policy)
 	return NULL;
 }
 #endif /* HAVE_NUMA_H */
+
+const char *
+get_personality_name (unsigned int domain)
+{
+	struct personality_map  *m;
+		    
+	for (m = personality_map; m && m->name; m++) {
+		if (m->personality == (domain & PER_MASK))
+			return m->name;
+	}
+
+	return NULL;
+}
+
+char *
+get_personality_flags (unsigned int flags)
+{
+	struct personality_flag_map  *m;
+	char                          *list = NULL;
+	int                            first = TRUE;
+
+	for (m = personality_flag_map; m && m->name; m++) {
+		if (flags & m->flag) {
+			appendf (&list, "%s%s",
+					first ? "" : ", ",
+					m->name);
+			first = FALSE;
+		}
+	}
+
+	return list;
+}
 
 #endif /* PROCENV_LINUX */
 
@@ -5656,6 +5767,15 @@ show_capabilities_linux (void)
 out:
 	footer ();
 }
+
+#ifdef PROCENV_NEED_LOCAL_CAP_GET_BOUND
+
+int cap_get_bound (cap_value_t cap)
+{
+	return prctl (PR_CAPBSET_READ, cap);
+}
+
+#endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */
 
 void
 show_timezone_linux (void)
