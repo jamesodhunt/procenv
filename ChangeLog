@@ -1,3 +1,11 @@
+2014-03-27  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Update.
+	* src/procenv.c:
+	  - get_arch(): Update for Sparc 64-bit (V9).
+	  - show_capabilities_linux(): Move CAP_LAST_CAP out of the list and use
+	    it as a count to avoid it being confused for an actual capability.
+
 2014-03-20  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: Add reference to personality(2).

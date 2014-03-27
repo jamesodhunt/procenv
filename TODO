@@ -1,5 +1,7 @@
 # TODO
 
+- add missing 'getconf -a' values!
+- add test to detect missing getconf values.
 - --memory: show physical RAM:
 	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:

@@ -5023,7 +5023,7 @@ get_arch (void)
 	return "PowerPC";
 #endif
 
-#ifdef __sparc64__
+#if defined (__sparc64__) || defined (__sparc_v9__)
 	return "Sparc64";
 #endif
 
@@ -5627,6 +5627,8 @@ show_capabilities_linux (void)
 
 	caps = cap_get_proc ();
 
+	entry ("count (CAP_LAST_CAP+1)", "%d", CAP_LAST_CAP+1);
+
 	if (! caps)
 		goto out;
 
@@ -5722,8 +5724,6 @@ show_capabilities_linux (void)
 	cap_free (caps);
 
 	section_close ();
-
-	entry ("CAP_LAST_CAP", "%d", CAP_LAST_CAP);
 
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
