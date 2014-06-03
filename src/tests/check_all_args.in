@@ -19,6 +19,12 @@ json_checker=json_pp
 # the value 1.
 control_chars_in_env=0
 
+# FIXME: temporary work-around to deal with fact that procenv currently cannot
+# cope with expanding utf-8 chars from, for example, strsignal(3) when
+# locale is not C.
+# (LP: #1325494).
+LANG=C
+
 die ()
 {
 	local str="$*"

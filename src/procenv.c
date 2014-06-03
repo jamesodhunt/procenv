@@ -321,17 +321,30 @@ struct if_extended_flag_map {
 	unsigned int  flag;
 	char         *name;
 } if_extended_flag_map[] = {
+#if defined (IFF_802_1Q_VLAN)
 	mk_map_entry (IFF_802_1Q_VLAN),
+#endif
+#if defined (IFF_EBRIDGE)
 	mk_map_entry (IFF_EBRIDGE),
+#endif
+#if defined (IFF_SLAVE_INACTIVE)
 	mk_map_entry (IFF_SLAVE_INACTIVE),
+#endif
+#if defined (IFF_MASTER_8023AD)
 	mk_map_entry (IFF_MASTER_8023AD),
+#endif
+#if defined (IFF_MASTER_ALB)
 	mk_map_entry (IFF_MASTER_ALB),
+#endif
+#if defined (IFF_BONDING)
 	mk_map_entry (IFF_BONDING),
+#endif
+#if defined (IFF_SLAVE_NEEDARP)
 	mk_map_entry (IFF_SLAVE_NEEDARP),
-#  ifdef IFF_ISATAP
+#endif
+#if defined (IFF_ISATAP)
 	mk_map_entry (IFF_ISATAP),
-#  endif
-
+#endif
 	{ 0, NULL }
 };
 
@@ -1987,7 +2000,7 @@ show_cpu_affinities (void)
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 	if (max < 0)
-		die ("Failed to query cpu count");
+		die ("failed to query cpu count");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 
@@ -2405,6 +2418,7 @@ show_all_groups (void)
 	int     size = 32;
 
 	gid_t  *groups = NULL;
+	gid_t  *g;
 	char  **group_names = NULL;
 
 	groups = malloc (size * sizeof (gid_t));
@@ -2417,9 +2431,13 @@ show_all_groups (void)
 			break;
 
 		size++;
-		groups = realloc (groups, (size * sizeof (gid_t)));
-		if (! groups)
+		g = realloc (groups, (size * sizeof (gid_t)));
+		if (! g) {
+			free (groups);
 			goto error;
+		}
+
+		groups = g;
 	}
 
 	size = ret;
@@ -5561,6 +5579,8 @@ show_uname (void)
 	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
+	assert (uts.domainname);
+	assert (uts.domainname[0]);
 	entry ("domainname", "%s", uts.domainname);
 #endif
 
