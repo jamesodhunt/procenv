@@ -2,7 +2,13 @@ Source: procenv
 Section: utils
 Priority: optional
 Maintainer: James Hunt <james.hunt@ubuntu.com>
-Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, libkvm-dev [kfreebsd-any], pkg-config, automake (>= 1.12), perl, expat, libnuma-dev [linux-i386 linux-amd64 linux-ia64 linux-mips linux-mipsel linux-powerpc linux-ppc64 linux-ppc64el linux-x32], libcap-dev [linux-any]
+Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, pkg-config,
+  libkvm-dev [kfreebsd-any],
+  automake (>= 1.12),
+  perl, expat,
+  libnuma-dev [linux-i386 linux-amd64 linux-ia64 linux-mips linux-mipsel linux-powerpc linux-ppc64 linux-ppc64el linux-x32],
+  libcap-dev [linux-any],
+  libselinux1-dev, libapparmor-dev
 Standards-Version: 3.9.5
 Homepage: https://code.launchpad.net/procenv
 XS-Testsuite: autopkgtest

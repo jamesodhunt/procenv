@@ -1,3 +1,11 @@
+procenv (0.34-2) unstable; urgency=medium
+
+  * debian/control: Added libselinux1-dev and libapparmor-dev Build-Depends to
+    allow procenv to display LSM details, and reformat across multiple lines
+    for readability.
+
+ -- James Hunt <james.hunt@ubuntu.com>  Tue, 03 Jun 2014 09:27:38 +0100
+
 procenv (0.34-1) unstable; urgency=medium
 
   * New upstream release.
