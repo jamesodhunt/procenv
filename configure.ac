@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([procenv_version], 0.34)
+m4_define([procenv_version], 0.35)
 
 AC_INIT(procenv, [procenv_version], [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
