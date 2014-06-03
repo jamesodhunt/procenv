@@ -1,8 +1,8 @@
-procenv (0.35-1) UNRELEASED; urgency=medium
+procenv (0.35-1) unstable; urgency=medium
 
   * New upstream release.
 
- -- James Hunt <james.hunt@ubuntu.com>  Tue, 03 Jun 2014 09:30:33 +0100
+ -- James Hunt <james.hunt@ubuntu.com>  Tue, 03 Jun 2014 10:40:50 +0100
 
 procenv (0.34-2) unstable; urgency=medium
 
