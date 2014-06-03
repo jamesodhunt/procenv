@@ -1,3 +1,9 @@
+0.35	2014-06-03
+
+	* Update to handle Linux 3.15 kernel which has
+	  dropped ability to query extended network interfaces flags
+	  (LP: #1324256).
+
 0.34	2014-03-25
 
 	* Enable builds for systems with old versions of libcap.

@@ -1,5 +1,7 @@
 # TODO
 
+- add missing 'getconf -a' values (mostly from unistd.h?).
+- FIXME: lp:1325494 ("procenv cannot handle utf-8 chars when producing XML output").
 - --memory: show physical RAM:
 	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:
