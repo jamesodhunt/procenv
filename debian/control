@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, pkg-config,
   perl, expat,
   libnuma-dev [linux-i386 linux-amd64 linux-ia64 linux-mips linux-mipsel linux-powerpc linux-ppc64 linux-ppc64el linux-x32],
   libcap-dev [linux-any],
-  libselinux1-dev, libapparmor-dev
+  libselinux1-dev [linux-any], libapparmor-dev [linux-any]
 Standards-Version: 3.9.5
 Homepage: https://code.launchpad.net/procenv
 XS-Testsuite: autopkgtest
