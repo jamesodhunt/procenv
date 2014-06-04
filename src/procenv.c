@@ -804,15 +804,90 @@ show_pathconfs (ShowMountType what,
 		header ("pathconf");
 	}
 
-	show_pathconf (what, dir, _PC_LINK_MAX);
-	show_pathconf (what, dir, _PC_MAX_CANON);
-	show_pathconf (what, dir, _PC_MAX_INPUT);
-	show_pathconf (what, dir, _PC_NAME_MAX);
-	show_pathconf (what, dir, _PC_PATH_MAX);
-	show_pathconf (what, dir, _PC_PIPE_BUF);
+
+#if defined (_PC_ALLOC_SIZE_MIN)
+	show_pathconf (what, dir, _PC_ALLOC_SIZE_MIN);
+#endif
+
+#if defined (_PC_ASYNC_IO)
+	show_pathconf (what, dir, _PC_ASYNC_IO);
+#endif
+
+#if defined (_PC_CHOWN_RESTRICTED)
 	show_pathconf (what, dir, _PC_CHOWN_RESTRICTED);
+#endif
+
+#if defined (_PC_FILESIZEBITS)
+	show_pathconf (what, dir, _PC_FILESIZEBITS);
+#endif
+
+#if defined (_PC_LINK_MAX)
+	show_pathconf (what, dir, _PC_LINK_MAX);
+#endif
+
+#if defined (_PC_MAX_CANON)
+	show_pathconf (what, dir, _PC_MAX_CANON);
+#endif
+
+#if defined (_PC_MAX_INPUT)
+	show_pathconf (what, dir, _PC_MAX_INPUT);
+#endif
+
+#if defined (_PC_NAME_MAX)
+	show_pathconf (what, dir, _PC_NAME_MAX);
+#endif
+
+#if defined (_PC_NO_TRUNC)
 	show_pathconf (what, dir, _PC_NO_TRUNC);
+#endif
+
+#if defined (_PC_PATH_MAX)
+	show_pathconf (what, dir, _PC_PATH_MAX);
+#endif
+
+#if defined (_PC_PIPE_BUF)
+	show_pathconf (what, dir, _PC_PIPE_BUF);
+#endif
+
+#if defined (_PC_PRIO_IO)
+	show_pathconf (what, dir, _PC_PRIO_IO);
+#endif
+
+#if defined (_PC_REC_INCR_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_INCR_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_MAX_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_MAX_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_MIN_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_MIN_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_XFER_ALIGN)
+	show_pathconf (what, dir, _PC_REC_XFER_ALIGN);
+#endif
+
+#if defined (_PC_SOCK_MAXBUF)
+	show_pathconf (what, dir, _PC_SOCK_MAXBUF);
+#endif
+
+#if defined (_PC_SYMLINK_MAX)
+	show_pathconf (what, dir, _PC_SYMLINK_MAX);
+#endif
+
+#if defined (_PC_2_SYMLINKS)
+	show_pathconf (what, dir, _PC_2_SYMLINKS);
+#endif
+
+#if defined (_PC_SYNC_IO)
+	show_pathconf (what, dir, _PC_SYNC_IO);
+#endif
+
+#if defined (_PC_VDISABLE)
 	show_pathconf (what, dir, _PC_VDISABLE);
+#endif
 
 	footer ();
 }
@@ -1671,10 +1746,270 @@ show_confstrs (void)
 #if defined (_CS_GNU_LIBC_VERSION)
 	show_confstr (_CS_GNU_LIBC_VERSION);
 #endif
+
 #if defined (_CS_GNU_LIBPTHREAD_VERSION)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
 #endif
+
+#if defined (_CS_PATH)
 	show_confstr (_CS_PATH);
+#endif
+
+#if defined (_CS_LFS64_CFLAGS)
+	show_confstr (_CS_LFS64_CFLAGS);
+#endif
+
+#if defined (_CS_LFS64_LDFLAGS)
+	show_confstr (_CS_LFS64_LDFLAGS);
+#endif
+
+#if defined (_CS_LFS64_LIBS)
+	show_confstr (_CS_LFS64_LIBS);
+#endif
+
+#if defined (_CS_LFS64_LINTFLAGS)
+	show_confstr (_CS_LFS64_LINTFLAGS);
+#endif
+
+#if defined (_CS_LFS_CFLAGS)
+	show_confstr (_CS_LFS_CFLAGS);
+#endif
+
+#if defined (_CS_LFS_LDFLAGS)
+	show_confstr (_CS_LFS_LDFLAGS);
+#endif
+
+#if defined (_CS_LFS_LIBS)
+	show_confstr (_CS_LFS_LIBS);
+#endif
+
+#if defined (_CS_LFS_LINTFLAGS)
+	show_confstr (_CS_LFS_LINTFLAGS);
+#endif
+
+#if defined (_CS_LFS_LINTFLAGS)
+	show_confstr (_CS_LFS_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LIBS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32)
+	//show_confstr (_CS_POSIX_V6_ILP32_OFF32);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LIBS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LIBS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LIBS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LIBS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS);
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "_XBS5_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "XBS5_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS);
+#endif
+
+#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS, "POSIX_V6_WIDTH_RESTRICTED_ENVS,_POSIX_V6_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V7_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V7_WIDTH_RESTRICTED_ENVS);
+#endif
 
 	footer ();
 }

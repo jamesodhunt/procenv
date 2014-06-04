@@ -1,3 +1,11 @@
+2014-06-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_pathconfs(): Guard all defines.
+	  - show_confstrs(): Guard all defines.
+	* src/procenv.h: Added _show_confstr() macro to allow name to be
+	  specified.
+
 2014-06-03  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

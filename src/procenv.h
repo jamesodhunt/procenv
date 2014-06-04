@@ -555,7 +555,7 @@ int cap_get_bound (cap_value_t cap);
 	errno = 0; \
 	conf = pathconf (path, name); \
 	if (conf == -1 && errno == 0) { \
-	    entry (#name, "%s", UNKNOWN_STR); \
+	    entry (#name, "%s", NA_STR); \
 	} else { \
 	    entry (#name, "%d", conf); \
 	} \
@@ -569,6 +569,11 @@ int cap_get_bound (cap_value_t cap);
 
 #define show_confstr(s) \
 { \
+    _show_confstr (s, #s); \
+}
+
+#define _show_confstr(s, name) \
+{ \
 	size_t len; \
 	char *buffer; \
 	\
@@ -580,8 +585,19 @@ int cap_get_bound (cap_value_t cap);
 	if (! buffer) { \
 		die ("failed to allocate space for confstr"); \
 	} \
+	\
 	assert (confstr (s, buffer, len) == len); \
-	entry (#s, "'%s'", buffer); \
+	\
+	/* Convert multi-line values to multi-field */ \
+	for (size_t i = 0; i < len; i++) { \
+		if (buffer[i] == '\n') buffer[i] = ' '; \
+	} \
+	\
+	entry (name, "%s%s%s", \
+			buffer && buffer[0] ? "'" : "", \
+			buffer && buffer[0] ? buffer : NA_STR, \
+			buffer && buffer[0] ? "'" : ""); \
+	\
 	free (buffer); \
 }
 
