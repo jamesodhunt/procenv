@@ -114,8 +114,12 @@
  *     along with the numeric value of the define.
  * VERSION 6:
  *   - --misc: Added personality.
+ * VERSION 7:
+ *   - --confstr and pathconf values in --mount now show
+ *     NA_STR rather than UNKNOWN_STR. --sysconf now shows NA_STR rather
+ *     than -1.
  **/
-#define PROCENV_FORMAT_VERSION 6
+#define PROCENV_FORMAT_VERSION 7
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -633,12 +637,6 @@ int cap_get_bound (cap_value_t cap);
 
 #define get_sysconf(s) \
  	sysconf (s)
-
-#define mk_posix_sysconf_map_entry(name) \
-	{_SC_ ## name, #name "(_SC_" #name ")" }
-
-#define mk_posixopt_sysconf_map_entry(name) \
-	{_SC_ ## name, "_POSIX_" #name "(_SC_" #name ")" }
 
 #define mk_sysconf_map_entry(name) \
 	{name, #name }

@@ -405,160 +405,850 @@ struct personality_flag_map {
  * sigh...
  */
 struct procenv_map sysconf_map[] = {
-	mk_posix_sysconf_map_entry (ARG_MAX),
-	mk_posix_sysconf_map_entry (BC_BASE_MAX),
-	mk_posix_sysconf_map_entry (BC_DIM_MAX),
-	mk_posix_sysconf_map_entry (BC_SCALE_MAX),
-	mk_posix_sysconf_map_entry (BC_STRING_MAX),
-	mk_posix_sysconf_map_entry (CHILD_MAX),
-	mk_sysconf_map_entry (_SC_CLK_TCK),
-	mk_posix_sysconf_map_entry (COLL_WEIGHTS_MAX),
-	mk_posix_sysconf_map_entry (EXPR_NEST_MAX),
-#if defined (_SC_HOST_NAME_MAX)
-	mk_posix_sysconf_map_entry (HOST_NAME_MAX),
+
+#if defined (_SC_2_C_BIND)
+	mk_sysconf_map_entry (_SC_2_C_BIND),
 #endif
-	mk_posix_sysconf_map_entry (LINE_MAX),
-	mk_posix_sysconf_map_entry (LOGIN_NAME_MAX),
-	mk_posix_sysconf_map_entry (OPEN_MAX),
-	mk_posix_sysconf_map_entry (PAGESIZE),
-	mk_posix_sysconf_map_entry (RE_DUP_MAX),
-	mk_posix_sysconf_map_entry (STREAM_MAX),
-#if defined (_SC_SYMLOOP_MAX)
-	mk_posix_sysconf_map_entry (SYMLOOP_MAX),
+
+#if defined (_SC_2_C_DEV)
+	mk_sysconf_map_entry (_SC_2_C_DEV),
 #endif
-	mk_posix_sysconf_map_entry (TTY_NAME_MAX),
-	mk_posix_sysconf_map_entry (TZNAME_MAX),
-	{ _SC_VERSION, "_POSIX_VERSION(_SC_VERSION)" },
-#if defined (_SC_POSIX2_C_DEV)
-	mk_posix_sysconf_map_entry (POSIX2_C_DEV),
+
+#if defined (_SC_2_CHAR_TERM)
+	mk_sysconf_map_entry (_SC_2_CHAR_TERM),
 #endif
-	mk_posix_sysconf_map_entry (BC_BASE_MAX),
-	mk_posix_sysconf_map_entry (BC_DIM_MAX),
-	mk_posix_sysconf_map_entry (BC_SCALE_MAX),
-	mk_posix_sysconf_map_entry (BC_STRING_MAX),
-	mk_posix_sysconf_map_entry (COLL_WEIGHTS_MAX),
-	mk_posix_sysconf_map_entry (EXPR_NEST_MAX),
-	mk_posix_sysconf_map_entry (LINE_MAX),
-	mk_posix_sysconf_map_entry (RE_DUP_MAX),
-	{ _SC_2_VERSION, "POSIX2_VERSION(_SC_2_VERSION)" },
-	{ _SC_2_C_DEV, "POSIX2_C_DEV(_SC_2_C_DEV)" },
-	{ _SC_2_FORT_DEV, "POSIX2_FORT_DEV(_SC_2_FORT_DEV)" },
-	{ _SC_2_FORT_RUN, "POSIX2_FORT_RUN(_SC_2_FORT_RUN)" },
-	{ _SC_2_LOCALEDEF, "_POSIX2_LOCALEDEF(_SC_2_LOCALEDEF)" },
-	{ _SC_2_SW_DEV, "POSIX2_SW_DEV(_SC_2_SW_DEV)" },
-	mk_sysconf_map_entry (_SC_PHYS_PAGES),
+
+#if defined (_SC_2_C_VERSION)
+	mk_sysconf_map_entry (_SC_2_C_VERSION),
+#endif
+
+#if defined (_SC_2_FORT_DEV)
+	mk_sysconf_map_entry (_SC_2_FORT_DEV),
+#endif
+
+#if defined (_SC_2_FORT_RUN)
+	mk_sysconf_map_entry (_SC_2_FORT_RUN),
+#endif
+
+#if defined (_SC_2_LOCALEDEF)
+	mk_sysconf_map_entry (_SC_2_LOCALEDEF),
+#endif
+
+#if defined (_SC_2_PBS)
+	mk_sysconf_map_entry (_SC_2_PBS),
+#endif
+
+#if defined (_SC_2_PBS_ACCOUNTING)
+	mk_sysconf_map_entry (_SC_2_PBS_ACCOUNTING),
+#endif
+
+#if defined (_SC_2_PBS_LOCATE)
+	mk_sysconf_map_entry (_SC_2_PBS_LOCATE),
+#endif
+
+#if defined (_SC_2_PBS_MESSAGE)
+	mk_sysconf_map_entry (_SC_2_PBS_MESSAGE),
+#endif
+
+#if defined (_SC_2_PBS_TRACK)
+	mk_sysconf_map_entry (_SC_2_PBS_TRACK),
+#endif
+
+#if defined (_SC_2_SW_DEV)
+	mk_sysconf_map_entry (_SC_2_SW_DEV),
+#endif
+
+#if defined (_SC_2_UPE)
+	mk_sysconf_map_entry (_SC_2_UPE), 
+#endif
+
+#if defined (_SC_2_VERSION)
+	mk_sysconf_map_entry (_SC_2_VERSION),
+#endif
+
+#if defined (_SC_ADVISORY_INFO)
+	mk_sysconf_map_entry (_SC_ADVISORY_INFO),
+#endif
+
+#if defined (_SC_AIO_LISTIO_MAX)
+	mk_sysconf_map_entry (_SC_AIO_LISTIO_MAX),
+#endif
+
+#if defined (_SC_AIO_MAX)
+	mk_sysconf_map_entry (_SC_AIO_MAX),
+#endif
+
+#if defined (_SC_AIO_PRIO_DELTA_MAX)
+	mk_sysconf_map_entry (_SC_AIO_PRIO_DELTA_MAX),
+#endif
+
+#if defined (_SC_ARG_MAX)
+	mk_sysconf_map_entry (_SC_ARG_MAX),
+#endif
+
+#if defined (_SC_ASYNCHRONOUS_IO)
+	mk_sysconf_map_entry (_SC_ASYNCHRONOUS_IO),
+#endif
+
+#if defined (_SC_ATEXIT_MAX)
+	mk_sysconf_map_entry (_SC_ATEXIT_MAX),
+#endif
+
 #if defined (_SC_AVPHYS_PAGES)
 	mk_sysconf_map_entry (_SC_AVPHYS_PAGES),
 #endif
-	mk_sysconf_map_entry (_SC_NPROCESSORS_CONF),
-	mk_sysconf_map_entry (_SC_NPROCESSORS_ONLN),
 
-#if defined (_SC_ADVISORY_INFO)
-	mk_posixopt_sysconf_map_entry (ADVISORY_INFO),
-#endif
-	mk_posixopt_sysconf_map_entry (ASYNCHRONOUS_IO),
 #if defined (_SC_BARRIERS)
-	mk_posixopt_sysconf_map_entry (BARRIERS),
+	mk_sysconf_map_entry (_SC_BARRIERS),
 #endif
-#if defined (_POSIX_CHOWN_RESTRICTED)
-	mk_sysconf_map_entry (_POSIX_CHOWN_RESTRICTED),
+
+#if defined (_SC_BASE)
+	mk_sysconf_map_entry (_SC_BASE),
 #endif
+
+#if defined (_SC_BC_BASE_MAX)
+	mk_sysconf_map_entry (_SC_BC_BASE_MAX),
+#endif
+
+#if defined (_SC_BC_DIM_MAX)
+	mk_sysconf_map_entry (_SC_BC_DIM_MAX),
+#endif
+
+#if defined (_SC_BC_SCALE_MAX)
+	mk_sysconf_map_entry (_SC_BC_SCALE_MAX),
+#endif
+
+#if defined (_SC_BC_STRING_MAX)
+	mk_sysconf_map_entry (_SC_BC_STRING_MAX),
+#endif
+
+#if defined (_SC_CHAR_BIT)
+	mk_sysconf_map_entry (_SC_CHAR_BIT),
+#endif
+
+#if defined (_SC_CHARCLASS_NAME_MAX)
+	mk_sysconf_map_entry (_SC_CHARCLASS_NAME_MAX),
+#endif
+
+#if defined (_SC_CHAR_MAX)
+	mk_sysconf_map_entry (_SC_CHAR_MAX),
+#endif
+
+#if defined (_SC_CHAR_MIN)
+	mk_sysconf_map_entry (_SC_CHAR_MIN),
+#endif
+
+#if defined (_SC_CHILD_MAX)
+	mk_sysconf_map_entry (_SC_CHILD_MAX),
+#endif
+
+#if defined (_SC_C_LANG_SUPPORT)
+	mk_sysconf_map_entry (_SC_C_LANG_SUPPORT),
+#endif
+
+#if defined (_SC_C_LANG_SUPPORT_R)
+	mk_sysconf_map_entry (_SC_C_LANG_SUPPORT_R),
+#endif
+
+#if defined (_SC_CLK_TCK)
+	mk_sysconf_map_entry (_SC_CLK_TCK),
+#endif
+
 #if defined (_SC_CLOCK_SELECTION)
-	mk_posixopt_sysconf_map_entry (CLOCK_SELECTION),
+	mk_sysconf_map_entry (_SC_CLOCK_SELECTION),
 #endif
+
+#if defined (_SC_COLL_WEIGHTS_MAX)
+	mk_sysconf_map_entry (_SC_COLL_WEIGHTS_MAX),
+#endif
+
 #if defined (_SC_CPUTIME)
-	mk_posixopt_sysconf_map_entry (CPUTIME),
+	mk_sysconf_map_entry (_SC_CPUTIME),
 #endif
+
+#if defined (_SC_DELAYTIMER_MAX)
+	mk_sysconf_map_entry (_SC_DELAYTIMER_MAX),
+#endif
+
+#if defined (_SC_DEVICE_IO)
+	mk_sysconf_map_entry (_SC_DEVICE_IO),
+#endif
+
+#if defined (_SC_DEVICE_SPECIFIC)
+	mk_sysconf_map_entry (_SC_DEVICE_SPECIFIC),
+#endif
+
+#if defined (_SC_DEVICE_SPECIFIC_R)
+	mk_sysconf_map_entry (_SC_DEVICE_SPECIFIC_R),
+#endif
+
+#if defined (_SC_EQUIV_CLASS_MAX)
+	 mk_sysconf_map_entry(_SC_EQUIV_CLASS_MAX),
+#endif
+
+#if defined (_SC_EXPR_NEST_MAX)
+	 mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
+#endif
+
+#if defined (_SC_FD_MGMT)
+	mk_sysconf_map_entry (_SC_FD_MGMT),
+#endif
+
+#if defined (_SC_FIFO)
+	mk_sysconf_map_entry (_SC_FIFO),
+#endif
+
+#if defined (_SC_FILE_ATTRIBUTES)
+	mk_sysconf_map_entry (_SC_FILE_ATTRIBUTES),
+#endif
+
 #if defined (_SC_FILE_LOCKING)
-	mk_posixopt_sysconf_map_entry (FILE_LOCKING),
+	mk_sysconf_map_entry (_SC_FILE_LOCKING),
 #endif
-	mk_posixopt_sysconf_map_entry (FSYNC),
-	mk_posixopt_sysconf_map_entry (JOB_CONTROL),
-	mk_posixopt_sysconf_map_entry (MAPPED_FILES),
-	mk_posixopt_sysconf_map_entry (MEMLOCK),
-	mk_posixopt_sysconf_map_entry (MEMLOCK_RANGE),
-	mk_posixopt_sysconf_map_entry (MEMORY_PROTECTION),
-	mk_posixopt_sysconf_map_entry (MESSAGE_PASSING),
+
+#if defined (_SC_FILE_SYSTEM)
+	mk_sysconf_map_entry (_SC_FILE_SYSTEM),
+#endif
+
+#if defined (_SC_FSYNC)
+	mk_sysconf_map_entry (_SC_FSYNC),
+#endif
+
+#if defined (_SC_GETGR_R_SIZE_MAX)
+	mk_sysconf_map_entry (_SC_GETGR_R_SIZE_MAX),
+#endif
+
+#if defined (_SC_GETPW_R_SIZE_MAX)
+	mk_sysconf_map_entry  (_SC_GETPW_R_SIZE_MAX),
+#endif
+
+#if defined (_SC_HOST_NAME_MAX)
+	mk_sysconf_map_entry (_SC_HOST_NAME_MAX),
+#endif
+
+#if defined (_SC_INT_MAX)
+	mk_sysconf_map_entry (_SC_INT_MAX),
+#endif
+
+#if defined (_SC_INT_MIN)
+	mk_sysconf_map_entry (_SC_INT_MIN),
+#endif
+
+#if defined (_SC_IOV_MAX)
+	mk_sysconf_map_entry (_SC_IOV_MAX),
+#endif
+
+#if defined (_SC_IPV6)
+	mk_sysconf_map_entry (_SC_IPV6),
+#endif
+
+#if defined (_SC_JOB_CONTROL)
+	mk_sysconf_map_entry (_SC_JOB_CONTROL),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LINE_MAX)
+	mk_sysconf_map_entry (_SC_LINE_MAX),
+#endif
+
+#if defined (_SC_LOGIN_NAME_MAX)
+	mk_sysconf_map_entry (_SC_LOGIN_NAME_MAX),
+#endif
+
+#if defined (_SC_LONG_BIT)
+	mk_sysconf_map_entry (_SC_LONG_BIT),
+#endif
+
+#if defined (_SC_MAPPED_FILES)
+	mk_sysconf_map_entry (_SC_MAPPED_FILES),
+#endif
+
+#if defined (_SC_MB_LEN_MAX)
+	mk_sysconf_map_entry (_SC_MB_LEN_MAX),
+#endif
+
+#if defined (_SC_MEMLOCK)
+	mk_sysconf_map_entry (_SC_MEMLOCK),
+#endif
+
+#if defined (_SC_MEMLOCK_RANGE)
+	mk_sysconf_map_entry (_SC_MEMLOCK_RANGE),
+#endif
+
+#if defined (_SC_MEMORY_PROTECTION)
+	mk_sysconf_map_entry (_SC_MEMORY_PROTECTION),
+#endif
+
+#if defined (_SC_MESSAGE_PASSING)
+	mk_sysconf_map_entry (_SC_MESSAGE_PASSING),
+#endif
+
 #if defined (_SC_MONOTONIC_CLOCK)
-	mk_posixopt_sysconf_map_entry (MONOTONIC_CLOCK),
+	mk_sysconf_map_entry (_SC_MONOTONIC_CLOCK),
 #endif
+
+#if defined (_SC_MQ_OPEN_MAX)
+	mk_sysconf_map_entry (_SC_MQ_OPEN_MAX),
+#endif
+
+#if defined (_SC_MQ_PRIO_MAX)
+	mk_sysconf_map_entry (_SC_MQ_PRIO_MAX),
+#endif
+
 #ifdef _SC_MULTI_PROCESS
-	mk_posixopt_sysconf_map_entry (MULTI_PROCESS),
+	mk_sysconf_map_entry (_SC_MULTI_PROCESS),
 #endif
-	mk_posixopt_sysconf_map_entry (PRIORITIZED_IO),
-	mk_posixopt_sysconf_map_entry (PRIORITY_SCHEDULING),
-#if defined (_POSIX_RAW_SOCKETS)
-	mk_sysconf_map_entry (_POSIX_RAW_SOCKETS),
+
+#if defined (_SC_NETWORKING)
+	mk_sysconf_map_entry (_SC_NETWORKING),
 #endif
+
+#if defined (_SC_NGROUPS_MAX)
+	mk_sysconf_map_entry (_SC_NGROUPS_MAX),
+#endif
+
+#if defined (_SC_NL_ARGMAX)
+	mk_sysconf_map_entry (_SC_NL_ARGMAX),
+#endif
+
+#if defined (_SC_NL_LANGMAX)
+	mk_sysconf_map_entry (_SC_NL_LANGMAX),
+#endif
+
+#if defined (_SC_NL_MSGMAX)
+	mk_sysconf_map_entry (_SC_NL_MSGMAX),
+#endif
+
+#if defined (_SC_NL_NMAX)
+	mk_sysconf_map_entry (_SC_NL_NMAX),
+#endif
+
+#if defined (_SC_NL_SETMAX)
+	mk_sysconf_map_entry (_SC_NL_SETMAX),
+#endif
+
+#if defined (_SC_NL_TEXTMAX)
+	mk_sysconf_map_entry (_SC_NL_TEXTMAX),
+#endif
+
+#if defined (_SC_NPROCESSORS_CONF)
+	mk_sysconf_map_entry (_SC_NPROCESSORS_CONF),
+#endif
+
+#if defined (_SC_NPROCESSORS_ONLN)
+	mk_sysconf_map_entry (_SC_NPROCESSORS_ONLN),
+#endif
+
+#if defined (_SC_NZERO)
+	mk_sysconf_map_entry (_SC_NZERO),
+#endif
+
+#if defined (_SC_OPEN_MAX)
+	mk_sysconf_map_entry (_SC_OPEN_MAX),
+#endif
+
+#if defined (_SC_PAGESIZE)
+	mk_sysconf_map_entry (_SC_PAGESIZE),
+#endif
+
+#if defined (_SC_PAGE_SIZE)
+	mk_sysconf_map_entry (_SC_PAGE_SIZE),
+#endif
+
+#if defined (_SC_PASS_MAX)
+	mk_sysconf_map_entry (_SC_PASS_MAX),
+#endif
+
+#if defined (_SC_PHYS_PAGES)
+	mk_sysconf_map_entry (_SC_PHYS_PAGES),
+#endif
+
+#if defined (_SC_PII)
+	mk_sysconf_map_entry (_SC_PII),
+#endif
+
+#if defined (_SC_PII_INTERNET)
+	mk_sysconf_map_entry (_SC_PII_INTERNET),
+#endif
+
+#if defined (_SC_PII_INTERNET_DGRAM)
+	mk_sysconf_map_entry (_SC_PII_INTERNET_DGRAM),
+#endif
+
+#if defined (_SC_PII_INTERNET_STREAM)
+	mk_sysconf_map_entry (_SC_PII_INTERNET_STREAM),
+#endif
+
+#if defined (_SC_PII_OSI)
+	mk_sysconf_map_entry (_SC_PII_OSI),
+#endif
+
+#if defined (_SC_PII_OSI_CLTS)
+	mk_sysconf_map_entry (_SC_PII_OSI_CLTS),
+#endif
+
+#if defined (_SC_PII_OSI_COTS)
+	mk_sysconf_map_entry (_SC_PII_OSI_COTS),
+#endif
+
+#if defined (_SC_PII_OSI_M)
+	mk_sysconf_map_entry (_SC_PII_OSI_M),
+#endif
+
+#if defined (_SC_PII_SOCKET)
+	mk_sysconf_map_entry (_SC_PII_SOCKET),
+#endif
+
+#if defined (_SC_PII_XTI)
+	mk_sysconf_map_entry (_SC_PII_XTI),
+#endif
+
+#if defined (_SC_PIPE)
+	mk_sysconf_map_entry (_SC_PIPE),
+#endif
+
+#if defined (_SC_POLL)
+	mk_sysconf_map_entry (_SC_POLL),
+#endif
+
+#if defined (_SC_SINGLE_PROCESS)
+	mk_sysconf_map_entry (_SC_SINGLE_PROCESS),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE_R)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE_R),
+#endif
+
+#if defined (_SC_THREAD_KEYS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_KEYS_MAX),
+#endif
+
+#if defined (_SC_THREAD_DESTRUCTOR_ITERATIONS)
+	mk_sysconf_map_entry (_SC_THREAD_DESTRUCTOR_ITERATIONS),
+#endif
+
+#if defined (_SC_THREAD_THREADS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_THREADS_MAX),
+#endif
+
+#if defined (_SC_STREAM_MAX)
+	mk_sysconf_map_entry (_SC_STREAM_MAX),
+#endif
+
+#if defined (_SC_SYMLOOP_MAX)
+	mk_sysconf_map_entry (_SC_SYMLOOP_MAX),
+#endif
+
+#if defined (_SC_TTY_NAME_MAX)
+	mk_sysconf_map_entry (_SC_TTY_NAME_MAX),
+#endif
+
+#if defined (_SC_TZNAME_MAX)
+	mk_sysconf_map_entry (_SC_TZNAME_MAX),
+#endif
+
+#if defined (_SC_TYPED_MEMORY_OBJECTS)
+	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECTS),
+#endif
+
+#if defined (_SC_USER_GROUPS)
+	mk_sysconf_map_entry (_SC_USER_GROUPS),
+#endif
+
+#if defined (_SC_USER_GROUPS_R)
+	mk_sysconf_map_entry (_SC_USER_GROUPS_R),
+#endif
+
+#if defined (_SC_VERSION)
+	mk_sysconf_map_entry (_SC_VERSION),
+#endif
+
+#if defined (_SC_POSIX2_C_DEV)
+	mk_sysconf_map_entry (_SC_POSIX2_C_DEV),
+#endif
+
+#if defined (_SC_SIGQUEUE_MAX)
+	mk_sysconf_map_entry (_SC_SIGQUEUE_MAX),
+#endif
+
+#if defined (_SC_T_IOV_MAX)
+	mk_sysconf_map_entry (_SC_T_IOV_MAX),
+#endif
+
+#if defined (_SC_THREAD_STACK_MIN)
+	mk_sysconf_map_entry (_SC_THREAD_STACK_MIN),
+#endif
+
+#if defined (_SC_SSIZE_MAX)
+	mk_sysconf_map_entry (_SC_SSIZE_MAX),
+#endif
+
+#if defined (_SC_TIMER_MAX)
+	mk_sysconf_map_entry (_SC_TIMER_MAX),
+#endif
+
+#if defined (_SC_UCHAR_MAX)
+	mk_sysconf_map_entry (_SC_UCHAR_MAX),
+#endif
+
+#if defined (_SC_UINT_MAX)
+	mk_sysconf_map_entry (_SC_UINT_MAX),
+#endif
+
+#if defined (_SC_UIO_MAXIOV)
+	mk_sysconf_map_entry (_SC_UIO_MAXIOV),
+#endif
+
+#if defined (_SC_ULONG_MAX)
+	mk_sysconf_map_entry (_SC_ULONG_MAX),
+#endif
+
+#if defined (_SC_USHRT_MAX)
+	mk_sysconf_map_entry (_SC_USHRT_MAX),
+#endif
+
+#if defined (_SC_V6_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_WORD_BIT)
+	mk_sysconf_map_entry (_SC_WORD_BIT),
+#endif
+
+#if defined (_SC_EXPR_NEST_MAX)
+	mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
+#endif
+
+#if defined (_SC_V6_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V6_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V6_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V6_LP64_OFF64),
+#endif
+
+#if defined (_SC_V7_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V7_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V7_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_V7_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V7_LP64_OFF64),
+#endif
+
+#if defined (_SC_PRIORITIZED_IO)
+	mk_sysconf_map_entry (_SC_PRIORITIZED_IO),
+#endif
+
+#if defined (_SC_PRIORITY_SCHEDULING)
+	mk_sysconf_map_entry (_SC_PRIORITY_SCHEDULING),
+#endif
+
+#if defined (_SC_RAW_SOCKETS)
+	mk_sysconf_map_entry (_SC_RAW_SOCKETS),
+#endif
+
 #if defined (_SC_READER_WRITER_LOCKS)
-	mk_posixopt_sysconf_map_entry (READER_WRITER_LOCKS),
+	mk_sysconf_map_entry (_SC_READER_WRITER_LOCKS),
 #endif
-	mk_posixopt_sysconf_map_entry (REALTIME_SIGNALS),
+
+#if defined (_SC_REALTIME_SIGNALS)
+	mk_sysconf_map_entry (_SC_REALTIME_SIGNALS),
+#endif
+
+#if defined (_SC_RE_DUP_MAX)
+	mk_sysconf_map_entry (_SC_RE_DUP_MAX),
+#endif
+
 #if defined (_SC_REGEXP)
-	mk_posixopt_sysconf_map_entry (REGEXP),
+	mk_sysconf_map_entry (_SC_REGEXP),
 #endif
-	mk_posixopt_sysconf_map_entry (SAVED_IDS),
-	mk_posixopt_sysconf_map_entry (SEMAPHORES),
-	mk_posixopt_sysconf_map_entry (SHARED_MEMORY_OBJECTS),
+
+#if defined (_SC_REGEX_VERSION)
+	mk_sysconf_map_entry (_SC_REGEX_VERSION),
+#endif
+
+#if defined (_SC_RTSIG_MAX)
+	mk_sysconf_map_entry (_SC_RTSIG_MAX),
+#endif
+
+#if defined (_SC_SAVED_IDS)
+	mk_sysconf_map_entry (_SC_SAVED_IDS),
+#endif
+
+#if defined (_SC_SCHAR_MAX)
+	mk_sysconf_map_entry (_SC_SCHAR_MAX),
+#endif
+
+#if defined (_SC_SCHAR_MIN)
+	mk_sysconf_map_entry (_SC_SCHAR_MIN),
+#endif
+
+#if defined (_SC_SELECT)
+	mk_sysconf_map_entry (_SC_SELECT),
+#endif
+
+#if defined (_SC_SEMAPHORES)
+	mk_sysconf_map_entry (_SC_SEMAPHORES),
+#endif
+
+#if defined (_SC_SEM_NSEMS_MAX)
+	mk_sysconf_map_entry (_SC_SEM_NSEMS_MAX),
+#endif
+
+#if defined (_SC_SEM_VALUE_MAX)
+	mk_sysconf_map_entry (_SC_SEM_VALUE_MAX),
+#endif
+
+#if defined (_SC_SHARED_MEMORY_OBJECTS)
+	mk_sysconf_map_entry (_SC_SHARED_MEMORY_OBJECTS),
+#endif
+
 #if defined (_SC_SHELL)
-	mk_posixopt_sysconf_map_entry (SHELL),
+	mk_sysconf_map_entry (_SC_SHELL),
 #endif
+
+#if defined (_SC_SHRT_MAX)
+	mk_sysconf_map_entry (_SC_SHRT_MAX),
+#endif
+
+#if defined (_SC_SHRT_MIN)
+	mk_sysconf_map_entry (_SC_SHRT_MIN),
+#endif
+
+#if defined (_SC_SIGNALS)
+	mk_sysconf_map_entry (_SC_SIGNALS),
+#endif
+
 #if defined (_SC_SPAWN)
-	mk_posixopt_sysconf_map_entry (SPAWN),
+	mk_sysconf_map_entry (_SC_SPAWN),
 #endif
+
 #if defined (_SC_SPIN_LOCKS)
-	mk_posixopt_sysconf_map_entry (SPIN_LOCKS),
+	mk_sysconf_map_entry (_SC_SPIN_LOCKS),
 #endif
+
 #if defined (_SC_SPORADIC_SERVER)
-	mk_posixopt_sysconf_map_entry (SPORADIC_SERVER),
+	mk_sysconf_map_entry (_SC_SPORADIC_SERVER),
 #endif
-	mk_posixopt_sysconf_map_entry (SYNCHRONIZED_IO),
-	mk_posixopt_sysconf_map_entry (THREAD_ATTR_STACKSIZE),
+
+#if defined (_SC_SYNCHRONIZED_IO)
+	mk_sysconf_map_entry (_SC_SYNCHRONIZED_IO),
+#endif
+
+#if defined (_SC_THREAD_ATTR_STACKADDR)
+	mk_sysconf_map_entry (_SC_THREAD_ATTR_STACKADDR),
+#endif
+
+#if defined (_SC_THREAD_ATTR_STACKSIZE)
+	mk_sysconf_map_entry (_SC_THREAD_ATTR_STACKSIZE),
+#endif
+
 #if defined (_SC_THREAD_CPUTIME)
-	mk_posixopt_sysconf_map_entry (THREAD_CPUTIME),
+	mk_sysconf_map_entry (_SC_THREAD_CPUTIME),
 #endif
-	mk_posixopt_sysconf_map_entry (THREAD_PRIO_INHERIT),
-	mk_posixopt_sysconf_map_entry (THREAD_PRIO_PROTECT),
-	mk_posixopt_sysconf_map_entry (THREAD_PRIORITY_SCHEDULING),
+
+#if defined (_SC_THREAD_PRIO_INHERIT)
+	mk_sysconf_map_entry (_SC_THREAD_PRIO_INHERIT),
+#endif
+
+#if defined (_SC_THREAD_PRIO_PROTECT)
+	mk_sysconf_map_entry (_SC_THREAD_PRIO_PROTECT),
+#endif
+
+#if defined (_SC_THREAD_PRIORITY_SCHEDULING)
+	mk_sysconf_map_entry (_SC_THREAD_PRIORITY_SCHEDULING),
+#endif
+
 #if defined (_SC_THREAD_PROCESS_SHARED)
-	mk_posixopt_sysconf_map_entry (THREAD_PROCESS_SHARED),
+	mk_sysconf_map_entry (_SC_THREAD_PROCESS_SHARED),
 #endif
-	mk_posixopt_sysconf_map_entry (THREAD_SAFE_FUNCTIONS),
+
+#if defined (_SC_THREAD_ROBUST_PRIO_INHERIT)
+	mk_sysconf_map_entry (_SC_THREAD_ROBUST_PRIO_INHERIT),
+#endif
+
+#if defined (_SC_THREAD_ROBUST_PRIO_PROTECT)
+	mk_sysconf_map_entry (_SC_THREAD_ROBUST_PRIO_PROTECT),
+#endif
+
+#if defined (_SC_THREAD_SAFE_FUNCTIONS)
+	mk_sysconf_map_entry (_SC_THREAD_SAFE_FUNCTIONS),
+#endif
+
 #if defined (_SC_THREAD_SPORADIC_SERVER)
-	mk_posixopt_sysconf_map_entry (THREAD_SPORADIC_SERVER),
+	mk_sysconf_map_entry (_SC_THREAD_SPORADIC_SERVER),
 #endif
-	mk_posixopt_sysconf_map_entry (THREADS),
+
+#if defined (_SC_THREADS)
+	mk_sysconf_map_entry (_SC_THREADS),
+#endif
+
 #if defined (_SC_TIMEOUTS)
-	mk_posixopt_sysconf_map_entry (TIMEOUTS),
+	mk_sysconf_map_entry (_SC_TIMEOUTS),
 #endif
-	mk_posixopt_sysconf_map_entry (TIMERS),
+
+#if defined (_SC_TIMERS)
+	mk_sysconf_map_entry (_SC_TIMERS),
+#endif
+
 #if defined (_SC_TRACE)
-	mk_posixopt_sysconf_map_entry (TRACE),
+	mk_sysconf_map_entry (_SC_TRACE),
 #endif
+
 #if defined (_SC_TRACE_EVENT_FILTER)
-	mk_posixopt_sysconf_map_entry (TRACE_EVENT_FILTER),
+	mk_sysconf_map_entry (_SC_TRACE_EVENT_FILTER),
 #endif
+
 #if defined (_SC_TRACE_INHERIT)
-	mk_posixopt_sysconf_map_entry (TRACE_INHERIT),
+	mk_sysconf_map_entry (_SC_TRACE_INHERIT),
 #endif
+
 #if defined (_SC_TRACE_LOG)
-	mk_posixopt_sysconf_map_entry (TRACE_LOG),
+	mk_sysconf_map_entry (_SC_TRACE_LOG),
 #endif
-#ifdef _SC_TYPED_MEMORY_OBJECT
-	mk_posixopt_sysconf_map_entry (TYPED_MEMORY_OBJECT),
+
+#if defined (_SC_TYPED_MEMORY_OBJECT)
+	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECT),
 #endif
-#if defined (_POSIX_VDISABLE)
-	mk_sysconf_map_entry (_POSIX_VDISABLE),
+
+#if defined (_SC_XBS5_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_XBS5_ILP32_OFF32),
 #endif
-	mk_sysconf_map_entry (_XOPEN_CRYPT),
-	mk_sysconf_map_entry (_XOPEN_LEGACY),
-#if defined (_XOPEN_REALTIME)
-	mk_sysconf_map_entry (_XOPEN_REALTIME),
+
+#if defined (_SC_XBS5_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_XBS5_ILP32_OFFBIG),
 #endif
-#if defined (_XOPEN_REALTIME_THREADS)
-	mk_sysconf_map_entry (_XOPEN_REALTIME_THREADS),
+
+#if defined (_SC_XBS5_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_XBS5_LP64_OFF64),
 #endif
-	mk_sysconf_map_entry (_XOPEN_UNIX),
+
+#if defined (_SC_XBS5_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_XBS5_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_XOPEN_CRYPT)
+	mk_sysconf_map_entry (_SC_XOPEN_CRYPT),
+#endif
+
+#if defined (_SC_XOPEN_ENH_I18N)
+	mk_sysconf_map_entry (_SC_XOPEN_ENH_I18N),
+#endif
+
+#if defined (_SC_XOPEN_LEGACY)
+	mk_sysconf_map_entry (_SC_XOPEN_LEGACY),
+#endif
+
+#if defined (_SC_XOPEN_REALTIME)
+	mk_sysconf_map_entry (_SC_XOPEN_REALTIME),
+#endif
+
+#if defined (_SC_XOPEN_REALTIME_THREADS)
+	mk_sysconf_map_entry (_SC_XOPEN_REALTIME_THREADS),
+#endif
+
+#if defined (_SC_XOPEN_SHM)
+	mk_sysconf_map_entry (_SC_XOPEN_SHM),
+#endif
+
+#if defined (_SC_XOPEN_UNIX)
+	mk_sysconf_map_entry (_SC_XOPEN_UNIX),
+#endif
+
+#if defined (_SC_XOPEN_XPG2)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG2),
+#endif
+
+#if defined (_SC_XOPEN_XPG3)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG3),
+#endif
+
+#if defined (_SC_XOPEN_XPG4)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG4),
+#endif
+
+#if defined (_SC_XOPEN_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_VERSION),
+#endif
+
+#if defined (_SC_XOPEN_XCU_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_XCU_VERSION),
+#endif
 
 	{ 0, NULL }
 };
@@ -1730,7 +2420,10 @@ show_sysconf (void)
 
 	for (p = sysconf_map; p && p->name; p++) {
 		value = get_sysconf (p->num);
-		entry (p->name, "%ld", value);
+		if (value == -1)
+			entry (p->name, "%s", NA_STR);
+		else
+			entry (p->name, "%ld", value);
 	}
 
     footer ();
@@ -1749,10 +2442,6 @@ show_confstrs (void)
 
 #if defined (_CS_GNU_LIBPTHREAD_VERSION)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
-#endif
-
-#if defined (_CS_PATH)
-	show_confstr (_CS_PATH);
 #endif
 
 #if defined (_CS_LFS64_CFLAGS)
@@ -1787,76 +2476,12 @@ show_confstrs (void)
 	show_confstr (_CS_LFS_LINTFLAGS);
 #endif
 
-#if defined (_CS_LFS_LINTFLAGS)
-	show_confstr (_CS_LFS_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_CFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LDFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LIBS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LIBS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LINTFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_CFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LDFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LIBS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_CFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LDFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LIBS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LIBS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LINTFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_CFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LIBS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS);
+#if defined (_CS_PATH)
+	show_confstr (_CS_PATH);
 #endif
 
 #if defined (_CS_POSIX_V6_ILP32_OFF32)
-	//show_confstr (_CS_POSIX_V6_ILP32_OFF32);
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32);
 #endif
 
 #if defined (_CS_POSIX_V6_ILP32_OFF32_CFLAGS)
@@ -1891,22 +2516,6 @@ show_confstrs (void)
 	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS);
 #endif
 
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
-#endif
-
 #if defined (_CS_POSIX_V6_LP64_OFF64_CFLAGS)
 	show_confstr (_CS_POSIX_V6_LP64_OFF64_CFLAGS);
 #endif
@@ -1921,6 +2530,22 @@ show_confstrs (void)
 
 #if defined (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS)
 	show_confstr (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
 #endif
 
 #if defined (_CS_POSIX_V7_ILP32_OFF32_CFLAGS)
@@ -2010,6 +2635,71 @@ show_confstrs (void)
 #if defined (_CS_V7_WIDTH_RESTRICTED_ENVS)
 	show_confstr (_CS_V7_WIDTH_RESTRICTED_ENVS);
 #endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LIBS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
 
 	footer ();
 }
@@ -5762,6 +6452,12 @@ show_compiler (void)
 	entry ("_POSIX_C_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#if defined (_POSIX_RAW_SOCKETS)
+	entry ("_POSIX_RAW_SOCKETS", "%s", DEFINED_STR),
+#else
+	entry ("_POSIX_RAW_SOCKETS", "%s", NOT_DEFINED_STR),
+#endif
+
 #ifdef _POSIX_SOURCE
 	entry ("_POSIX_SOURCE", "%s", DEFINED_STR);
 #else
@@ -7304,11 +8000,20 @@ get_group_name (gid_t gid)
 /**
  * encode_string:
  *
+ * @str: string to encode.
+ *
  * Returns: 0 on success, -1 on failure.
+ *
+ * Convert the specified string to its encoded form. If no encoding is
+ * necessary, the string will not be modified.
  *
  * Note: It is the callers responsibility to free @str iff this function
  * is successful. any previous value of @str will be freed by
  * encode_string().
+ *
+ * BUGS: this is just horribly, horribly gross :(
+ *
+ * BUG: FIXME: memory corruption bug in here somewhere!!
  **/
 int
 encode_string (char **str)
