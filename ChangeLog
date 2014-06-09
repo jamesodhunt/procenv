@@ -1,3 +1,8 @@
+2014-06-09  James Hunt  <james.hunt@ubuntu.com>
+
+	* procenv.spec.in: Fix for spec file on RHEL - thanks Dave Love
+	  (LP: #1327594).
+
 2014-06-07  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c: sysconf and confstr cleanups.
