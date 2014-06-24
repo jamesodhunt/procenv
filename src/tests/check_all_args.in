@@ -22,11 +22,7 @@ json_checker=json_pp
 # the value 1.
 control_chars_in_env=0
 
-# FIXME: temporary work-around to deal with fact that procenv currently cannot
-# cope with expanding utf-8 chars from, for example, strsignal(3) when
-# locale is not C.
-# (LP: #1325494).
-LANG=C
+lang_list=
 
 die ()
 {
@@ -65,152 +61,113 @@ run_command()
 	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
 }
 
-#---------------------------------------------------------------------
-# Init
+init()
+{
+	[ -n "$PROCENV_TEST_DISABLE" ] && msg "Tests disabled" && exit 0
+    
+	[ -f "$procenv" ] || die "cannot find binary: $procenv"
 
-[ -n "$PROCENV_TEST_DISABLE" ] && msg "Tests disabled" && exit 0
+	command -v "$json_checker" >/dev/null 2>&1 && \
+		json_tests=1 || warn "no $json_checker - JSON tests disabled"
 
-[ -f "$procenv" ] || die "cannot find binary: $procenv"
+	command -v "$xml_checker" >/dev/null 2>&1 && \
+		xml_tests=1 || warn "no $xml_checker - XML tests disabled"
+    
+	env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
-command -v "$json_checker" >/dev/null 2>&1 && \
-	json_tests=1 || warn "no $json_checker - JSON tests disabled"
+	# Always test the default locale
+	lang_list=C
 
-command -v "$xml_checker" >/dev/null 2>&1 && \
-	xml_tests=1 || warn "no $xml_checker - XML tests disabled"
-
-env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
-
-#---------------------------------------------------------------------
-msg "Ensure $procenv runs with no errors"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv 1>"$stdout" 2>"$stderr"
-rm -f "$stdout" "$stderr"
-
-# Save all sections that are displayed by default for later checks
-sections=$($procenv|grep "^[a-z0-9][a-z0-9 ]*:$")
-
-remaining_file=$(mktemp "$template")
-echo "$sections" > "$remaining_file"
-
-# pathconf cannot be handled below as it is indented under the mount
-# output, so just check we can find some evidence of it being displayed.
-$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
-
-#---------------------------------------------------------------------
-msg "Ensure --file=<file> works"
-
-out=$(mktemp "$template")
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv --file="$out" 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
-[ -s "$out" ] || die "Expected output in file $out"
-
-rm "$out"
-rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-msg "Ensure --output=stdout works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv --output=stdout 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
-rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-msg "Ensure --output=stderr works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv --output=stderr 1>"$stdout" 2>"$stderr"
-
-[ -s "$stderr" ] || die "Expected stderr output in file $stderr"
-[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
-rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-msg "Ensure --exec works"
-
-str="hello world"
-out=$(mktemp "$template")
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv --output=file --file="$out" \
-	--exec echo "$str" 1>"$stdout" 2>"$stderr"
-
-[ -s "$out" ] || die "Expected $procenv output in file $out"
-[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-result=$(cat "$stdout")
-
-[ "$result" != "$str" ] && die \
-	"Expected file $stdout to contain '$str', found '$result'"
-
-rm -f "$stdout" "$stderr" "$out"
-
-#---------------------------------------------------------------------
-arg='--format=text'
-msg "Ensure '$arg' works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv $arg 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-
-rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-arg='--format=crumb'
-msg "Ensure '$arg' works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv $arg 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-
-rm -f "$stdout" "$stderr"
-
-#---------------------------------------------------------------------
-
-if [ "$xml_tests" -eq 1 ]
-then
-	arg='--format=xml'
-	if [ "$control_chars_in_env" -eq 1 ]
+	if [ -n "$LANG" ] && [ "$LANG" != "C" ]
 	then
-		warn "Skipping '$arg' test as control characters found in environment"
-	else
-		msg "Ensure '$arg' works"
-		
-		stdout=$(mktemp "$template")
-		stderr=$(mktemp "$template")
-		$procenv $arg 1>"$stdout" 2>"$stderr"
-		
-		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-		
-		[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-		
-		rm -f "$stdout" "$stderr"
+		lang_list="$lang_list $LANG"
 	fi
-fi
 
-#---------------------------------------------------------------------
+	msg "language list: '$lang_list'"
+}
 
-if [ "$json_tests" -eq 1 ]
-then
-	arg='--format=json'
+run_tests()
+{
+	#---------------------------------------------------------------------
+	msg "Running tests for language '$LANG'"
+	#---------------------------------------------------------------------
+	msg "Ensure $procenv runs with no errors"
+	
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv 1>"$stdout" 2>"$stderr"
+	rm -f "$stdout" "$stderr"
+	
+	# Save all sections that are displayed by default for later checks
+	sections=$($procenv|grep "^[a-z0-9][a-z0-9 ]*:$")
+	
+	remaining_file=$(mktemp "$template")
+	echo "$sections" > "$remaining_file"
+	
+	# pathconf cannot be handled below as it is indented under the mount
+	# output, so just check we can find some evidence of it being displayed.
+	$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
+	
+	#---------------------------------------------------------------------
+	msg "Ensure --file=<file> works"
+	
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv --file="$out" 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+	[ -s "$out" ] || die "Expected output in file $out"
+	
+	rm "$out"
+	rm -f "$stdout" "$stderr"
+	
+	#---------------------------------------------------------------------
+	msg "Ensure --output=stdout works"
+	
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv --output=stdout 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+	rm -f "$stdout" "$stderr"
+	
+	#---------------------------------------------------------------------
+	msg "Ensure --output=stderr works"
+	
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv --output=stderr 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$stderr" ] || die "Expected stderr output in file $stderr"
+	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+	rm -f "$stdout" "$stderr"
+	
+	#---------------------------------------------------------------------
+	msg "Ensure --exec works"
+	
+	str="hello world"
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv --output=file --file="$out" \
+		--exec echo "$str" 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$out" ] || die "Expected $procenv output in file $out"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+	
+	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+	result=$(cat "$stdout")
+	
+	[ "$result" != "$str" ] && die \
+		"Expected file $stdout to contain '$str', found '$result'"
+	
+	rm -f "$stdout" "$stderr" "$out"
+	
+	#---------------------------------------------------------------------
+	arg='--format=text'
 	msg "Ensure '$arg' works"
 	
 	stdout=$(mktemp "$template")
@@ -220,104 +177,171 @@ then
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 	
-	$json_checker < "$stdout" >/dev/null
-	
 	rm -f "$stdout" "$stderr"
-fi
-
-#---------------------------------------------------------------------
-msg "Ensure all documented options produce output"
-$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
-	cut -d: -f1 | tr ',' '\n' | egrep -v -- '(-h|--help)' |\
-	while read arg
-do
+	
+	#---------------------------------------------------------------------
+	arg='--format=crumb'
+	msg "Ensure '$arg' works"
+	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-
-	# No format option
-	cmd="$procenv $arg"
-	msg "Running '$cmd'"
-	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
-
-	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-
-	# Establish the name of the section
-	section=$(head -1 "$stdout"|grep "^[^ ].*:$" || :)
-	[ -z "$section" ] && die "No section title found running '$cmd'"
-
-	if [ "$section" != "version:" ]
-	then
-		# XXX: pathconf has already been handled above.
-		if [ "$section" != "pathconf:" ]
-		then
-			# Check that that same section appears in the
-			# default output. If not, we forgot to update
-			# dump().
-			echo "$sections"|grep -q "^${section}$" || \
-			die "Failed to find section '$section' in default $procenv output"
-		fi
-	fi
-
-	# Remove this section as it's now been handled
-	remaining=$(cat "$remaining_file"|grep -v "^${section}$" || :)
-	echo "$remaining"> "$remaining_file"
-
+	$procenv $arg 1>"$stdout" 2>"$stderr"
+	
+	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+	
 	rm -f "$stdout" "$stderr"
-
-	# Text format
-	cmd="$procenv --format=text $arg"
-	msg "Running '$cmd'"
-	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
-
-	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-	rm -f "$stdout" "$stderr"
-
-	# JSON format
-	if [ "$json_tests" -eq 1 ]
-	then
-		cmd="$procenv --format=json $arg"
-		msg "Running '$cmd'"
-		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
 	
-		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+	#---------------------------------------------------------------------
 	
-		run_command "$json_checker < \"$stdout\" >/dev/null"
-	
-		rm -f "$stdout" "$stderr"
-	fi
-
-	# XML format
 	if [ "$xml_tests" -eq 1 ]
 	then
-		cmd="$procenv --format=xml $arg"
-		if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
+		arg='--format=xml'
+		if [ "$control_chars_in_env" -eq 1 ]
 		then
-			warn "Skipping '$cmd' as control characters found in environment"
+			warn "Skipping '$arg' test as control characters found in environment"
 		else
-			msg "Running '$cmd'"
-			run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
-			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+			msg "Ensure '$arg' works"
+			
+			stdout=$(mktemp "$template")
+			stderr=$(mktemp "$template")
+			$procenv $arg 1>"$stdout" 2>"$stderr"
+			
+			[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+			[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+			
 			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-	
+			
+			rm -f "$stdout" "$stderr"
 		fi
+	fi
 	
+	#---------------------------------------------------------------------
+	
+	if [ "$json_tests" -eq 1 ]
+	then
+		arg='--format=json'
+		msg "Ensure '$arg' works"
+		
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+		$procenv $arg 1>"$stdout" 2>"$stderr"
+		
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+		
+		$json_checker < "$stdout" >/dev/null
+		
 		rm -f "$stdout" "$stderr"
 	fi
+	
+	#---------------------------------------------------------------------
+	msg "Ensure all documented options produce output"
+	$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
+		cut -d: -f1 | tr ',' '\n' | egrep -v -- '(-h|--help)' |\
+		while read arg
+	do
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		# No format option
+		cmd="$procenv $arg"
+		msg "Running '$cmd'"
+		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
+		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+
+		# Establish the name of the section
+		section=$(head -1 "$stdout"|grep "^[^ ].*:$" || :)
+		[ -z "$section" ] && die "No section title found running '$cmd'"
+
+		if [ "$section" != "version:" ]
+		then
+			# XXX: pathconf has already been handled above.
+			if [ "$section" != "pathconf:" ]
+			then
+				# Check that that same section appears in the
+				# default output. If not, we forgot to update
+				# dump().
+				echo "$sections"|grep -q "^${section}$" || \
+				die "Failed to find section '$section' in default $procenv output"
+			fi
+		fi
+
+		# Remove this section as it's now been handled
+		remaining=$(cat "$remaining_file"|grep -v "^${section}$" || :)
+		echo "$remaining"> "$remaining_file"
+
+		rm -f "$stdout" "$stderr"
+
+		# Text format
+		cmd="$procenv --format=text $arg"
+		msg "Running '$cmd'"
+		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
+		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+		rm -f "$stdout" "$stderr"
+
+		# JSON format
+		if [ "$json_tests" -eq 1 ]
+		then
+			cmd="$procenv --format=json $arg"
+			msg "Running '$cmd'"
+			run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+
+			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+
+			run_command "$json_checker < \"$stdout\" >/dev/null"
+
+			rm -f "$stdout" "$stderr"
+		fi
+
+		# XML format
+		if [ "$xml_tests" -eq 1 ]
+		then
+			cmd="$procenv --format=xml $arg"
+			if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
+			then
+				warn "Skipping '$cmd' as control characters found in environment"
+			else
+				msg "Running '$cmd'"
+				run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+				[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+				[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+				[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+
+			fi
+
+			rm -f "$stdout" "$stderr"
+		fi
+	done
+
+	# If there are any remaining sections that were produced by default
+	# output but which have not been handed by command-line options, we
+	# forgot to update usage().
+	msg "Checking for missing arguments"
+	remaining=$(cat "$remaining_file")
+
+	[ -n "$remaining" ] && \
+		die "No command-line option found for the following section(s): '$remaining'"
+
+	rm -f "$remaining_file"
+}
+
+#---------------------------------------------------------------------
+
+init
+
+saved_lang=LANG
+
+for lang in $lang_list
+do
+	export LANG="$lang"
+	run_tests
 done
 
-# If there are any remaining sections that were produced by default
-# output but which have not been handed by command-line options, we
-# forgot to update usage().
-msg "Checking for missing arguments"
-remaining=$(cat "$remaining_file")
-
-[ -n "$remaining" ] && \
-	die "No command-line option found for the following section(s): '$remaining'"
-
-rm -f "$remaining_file"
-
+[ -n "$saved_lang" ] && export LANG="$saved_lang"
 #---------------------------------------------------------------------

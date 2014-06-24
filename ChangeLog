@@ -14,8 +14,10 @@
 	    which could have cause invalid formatted output if the NUMA policy
 	    could not be queried.
 	* src/procenv.h: SELinux and capability guards.
-	* src/tests/check_all_args.in: Don't die if JSON or XML checker are
-	  unavailable - just run what tests are possible.
+	* src/tests/check_all_args.in:
+	  - Don't die if JSON or XML checker are unavailable - just run
+	    what tests are possible.
+	  - Test using C locale and current (if different).
 
 2014-06-09  James Hunt  <james.hunt@ubuntu.com>
 
