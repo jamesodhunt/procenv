@@ -197,10 +197,12 @@
 
 #include <linux/capability.h>
 #include <linux/vt.h>
-#ifdef HAVE_APPARMOR
+
+#if defined (HAVE_SYS_APPARMOR_H)
 #include <sys/apparmor.h>
 #endif
-#ifdef HAVE_SELINUX
+
+#if defined (HAVE_SELINUX_SELINUX_H)
 #include <selinux/selinux.h>
 #endif
 
@@ -360,10 +362,12 @@
 #endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
 
 #if defined (PROCENV_LINUX)
+#if defined (HAVE_SYS_CAPABILITY_H)
 #ifndef CAP_IS_SUPPORTED
 int cap_get_bound (cap_value_t cap);
 #define CAP_IS_SUPPORTED(cap) (cap_get_bound (cap) >= 0)
 #define PROCENV_NEED_LOCAL_CAP_GET_BOUND
+#endif
 #endif
 #endif
 
@@ -932,7 +936,11 @@ void show_fds_linux (void);
 void show_cgroups_linux (void);
 void show_oom_linux (void);
 void show_timezone_linux (void);
+
+#if defined (HAVE_SYS_CAPABILITY_H)
 int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap);
+#endif /* HAVE_SYS_CAPABILITY_H */
+
 void show_capabilities_linux (void);
 void show_security_module_linux (void);
 void show_security_module_context_linux (void);

@@ -363,8 +363,12 @@ struct personality_map {
 	mk_map_entry (PER_BSD),
 	mk_map_entry (PER_SUNOS),
 	mk_map_entry (PER_XENIX),
+#if defined (PER_LINUX32)
 	mk_map_entry (PER_LINUX32),
+#endif
+#if defined (PER_LINUX32_3GB)
 	mk_map_entry (PER_LINUX32_3GB),
+#endif
 	mk_map_entry (PER_IRIX32),
 	mk_map_entry (PER_IRIXN32),
 	mk_map_entry (PER_IRIX64),
@@ -381,15 +385,33 @@ struct personality_flag_map {
 	unsigned int  flag;
 	char         *name;
 } personality_flag_map[] = {
+#if defined (ADDR_COMPAT_LAYOUT)
 	mk_map_entry (ADDR_COMPAT_LAYOUT),
+#endif
+#if defined (ADDR_LIMIT_32BIT)
 	mk_map_entry (ADDR_LIMIT_32BIT),
+#endif
+#if defined (ADDR_LIMIT_3GB)
 	mk_map_entry (ADDR_LIMIT_3GB),
+#endif
+#if defined (ADDR_NO_RANDOMIZE)
 	mk_map_entry (ADDR_NO_RANDOMIZE),
+#endif
+#if defined (MMAP_PAGE_ZERO)
 	mk_map_entry (MMAP_PAGE_ZERO),
+#endif
+#if defined (READ_IMPLIES_EXEC)
 	mk_map_entry (READ_IMPLIES_EXEC),
+#endif
+#if defined (SHORT_INODE)
 	mk_map_entry (SHORT_INODE),
+#endif
+#if defined (STICKY_TIMEOUTS)
 	mk_map_entry (STICKY_TIMEOUTS),
+#endif
+#if defined (WHOLE_SECONDS)
 	mk_map_entry (WHOLE_SECONDS),
+#endif
 
 	{ 0, NULL }
 };
@@ -3006,7 +3028,7 @@ show_cpu_affinities (void)
 	int                   ret = 0;
 	long                  max;
 	size_t                size;
-#if defined (PROCENV_BSD)
+#if defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
 	PROCENV_CPU_SET_TYPE  cpu_set_real;
 #endif
 	PROCENV_CPU_SET_TYPE *cpu_set;
@@ -3029,13 +3051,25 @@ show_cpu_affinities (void)
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 
+#if defined (CPU_ALLOC)
+
 	cpu_set = CPU_ALLOC (max);
 	assert (cpu_set);
 
 	size = CPU_ALLOC_SIZE (max);
 	CPU_ZERO_S (size, cpu_set);
 
-#elif defined (PROCENV_BSD)
+#else /* ! CPU_ALLOC */
+
+	/* RHEL 5 */
+
+	cpu_set = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+#endif /* CPU_ALLOC */
+
+#elif defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
 	cpu_set = &cpu_set_real;
 
 	size = sizeof (PROCENV_CPU_SET_TYPE);
@@ -3048,11 +3082,11 @@ show_cpu_affinities (void)
 	 * Except it is missing on kFreeBSD systems (!) so we have to
 	 * use sched_getaffinity() there. :(
 	 */
-#if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+#if (defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)) || (defined (PROCENV_LINUX) && ! defined (CPU_ALLOC))
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) && defined (CPU_ALLOC)
 	/* On a hyperthreaded system, "size" as above may not actually
 	   be big enough, and we get EINVAL.  (hwloc has a similar
 	   workaround.)  */
@@ -3070,7 +3104,7 @@ show_cpu_affinities (void)
 			CPU_ZERO_S (size, cpu_set);
 		}
 	}
-#endif /* PROCENV_LINUX */
+#endif /* PROCENV_LINUX && CPU_ALLOC */
 
 #endif
 
@@ -3123,7 +3157,9 @@ out:
 	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+#if defined (CPU_ALLOC)
 	CPU_FREE (cpu_set);
+#endif
 #endif
 
 	free (cpu_list);
@@ -4248,7 +4284,7 @@ show_numa_memory (void)
 	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
 
 	if (ret < 0) {
-		show ("policy", "%s", UNKNOWN_STR);
+		entry ("policy", "%s", UNKNOWN_STR);
 		goto out;
 	}
 
@@ -4544,9 +4580,9 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 void
 show_network (void)
 {
-	header ("network");
 	/* Bionic isn't actually that bionic at all :( */
-	show ("%s", UNKNOWN_STR);
+	header ("network");
+	footer ();
 }
 
 #else
@@ -6650,6 +6686,7 @@ show_capabilities (void)
 
 #if defined (PROCENV_LINUX)
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 int
 get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
 {
@@ -6662,20 +6699,24 @@ get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
 
     return ret < 0 ? ret : result;
 }
+#endif /* HAVE_SYS_CAPABILITY_H */
 
 void
 show_capabilities_linux (void)
 {
+#if defined (HAVE_SYS_CAPABILITY_H)
+	int    last_known;
+	cap_t  caps;
+
 	/* Most recently-added capability that procenv knew about at
 	 * compile time.
 	 */
-	int    last_known = CAP_LAST_CAP;
-
-	int    ret;
-	cap_t  caps;
+	last_known = CAP_LAST_CAP;
+#endif
 
 	header ("capabilities");
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 	caps = cap_get_proc ();
 
 	entry ("count (CAP_LAST_CAP+1)", "%d", CAP_LAST_CAP+1);
@@ -6757,7 +6798,8 @@ show_capabilities_linux (void)
 	section_open ("unknown");
 
 	for (int i = 1+last_known; ; i++) {
-		char  *name = NULL;
+		int   ret;
+		char *name = NULL;
 
 		ret = cap_get_bound (i);
 		if (ret < 0)
@@ -6778,6 +6820,7 @@ show_capabilities_linux (void)
 
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
+		int   ret;
 		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
 		if (ret < 0)
 			entry ("keep", "%s", UNKNOWN_STR);
@@ -6789,6 +6832,8 @@ show_capabilities_linux (void)
 
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
 	if (LINUX_KERNEL_MMR (2, 6, 26)) {
+		int ret;
+
 		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
 		if (ret < 0)
 			entry ("securebits", "%s", UNKNOWN_STR);
@@ -6816,9 +6861,11 @@ show_capabilities_linux (void)
 #endif
 
 out:
+#endif /* HAVE_SYS_CAPABILITY_H */
 	footer ();
 }
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 #ifdef PROCENV_NEED_LOCAL_CAP_GET_BOUND
 
 int cap_get_bound (cap_value_t cap)
@@ -6827,6 +6874,7 @@ int cap_get_bound (cap_value_t cap)
 }
 
 #endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */
+#endif /* HAVE_SYS_CAPABILITY_H */
 
 void
 show_timezone_linux (void)
@@ -6847,14 +6895,17 @@ void
 show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
-#if defined (HAVE_APPARMOR)
+
+#if defined (HAVE_SYS_APPARMOR_H)
 	if (aa_is_enabled ())
 		lsm = "AppArmor";
 #endif
-#if defined (HAVE_SELINUX)
+
+#if defined (HAVE_SELINUX_SELINUX_H)
 	if (is_selinux_enabled ())
 		lsm = "SELinux";
 #endif
+
 	entry ("name", "%s", lsm);
 }
 
@@ -6864,12 +6915,13 @@ show_security_module_context_linux (void)
 	char   *context = NULL;
 	char   *mode = NULL;
 
-#if defined (HAVE_APPARMOR)
+#if defined (HAVE_SYS_APPARMOR_H)
 	if (aa_is_enabled ())
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
 #endif
-#if defined (HAVE_SELINUX)
+
+#if defined (HAVE_SELINUX_SELINUX_H)
 	if (is_selinux_enabled ())
 		if (getpidcon (user.pid, &context) < 0)
 			die ("failed to query SELinux context");
@@ -7080,7 +7132,9 @@ get_scheduler_name (int sched)
 void
 show_cpu_linux (void)
 {
+#if HAVE_SCHED_GETCPU
 	int cpu;
+#endif
 	long max;
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);

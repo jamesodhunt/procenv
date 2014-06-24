@@ -6,9 +6,12 @@
 script_name=${0##*/}
 
 # Use full path to build binary
-procenv="@abs_builddir@/procenv"
+procenv="@builddir@/procenv"
 
 template="/tmp/${script_name}.XXXXXXXXXX"
+
+json_tests=0
+xml_tests=0
 
 xml_checker=xmlwf
 json_checker=json_pp
@@ -69,10 +72,11 @@ run_command()
 
 [ -f "$procenv" ] || die "cannot find binary: $procenv"
 
-for cmd in "$xml_checker" "$json_checker"
-do
-	command -v "$cmd" >/dev/null 2>&1 || die "need command '$cmd'"
-done
+command -v "$json_checker" >/dev/null 2>&1 && \
+	json_tests=1 || warn "no $json_checker - JSON tests disabled"
+
+command -v "$xml_checker" >/dev/null 2>&1 && \
+	xml_tests=1 || warn "no $xml_checker - XML tests disabled"
 
 env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
@@ -179,11 +183,34 @@ $procenv $arg 1>"$stdout" 2>"$stderr"
 rm -f "$stdout" "$stderr"
 
 #---------------------------------------------------------------------
-arg='--format=xml'
-if [ "$control_chars_in_env" -eq 1 ]
+
+if [ "$xml_tests" -eq 1 ]
 then
-	warn "Skipping '$arg' test as control characters found in environment"
-else
+	arg='--format=xml'
+	if [ "$control_chars_in_env" -eq 1 ]
+	then
+		warn "Skipping '$arg' test as control characters found in environment"
+	else
+		msg "Ensure '$arg' works"
+		
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+		$procenv $arg 1>"$stdout" 2>"$stderr"
+		
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+		
+		[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+		
+		rm -f "$stdout" "$stderr"
+	fi
+fi
+
+#---------------------------------------------------------------------
+
+if [ "$json_tests" -eq 1 ]
+then
+	arg='--format=json'
 	msg "Ensure '$arg' works"
 	
 	stdout=$(mktemp "$template")
@@ -193,25 +220,10 @@ else
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 	
-	[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+	$json_checker < "$stdout" >/dev/null
 	
 	rm -f "$stdout" "$stderr"
 fi
-
-#---------------------------------------------------------------------
-arg='--format=json'
-msg "Ensure '$arg' works"
-
-stdout=$(mktemp "$template")
-stderr=$(mktemp "$template")
-$procenv $arg 1>"$stdout" 2>"$stderr"
-
-[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-
-$json_checker < "$stdout" >/dev/null
-
-rm -f "$stdout" "$stderr"
 
 #---------------------------------------------------------------------
 msg "Ensure all documented options produce output"
@@ -263,32 +275,38 @@ do
 	rm -f "$stdout" "$stderr"
 
 	# JSON format
-	cmd="$procenv --format=json $arg"
-	msg "Running '$cmd'"
-	run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
-
-	[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-	[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-
-	run_command "$json_checker < \"$stdout\" >/dev/null"
-
-	rm -f "$stdout" "$stderr"
-
-	# XML format
-	cmd="$procenv --format=xml $arg"
-	if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
+	if [ "$json_tests" -eq 1 ]
 	then
-		warn "Skipping '$cmd' as control characters found in environment"
-	else
+		cmd="$procenv --format=json $arg"
 		msg "Running '$cmd'"
 		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+	
 		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-		[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-
+	
+		run_command "$json_checker < \"$stdout\" >/dev/null"
+	
+		rm -f "$stdout" "$stderr"
 	fi
 
-	rm -f "$stdout" "$stderr"
+	# XML format
+	if [ "$xml_tests" -eq 1 ]
+	then
+		cmd="$procenv --format=xml $arg"
+		if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
+		then
+			warn "Skipping '$cmd' as control characters found in environment"
+		else
+			msg "Running '$cmd'"
+			run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+	
+		fi
+	
+		rm -f "$stdout" "$stderr"
+	fi
 done
 
 # If there are any remaining sections that were produced by default

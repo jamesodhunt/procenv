@@ -26,7 +26,7 @@ TESTS =
 CLEANFILES =
 
 check_all_args: tests/check_all_args.in
-	sed -e 's|[@]abs_builddir[@]|$(abs_builddir)|g' \
+	sed -e 's|[@]builddir[@]|$(top_builddir)/$(subdir)|g' \
 	    $< > $@
 	chmod +x $@
 

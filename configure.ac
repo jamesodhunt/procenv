@@ -51,9 +51,11 @@ AC_SEARCH_LIBS([cap_init], [cap])
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
+AC_CHECK_HEADERS([selinux/selinux.h])
 
 AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
+AC_CHECK_HEADERS([sys/apparmor.h])
 
 AC_ARG_ENABLE([tests],
 	AS_HELP_STRING([--disable-tests],
