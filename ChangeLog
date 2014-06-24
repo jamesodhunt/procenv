@@ -13,6 +13,7 @@
 	  - show_numa_memory(): Use entry() rather than show(), the latter of
 	    which could have cause invalid formatted output if the NUMA policy
 	    could not be queried.
+	  - show_sizeof(): Add missing typedefs from stdint.h.
 	* src/procenv.h: SELinux and capability guards.
 	* src/tests/check_all_args.in:
 	  - Don't die if JSON or XML checker are unavailable - just run
