@@ -3902,7 +3902,7 @@ get_mtu (const struct ifaddrs *ifaddr)
 {
 	int            sock;
 	struct ifreq   ifr;
-	int            request = SIOCGIFMTU;
+	unsigned long  request = SIOCGIFMTU;
 
 	assert (ifaddr);
 
@@ -3944,7 +3944,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 #endif
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	int            request = SIOCGIFHWADDR;
+	unsigned long  request = SIOCGIFHWADDR;
 #endif
 
 	assert (ifaddr);
@@ -6670,9 +6670,7 @@ show_uname (void)
 	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
-	assert (uts.domainname);
-	assert (uts.domainname[0]);
-	entry ("domainname", "%s", uts.domainname);
+	entry ("domainname", "%s", uts.domainname ? uts.domainname : UNKNOWN_STR);
 #endif
 
 	footer ();
@@ -8974,6 +8972,7 @@ compress (char **str)
 
 	while (start && *start) {
 
+		/* FIXME: rewrite using strstr! */
 		ret = regexec (&regex, start, NUMBER_MATCHES, matches, 0);
 		if (ret == REG_NOMATCH)
 			break;
