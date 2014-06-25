@@ -5,6 +5,8 @@
 	    (caught by FreeBSD's "WARNING ioctl sign-extension ioctl" console
 	    message).
 	  - get_mac_address(): As above.
+	  - show_uname(): Handle unset uts.domainname without an
+	    assertion to cope on OpenSuSE 13.1 systems.
 
 2014-06-24  James Hunt  <james.hunt@ubuntu.com>
 
