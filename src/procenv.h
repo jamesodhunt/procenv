@@ -118,8 +118,11 @@
  *   - --confstr and pathconf values in --mount now show
  *     NA_STR rather than UNKNOWN_STR. --sysconf now shows NA_STR rather
  *     than -1.
+ * VERSION 8:
+ *   - --memory: Added NUMA API version.
+ *   - --shared-memory: Added swap_attempts and swap_successes.
  **/
-#define PROCENV_FORMAT_VERSION 7
+#define PROCENV_FORMAT_VERSION 8
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -188,6 +191,13 @@
 #if defined (HAVE_NUMA_H)
 #include <numa.h>
 #include <numaif.h>
+
+#if LIBNUMA_API_VERSION == 2
+#define PROCENV_NUMA_BITMASK_ISSET(mask, node)	numa_bitmask_isbitset ((mask), (node))
+#else
+#define PROCENV_NUMA_BITMASK_ISSET(mask, node)	nodemask_isset (&(mask), (node))
+#endif
+
 #endif /* HAVE_NUMA_H */
 
 /* Lucid provides prctl.h, but not securebits.h */

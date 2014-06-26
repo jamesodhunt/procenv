@@ -4253,10 +4253,18 @@ show_numa_memory (void)
 #if defined (HAVE_NUMA_H)
 	int              policy;
 	const char      *policy_name;
-	struct bitmask  *allowed;
 	char            *allowed_list = NULL;
 	int              ret;
 	unsigned long    node;
+	unsigned long    allowed_size;
+
+#if defined (HAVE_NUMA_H)
+#if LIBNUMA_API_VERSION == 2
+	struct bitmask  *allowed;
+#else
+	nodemask_t       allowed;
+#endif
+#endif
 
 	/* part of the libnuma public API - stop the library calling
 	 * exit(3) on error.
@@ -4281,6 +4289,12 @@ show_numa_memory (void)
 		/* NUMA not supported on this system */
 		goto out;
 
+#if LIBNUMA_API_VERSION == 2
+	entry ("api version", "%d", 2);
+#else
+	entry ("api version", "%d", 1);
+#endif
+
 	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
 
 	if (ret < 0) {
@@ -4292,6 +4306,7 @@ show_numa_memory (void)
 
 	entry ("policy", "%s", policy_name ? policy_name : UNKNOWN_STR);
 
+#if LIBNUMA_API_VERSION == 2
 	entry ("maximum nodes", "%d", numa_num_possible_nodes ());
 	entry ("configured nodes", "%d", numa_num_configured_nodes ());
 
@@ -4299,8 +4314,18 @@ show_numa_memory (void)
 	if (! allowed)
 		die ("failed to query NUMA allowed list");
 
-	for (node = 0; node < allowed->size; node++) {
-		if (numa_bitmask_isbitset (allowed, node)) {
+	allowed_size = allowed->size;
+
+#else
+	entry ("maximum nodes", "%s", UNKNOWN_STR);
+	entry ("configured nodes", "%d", numa_max_node ());
+
+	allowed = numa_get_run_node_mask ();
+	allowed_size = NUMA_NUM_NODES;
+#endif
+
+	for (node = 0; node < allowed_size; node++) {
+		if (PROCENV_NUMA_BITMASK_ISSET (allowed, node)) {
 			/* Record first entry in the range */
 			if (! count)
 				first = node;
@@ -4341,8 +4366,11 @@ show_numa_memory (void)
 
 	entry ("allowed list", "%s", allowed_list);
 
-	free (allowed_list);
+#if LIBNUMA_API_VERSION == 2
 	numa_free_nodemask (allowed);
+#endif
+
+	free (allowed_list);
 
 out:
 #endif /* HAVE_NUMA_H */
@@ -6924,8 +6952,13 @@ show_security_module_linux (void)
 #endif
 
 #if defined (HAVE_SELINUX_SELINUX_H)
-	if (is_selinux_enabled ())
-		lsm = "SELinux";
+	if (is_selinux_enabled () == 1) {
+
+		if (is_selinux_mls_enabled () == 1)
+			lsm = "SELinux (MLS)";
+		else
+			lsm = "SELinux";
+	}
 #endif
 
 	entry ("name", "%s", lsm);
@@ -9112,7 +9145,7 @@ show_shared_mem_linux (void)
 
 	header ("shared memory");
 
-	max = shmctl (0, SHM_INFO, (struct shmid_ds *)&info);
+	max = shmctl (0, SHM_INFO, (void *)&info);
 	if (max < 0)
 		goto out;
 
@@ -9124,6 +9157,10 @@ show_shared_mem_linux (void)
 	entry ("pages", "%lu", info.shm_tot);
 	entry ("shm_rss", "%lu", info.shm_rss);
 	entry ("shm_swp", "%lu", info.shm_swp);
+
+	/* Apparently unused */
+	entry ("swap_attempts", "%lu", info.swap_attempts);
+	entry ("swap_successes", "%lu", info.swap_successes);
 
 	section_close ();
 
@@ -9358,7 +9395,7 @@ show_msg_queues_linux (void)
 
 	header ("message queues");
 
-	max = msgctl (0, MSG_INFO, (struct msqid_ds  *)&info);
+	max = msgctl (0, MSG_INFO, (void *)&info);
 	if (max < 0)
 		goto out;
 
