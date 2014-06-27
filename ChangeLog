@@ -1,5 +1,14 @@
 2014-06-26  James Hunt  <james.hunt@ubuntu.com>
 
+	* TODO: Updates.
+	* src/procenv.c:
+	  - More fixes for LP: #1333194:
+	    - show_capabilities_linux(): Guard PR_CAPBSET_READ.
+	    - cap_get_bound(): Guard PR_CAPBSET_READ.
+	* src/procenv.h: Define CAP_LAST_CAP when using old versions of libcap.
+
+2014-06-26  James Hunt  <james.hunt@ubuntu.com>
+
 	* src/procenv.c:
 	  - show_numa_memory():
 	    - Fix for systems using old numa libraries (RHEL5). This should

@@ -367,6 +367,11 @@
 #include <sys/capability.h>
 #endif
 
+#if ! defined (_LINUX_CAPABILITY_VERSION_3) && ! defined (CAP_LAST_CAP)
+/* Ugh */
+#define CAP_LAST_CAP 30
+#endif
+
 #define PROCENV_CPU_SET_TYPE cpu_set_t
 
 #endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */

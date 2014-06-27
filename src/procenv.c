@@ -6847,6 +6847,7 @@ show_capabilities_linux (void)
 	 */
 	section_open ("unknown");
 
+#if defined (PR_CAPBSET_READ)
 	for (int i = 1+last_known; ; i++) {
 		int   ret;
 		char *name = NULL;
@@ -6863,6 +6864,7 @@ show_capabilities_linux (void)
 
 		free (name);
 	}
+#endif
 
 	cap_free (caps);
 
@@ -6920,7 +6922,11 @@ out:
 
 int cap_get_bound (cap_value_t cap)
 {
+#if defined (PR_CAPBSET_READ)
 	return prctl (PR_CAPBSET_READ, cap);
+#else
+	return -1;
+#endif
 }
 
 #endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */

@@ -1,5 +1,9 @@
 # TODO
 
+- allow following to be UTF-8:
+  --crumb-separator=<str>
+  --indent-char=<c>
+  --separator=<str>
 - LSM
   - add details for SMACK and TOMOYO (available in Centos 7).
   - move into a new --security section?
