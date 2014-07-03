@@ -1,3 +1,15 @@
+2014-07-03  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/pr_list.c: 
+	  - New functions:
+	    - pr_list_append_str()
+	    - pr_list_appendn_str()
+	    - pr_list_prependn_str()
+	* src/procenv.c: 
+	  - procenv_getcpu(): A {RHEL,Centos} 5-pecific hack to fully
+	    resolve LP: #1333194 by working around fact that glibc on that
+	    platform does not provide sched_getcpu(3).
+
 2014-06-26  James Hunt  <james.hunt@ubuntu.com>
 
 	* TODO: Updates.
