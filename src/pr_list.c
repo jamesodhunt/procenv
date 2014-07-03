@@ -74,6 +74,60 @@ pr_list_append (PRList *list, PRList *entry)
 }
 
 /**
+ * pr_list_append_str:
+ *
+ * @list: list to operate on,
+ * @str: string value to add to new entry.
+ *
+ * Create entry containing @str and add it after @list.
+ *
+ * Returns: New entry.
+ **/
+PRList *
+pr_list_append_str (PRList *list, const char *str)
+{
+    size_t len;
+
+    assert (list);
+    assert (str);
+
+    len = strlen (str);
+
+    return pr_list_appendn_str (list, str, len);
+}
+
+/**
+ * pr_list_appendn_str:
+ *
+ * @list: list to operate on,
+ * @str: string value to add to new entry,
+ * @len: length of @str to add to entry.
+ *
+ * Create entry containing @str and add it after @list.
+ *
+ * Returns: New entry.
+ **/
+PRList *
+pr_list_appendn_str (PRList *list, const char *str, size_t len)
+{
+	char    *s;
+	PRList  *entry;
+
+	assert (list);
+	assert (str);
+
+	s = strndup (str, 1+len);
+	assert (s);
+
+	entry = pr_list_new (s);
+	assert (entry);
+
+	pr_list_append (list, entry);
+
+	return entry;
+}
+
+/**
  * pr_list_prepend:
  *
  * @list: list to operate on,
@@ -111,13 +165,37 @@ pr_list_prepend (PRList *list, PRList *entry)
 PRList *
 pr_list_prepend_str (PRList *list, const char *str)
 {
+	size_t len;
+
+	assert (list);
+	assert (str);
+
+	len = strlen (str);
+
+	return pr_list_prependn_str (list, str, len);
+}
+
+/**
+ * pr_list_prependn_str:
+ *
+ * @list: list to operate on,
+ * @str: string value to add to new entry,
+ * @len: length of @str to add to entry.
+ *
+ * Create entry containing @str and add it before @list.
+ *
+ * Returns: New entry.
+ **/
+PRList *
+pr_list_prependn_str (PRList *list, const char *str, size_t len)
+{
 	char    *s;
 	PRList  *entry;
 
 	assert (list);
 	assert (str);
 
-	s = strdup (str);
+	s = strndup (str, 1+len);
 	assert (s);
 
 	entry = pr_list_new (s);

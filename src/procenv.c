@@ -7193,9 +7193,7 @@ get_scheduler_name (int sched)
 void
 show_cpu_linux (void)
 {
-#if HAVE_SCHED_GETCPU
-	int cpu;
-#endif
+	int cpu = -1;
 	long max;
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
@@ -7205,16 +7203,71 @@ show_cpu_linux (void)
 	if (cpu < 0)
 		goto unknown_sched_cpu;
 
+#else
+	cpu = procenv_getcpu ();
+	if (cpu < 0)
+		goto unknown_sched_cpu;
+#endif
+
 	/* adjust to make 1-based */
 	cpu++;
 
-	entry ("number", "%u of %lu", cpu, max);
+	entry ("number", "%u of %ld", cpu, max);
 	return;
 
 unknown_sched_cpu:
-#endif
-	entry ("number", "%s of %lu", UNKNOWN_STR, max);
+
+	entry ("number", "%s of %ld", UNKNOWN_STR, max);
 }
+
+#if LIBNUMA_API_VERSION != 2
+/* Crutch function for RHEL 5 */
+int
+procenv_getcpu (void)
+{
+	int          cpu = -1;
+	FILE        *f;
+	char       **fields;
+	const char  *field;
+	char         buffer[1024];
+	size_t       len;
+	size_t       count;
+
+	f = fopen ("/proc/self/stat", "r");
+	if (! f)
+		goto out;
+
+	if (! fgets (buffer, sizeof (buffer), f))
+		goto out;
+
+	fclose (f);
+
+	len = strlen (buffer);
+	buffer[len-1] = '\0';
+
+	count = split_fields (buffer, ' ', TRUE, &fields);
+
+	if (! count)
+		return -1;
+
+	if (count != 42)
+		goto cleanup;
+
+	field = fields[41];
+	assert (field);
+	
+	cpu = atoi (field);
+
+cleanup:
+
+	for (len = 0; len < count; len++)
+		free (fields[len]);
+	free (fields);
+
+out:
+	return cpu;
+}
+#endif
 
 /**
  * get_canonical:
@@ -9654,3 +9707,73 @@ clear_breadcrumbs (void)
 	while (crumb_list->prev != crumb_list)
 		remove_breadcrumb ();
 }
+
+#if LIBNUMA_API_VERSION != 2
+
+/**
+ * @string: input,
+ * @delimiter: field delimiter,
+ * @compress: if TRUE, ignore repeated contiguous delimiter characters,
+ * @array: [output] array of fields, which this function will allocate.
+ *
+ * Notes: it is the callers responsibility to free @array
+ * if the returned value is >0.
+ *
+ * Returns: number of fields in @string.
+ **/
+size_t
+split_fields (const char *string, char delimiter, int compress, char ***array)
+{
+	const char  *p = NULL;
+	const char  *start = NULL;
+	size_t       count = 0;
+	char        *elem;
+	char       **new;
+
+	assert (string);
+	assert (delimiter);
+	assert (array);
+
+	*array = NULL;
+
+	new = realloc ((*array), sizeof (char *) * (1+count));
+	assert (new);
+
+	new[0] = NULL;
+	*array = new;
+
+	p = string;
+
+	while (p && *p) {
+		/* skip leading prefix */
+		while (compress && p && *p == delimiter)
+			p++;
+
+		if (! *p)
+			break;
+
+		/* found a field */
+		count++;
+
+		if (! compress)
+			p++;
+
+		/* skip over the field */
+		start = p;
+		while (p && *p && *p != delimiter)
+			p++;
+
+		elem = strndup (start, p-start);
+		assert (elem);
+
+		new = realloc ((*array), sizeof (char *) * (1+count));
+		assert (new);
+
+		new[count-1] = elem;
+		*array = new;
+	}
+
+	return count;
+}
+
+#endif /* LIBNUMA_API_VERSION != 2 */
