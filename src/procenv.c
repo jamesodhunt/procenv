@@ -7220,7 +7220,8 @@ unknown_sched_cpu:
 	entry ("number", "%s of %ld", UNKNOWN_STR, max);
 }
 
-#if LIBNUMA_API_VERSION != 2
+#if ! defined(HAVE_SCHED_GETCPU)
+
 /* Crutch function for RHEL 5 */
 int
 procenv_getcpu (void)
@@ -9708,7 +9709,7 @@ clear_breadcrumbs (void)
 		remove_breadcrumb ();
 }
 
-#if LIBNUMA_API_VERSION != 2
+#if ! defined(HAVE_SCHED_GETCPU)
 
 /**
  * @string: input,
@@ -9776,4 +9777,4 @@ split_fields (const char *string, char delimiter, int compress, char ***array)
 	return count;
 }
 
-#endif /* LIBNUMA_API_VERSION != 2 */
+#endif

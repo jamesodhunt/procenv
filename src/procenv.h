@@ -189,6 +189,7 @@
 #include <linux/version.h>
 
 #if defined (HAVE_NUMA_H)
+
 #include <numa.h>
 #include <numaif.h>
 
@@ -197,10 +198,12 @@
 #else
 #define PROCENV_NUMA_BITMASK_ISSET(mask, node)	nodemask_isset (&(mask), (node))
 int procenv_getcpu (void);
+#endif
+#endif /* HAVE_NUMA_H */
+
+#if ! defined(HAVE_SCHED_GETCPU)
 size_t split_fields (const char *string, char delimiter, int compress, char ***array);
 #endif
-
-#endif /* HAVE_NUMA_H */
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
