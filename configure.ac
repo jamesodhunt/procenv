@@ -110,7 +110,7 @@ AC_ARG_ENABLE([debug],
 	AS_HELP_STRING([--enable-debug],
 		       [enable developer build]),
 	[AS_IF([test "x$enable_debug" = "xyes"],
-	       [[CFLAGS=`echo "$CFLAGS -DDEBUG"`
-	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG"`]])])
+	       [[CFLAGS=`echo "$CFLAGS -DDEBUG -pg"`
+	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`]])])
 
 AC_OUTPUT(Makefile src/Makefile procenv.spec)

@@ -1,6 +1,7 @@
 2014-08-14  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: More examples.
+	* configure.ac: Add profiling for debug mode.
 
 2014-07-04  James Hunt  <james.hunt@ubuntu.com>
 
