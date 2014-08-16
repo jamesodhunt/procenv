@@ -1,5 +1,5 @@
 Name:           procenv
-Version:        0.35
+Version:        0.36
 Release:        1%{?dist}
 Summary:        Utility to show process environment
 
@@ -11,7 +11,11 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 # fixme: should be autoconf >= 2.68, but Fedora packages or alien'ed dpkg
 # need a later m4 too
-BuildRequires:  gcc, make, binutils, autoconf, automake, pkgconfig, perl-JSON-PP, expat, libcap-devel
+BuildRequires:  gcc, make, binutils, autoconf, automake, pkgconfig, expat, libcap-devel, libselinux-devel
+# Only used in testing, not in EPEL.
+%if 0%{?fedora}
+BuildRequires:  perl-JSON-PP
+%endif
 %ifnarch %{arm} s390 s390x
 BuildRequires:  numactl-devel
 %endif
@@ -35,7 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
 %check
+%if 0%{?fedora}
 make check
+%endif
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -47,6 +53,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc
 
 %changelog
+* Thu Jun  5 2014 Dave Love <d.love@liverpool.ac.uk> - 0.35-2
+- Only BR perl-JSON-PP and run tests on fedora
+
 * Fri Jan 31 2014 James Hunt <james.hunt@ubuntu.com> - 0.32-1
 - Update to 0.31.
 

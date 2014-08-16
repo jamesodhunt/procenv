@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright 2012-2014 James Hunt.
+ * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <wchar.h>
+#include <wctype.h>
 #include <unistd.h>
 #include <limits.h>
 #include <libgen.h>
@@ -69,7 +70,6 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
-#include <regex.h>
 
 #include <pr_list.h>
 
@@ -114,8 +114,15 @@
  *     along with the numeric value of the define.
  * VERSION 6:
  *   - --misc: Added personality.
+ * VERSION 7:
+ *   - --confstr and pathconf values in --mount now show
+ *     NA_STR rather than UNKNOWN_STR. --sysconf now shows NA_STR rather
+ *     than -1.
+ * VERSION 8:
+ *   - --memory: Added NUMA API version.
+ *   - --shared-memory: Added swap_attempts and swap_successes.
  **/
-#define PROCENV_FORMAT_VERSION 6
+#define PROCENV_FORMAT_VERSION 8
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -182,9 +189,21 @@
 #include <linux/version.h>
 
 #if defined (HAVE_NUMA_H)
+
 #include <numa.h>
 #include <numaif.h>
+
+#if LIBNUMA_API_VERSION == 2
+#define PROCENV_NUMA_BITMASK_ISSET(mask, node)	numa_bitmask_isbitset ((mask), (node))
+#else
+#define PROCENV_NUMA_BITMASK_ISSET(mask, node)	nodemask_isset (&(mask), (node))
+int procenv_getcpu (void);
+#endif
 #endif /* HAVE_NUMA_H */
+
+#if ! defined(HAVE_SCHED_GETCPU)
+size_t split_fields (const char *string, char delimiter, int compress, char ***array);
+#endif
 
 /* Lucid provides prctl.h, but not securebits.h */
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
@@ -193,10 +212,12 @@
 
 #include <linux/capability.h>
 #include <linux/vt.h>
-#ifdef HAVE_APPARMOR
+
+#if defined (HAVE_SYS_APPARMOR_H)
 #include <sys/apparmor.h>
 #endif
-#ifdef HAVE_SELINUX
+
+#if defined (HAVE_SELINUX_SELINUX_H)
 #include <selinux/selinux.h>
 #endif
 
@@ -351,15 +372,22 @@
 #include <sys/capability.h>
 #endif
 
+#if ! defined (_LINUX_CAPABILITY_VERSION_3) && ! defined (CAP_LAST_CAP)
+/* Ugh */
+#define CAP_LAST_CAP 30
+#endif
+
 #define PROCENV_CPU_SET_TYPE cpu_set_t
 
 #endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
 
 #if defined (PROCENV_LINUX)
+#if defined (HAVE_SYS_CAPABILITY_H)
 #ifndef CAP_IS_SUPPORTED
 int cap_get_bound (cap_value_t cap);
 #define CAP_IS_SUPPORTED(cap) (cap_get_bound (cap) >= 0)
 #define PROCENV_NEED_LOCAL_CAP_GET_BOUND
+#endif
 #endif
 #endif
 
@@ -381,6 +409,7 @@ int cap_get_bound (cap_value_t cap);
 
 #define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024
+#define DEFAULT_ALLOC_GUESS_SIZE 8
 #define MOUNTS            "/proc/mounts"
 #define ROOT_PATH         "/proc/self/root"
 
@@ -555,7 +584,7 @@ int cap_get_bound (cap_value_t cap);
 	errno = 0; \
 	conf = pathconf (path, name); \
 	if (conf == -1 && errno == 0) { \
-	    entry (#name, "%s", UNKNOWN_STR); \
+	    entry (#name, "%s", NA_STR); \
 	} else { \
 	    entry (#name, "%d", conf); \
 	} \
@@ -569,6 +598,11 @@ int cap_get_bound (cap_value_t cap);
 
 #define show_confstr(s) \
 { \
+    _show_confstr (s, #s); \
+}
+
+#define _show_confstr(s, name) \
+{ \
 	size_t len; \
 	char *buffer; \
 	\
@@ -580,8 +614,19 @@ int cap_get_bound (cap_value_t cap);
 	if (! buffer) { \
 		die ("failed to allocate space for confstr"); \
 	} \
+	\
 	assert (confstr (s, buffer, len) == len); \
-	entry (#s, "'%s'", buffer); \
+	\
+	/* Convert multi-line values to multi-field */ \
+	for (size_t i = 0; i < len; i++) { \
+		if (buffer[i] == '\n') buffer[i] = ' '; \
+	} \
+	\
+	entry (name, "%s%s%s", \
+			buffer && buffer[0] ? "'" : "", \
+			buffer && buffer[0] ? buffer : NA_STR, \
+			buffer && buffer[0] ? "'" : ""); \
+	\
 	free (buffer); \
 }
 
@@ -618,12 +663,6 @@ int cap_get_bound (cap_value_t cap);
 #define get_sysconf(s) \
  	sysconf (s)
 
-#define mk_posix_sysconf_map_entry(name) \
-	{_SC_ ## name, #name "(_SC_" #name ")" }
-
-#define mk_posixopt_sysconf_map_entry(name) \
-	{_SC_ ## name, "_POSIX_" #name "(_SC_" #name ")" }
-
 #define mk_sysconf_map_entry(name) \
 	{name, #name }
 
@@ -637,6 +676,17 @@ int cap_get_bound (cap_value_t cap);
 	entry ("size", "%lu byte%s", \
 			(unsigned long int)sizeof (type), \
 			sizeof (type) == 1 ? "" : "s")
+
+/**
+ * @buf: string,
+ * @len: number of _characters_ (*NOT* bytes!) in @buf,
+ * @size: allocated size of @buf in bytes.
+ **/
+typedef struct procenv_string {
+	wchar_t  *buf;
+	size_t    len;
+	size_t    size;
+} pstring;
 
 typedef enum {
 	SHOW_ALL,
@@ -652,8 +702,8 @@ typedef enum {
 } OutputFormat;
 
 typedef struct translate_map_entry {
-	char  from;
-	char *to;
+	wchar_t   from;
+	wchar_t  *to;
 } TranslateMapEntry;
 
 typedef enum element_type {
@@ -765,8 +815,16 @@ struct network_map {
 	struct network_map *prev;
 };
 
-void master_header (char **doc);
-void master_footer (char **doc);
+pstring *pstring_new (void);
+pstring *pstring_create (const wchar_t *str);
+void pstring_free (pstring *str);
+pstring *char_to_pstring (const char *str);
+wchar_t *char_to_wchar (const char *str);
+char *wchar_to_char (const wchar_t *wstr);
+char *pstring_to_char (const pstring *str);
+
+void master_header (pstring **doc);
+void master_footer (pstring **doc);
 
 void header (const char *name);
 void footer (void);
@@ -781,12 +839,31 @@ void container_close (void);
 
 void entry (const char *name, const char *fmt, ...);
 void _show (const char *prefix, int indent, const char *fmt, ...);
-void _show_output (const char *string);
+void _show_output (const char *str);
+void _show_output_pstring (const pstring *pstr);
+
+/* operate on multi-bytes */
+void append (char **dest, const char *src);
+void appendn (char **dest, const char *src, size_t len);
+void appendf (char **dest, const char *fmt, ...);
+void appendva (char **dest, const char *fmt, va_list ap);
+
+/* operate on pure wide-characters */
+void wappend (pstring **dest, const wchar_t *src);
+void wappendn (pstring **dest, const wchar_t *src, size_t len);
+void wappendf (pstring **dest, const wchar_t *fmt, ...);
+void wappendva (pstring **dest, const wchar_t *fmt, va_list ap);
+
+/* operate on wide-characters, but using multi-byte formats */
+void wmappend (pstring **dest, const char *src);
+void wmappendn (pstring **dest, const char *src, size_t len);
+void wmappendf (pstring **dest, const char *fmt, ...);
+void wmappendva (pstring **dest, const char *fmt, va_list ap);
 
 int get_indent (void);
 void inc_indent (void);
 void dec_indent (void);
-void add_indent (char **doc);
+void add_indent (pstring **doc);
 
 void change_element (ElementType new);
 void format_element (void);
@@ -794,12 +871,14 @@ void format_text_element (void);
 void format_json_element (void);
 void format_xml_element (void);
 
-int encode_string (char **str);
-char *translate (const char *from);
-void compress (char **str);
-void chomp (char *str);
+int encode_string (pstring **pstr);
+pstring *translate (const pstring *pstr);
+void compress (pstring **wstr, wchar_t remove_char);
+void chomp (pstring *str);
 
 void show_version (void);
+void save_locale (void);
+void restore_locale (void);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);
@@ -876,10 +955,6 @@ void show_cpu (void);
 void show_cpu_affinities (void);
 void show_memory (void);
 void show_threads (void);
-void append (char **str, const char *new);
-void appendn (char **str, const char *new, size_t len);
-void appendf (char **str, const char *fmt, ...);
-void appendva (char **str, const char *fmt, va_list ap);
 void check_envvars (void);
 int get_output_value (const char *name);
 int get_output_format (const char *name);
@@ -918,7 +993,11 @@ void show_fds_linux (void);
 void show_cgroups_linux (void);
 void show_oom_linux (void);
 void show_timezone_linux (void);
+
+#if defined (HAVE_SYS_CAPABILITY_H)
 int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap);
+#endif /* HAVE_SYS_CAPABILITY_H */
+
 void show_capabilities_linux (void);
 void show_security_module_linux (void);
 void show_security_module_context_linux (void);

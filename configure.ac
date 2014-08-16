@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([procenv_version], 0.35)
+m4_define([procenv_version], 0.36)
 
 AC_INIT(procenv, [procenv_version], [james.hunt@ubuntu.com])
 AC_COPYRIGHT([Copyright (C) 2012-2014 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
@@ -13,6 +13,7 @@ AC_CONFIG_AUX_DIR([config])
 AC_SUBST(PROCENV_VERSION, procenv_version)
 
 AC_GNU_SOURCE
+AC_SYS_LARGEFILE
 
 # Checks for programs.
 AC_PROG_CC
@@ -51,9 +52,11 @@ AC_SEARCH_LIBS([cap_init], [cap])
 AC_SEARCH_LIBS([pthread_create], [pthread])
 AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
+AC_CHECK_HEADERS([selinux/selinux.h])
 
 AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
+AC_CHECK_HEADERS([sys/apparmor.h])
 
 AC_ARG_ENABLE([tests],
 	AS_HELP_STRING([--disable-tests],
@@ -108,7 +111,7 @@ AC_ARG_ENABLE([debug],
 	AS_HELP_STRING([--enable-debug],
 		       [enable developer build]),
 	[AS_IF([test "x$enable_debug" = "xyes"],
-	       [[CFLAGS=`echo "$CFLAGS -DDEBUG"`
-	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG"`]])])
+	       [[CFLAGS=`echo "$CFLAGS -DDEBUG -pg"`
+	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`]])])
 
 AC_OUTPUT(Makefile src/Makefile procenv.spec)

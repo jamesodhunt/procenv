@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright 2012-2014 James Hunt.
+ * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,9 @@
 /**
  * doc:
  *
- * The output document.
+ * The output document in wide-character format.
  **/
-char *doc = NULL;
+pstring *doc = NULL;
 
 /**
  * output:
@@ -110,11 +110,12 @@ int indent = 0;
 int indent_amount = DEFAULT_INDENT_AMOUNT;
 
 /**
- * indent_char:
+ * indent_char, wide_indent_char:
  *
- * Character to use for indenting.
+ * Character to use for indenting and wide-char equivalent.
  **/
-int indent_char = DEFAULT_INDENT_CHAR;
+int      indent_char = DEFAULT_INDENT_CHAR;
+wchar_t  wide_indent_char;
 
 /**
  * program_name:
@@ -135,6 +136,11 @@ char **exec_args = NULL;
  **/
 char **argvp = NULL;
 int argvc = 0;
+
+/**
+ * Locale in effect at program startup.
+ **/
+char *saved_locale = NULL;
 
 /**
  * last_element: Type of previous element handled.
@@ -289,29 +295,29 @@ TranslateTable translate_table[] = {
 	{
 		OUTPUT_FORMAT_XML,
 		{
-			{ '\'', "&apos;" },
-			{ '"', "&quot;" },
-			{ '&', "&amp;" },
-			{ '<', "&lt;" },
-			{ '>', "&gt;" },
+			{ L'\'', L"&apos;" },
+			{ L'"', L"&quot;" },
+			{ L'&', L"&amp;" },
+			{ L'<', L"&lt;" },
+			{ L'>', L"&gt;" },
 
 			/* terminator */
-			{ '\0', NULL }
+			{ L'\0', NULL }
 		}
 	},
 	{
 		OUTPUT_FORMAT_JSON,
 		{
-			{ '"', "\\\"" },
-			{ '\\', "\\\\" },
+			{ L'"', L"\\\"" },
+			{ L'\\', L"\\\\" },
 
 			/* hack! */
-			{ '\0', NULL },
-			{ '\0', NULL },
-			{ '\0', NULL },
+			{ L'\0', NULL },
+			{ L'\0', NULL },
+			{ L'\0', NULL },
 
 			/* terminator */
-			{ '\0', NULL }
+			{ L'\0', NULL }
 		}
 	},
 };
@@ -363,8 +369,12 @@ struct personality_map {
 	mk_map_entry (PER_BSD),
 	mk_map_entry (PER_SUNOS),
 	mk_map_entry (PER_XENIX),
+#if defined (PER_LINUX32)
 	mk_map_entry (PER_LINUX32),
+#endif
+#if defined (PER_LINUX32_3GB)
 	mk_map_entry (PER_LINUX32_3GB),
+#endif
 	mk_map_entry (PER_IRIX32),
 	mk_map_entry (PER_IRIXN32),
 	mk_map_entry (PER_IRIX64),
@@ -381,15 +391,33 @@ struct personality_flag_map {
 	unsigned int  flag;
 	char         *name;
 } personality_flag_map[] = {
+#if defined (ADDR_COMPAT_LAYOUT)
 	mk_map_entry (ADDR_COMPAT_LAYOUT),
+#endif
+#if defined (ADDR_LIMIT_32BIT)
 	mk_map_entry (ADDR_LIMIT_32BIT),
+#endif
+#if defined (ADDR_LIMIT_3GB)
 	mk_map_entry (ADDR_LIMIT_3GB),
+#endif
+#if defined (ADDR_NO_RANDOMIZE)
 	mk_map_entry (ADDR_NO_RANDOMIZE),
+#endif
+#if defined (MMAP_PAGE_ZERO)
 	mk_map_entry (MMAP_PAGE_ZERO),
+#endif
+#if defined (READ_IMPLIES_EXEC)
 	mk_map_entry (READ_IMPLIES_EXEC),
+#endif
+#if defined (SHORT_INODE)
 	mk_map_entry (SHORT_INODE),
+#endif
+#if defined (STICKY_TIMEOUTS)
 	mk_map_entry (STICKY_TIMEOUTS),
+#endif
+#if defined (WHOLE_SECONDS)
 	mk_map_entry (WHOLE_SECONDS),
+#endif
 
 	{ 0, NULL }
 };
@@ -405,160 +433,850 @@ struct personality_flag_map {
  * sigh...
  */
 struct procenv_map sysconf_map[] = {
-	mk_posix_sysconf_map_entry (ARG_MAX),
-	mk_posix_sysconf_map_entry (BC_BASE_MAX),
-	mk_posix_sysconf_map_entry (BC_DIM_MAX),
-	mk_posix_sysconf_map_entry (BC_SCALE_MAX),
-	mk_posix_sysconf_map_entry (BC_STRING_MAX),
-	mk_posix_sysconf_map_entry (CHILD_MAX),
-	mk_sysconf_map_entry (_SC_CLK_TCK),
-	mk_posix_sysconf_map_entry (COLL_WEIGHTS_MAX),
-	mk_posix_sysconf_map_entry (EXPR_NEST_MAX),
-#if defined (_SC_HOST_NAME_MAX)
-	mk_posix_sysconf_map_entry (HOST_NAME_MAX),
+
+#if defined (_SC_2_C_BIND)
+	mk_sysconf_map_entry (_SC_2_C_BIND),
 #endif
-	mk_posix_sysconf_map_entry (LINE_MAX),
-	mk_posix_sysconf_map_entry (LOGIN_NAME_MAX),
-	mk_posix_sysconf_map_entry (OPEN_MAX),
-	mk_posix_sysconf_map_entry (PAGESIZE),
-	mk_posix_sysconf_map_entry (RE_DUP_MAX),
-	mk_posix_sysconf_map_entry (STREAM_MAX),
-#if defined (_SC_SYMLOOP_MAX)
-	mk_posix_sysconf_map_entry (SYMLOOP_MAX),
+
+#if defined (_SC_2_C_DEV)
+	mk_sysconf_map_entry (_SC_2_C_DEV),
 #endif
-	mk_posix_sysconf_map_entry (TTY_NAME_MAX),
-	mk_posix_sysconf_map_entry (TZNAME_MAX),
-	{ _SC_VERSION, "_POSIX_VERSION(_SC_VERSION)" },
-#if defined (_SC_POSIX2_C_DEV)
-	mk_posix_sysconf_map_entry (POSIX2_C_DEV),
+
+#if defined (_SC_2_CHAR_TERM)
+	mk_sysconf_map_entry (_SC_2_CHAR_TERM),
 #endif
-	mk_posix_sysconf_map_entry (BC_BASE_MAX),
-	mk_posix_sysconf_map_entry (BC_DIM_MAX),
-	mk_posix_sysconf_map_entry (BC_SCALE_MAX),
-	mk_posix_sysconf_map_entry (BC_STRING_MAX),
-	mk_posix_sysconf_map_entry (COLL_WEIGHTS_MAX),
-	mk_posix_sysconf_map_entry (EXPR_NEST_MAX),
-	mk_posix_sysconf_map_entry (LINE_MAX),
-	mk_posix_sysconf_map_entry (RE_DUP_MAX),
-	{ _SC_2_VERSION, "POSIX2_VERSION(_SC_2_VERSION)" },
-	{ _SC_2_C_DEV, "POSIX2_C_DEV(_SC_2_C_DEV)" },
-	{ _SC_2_FORT_DEV, "POSIX2_FORT_DEV(_SC_2_FORT_DEV)" },
-	{ _SC_2_FORT_RUN, "POSIX2_FORT_RUN(_SC_2_FORT_RUN)" },
-	{ _SC_2_LOCALEDEF, "_POSIX2_LOCALEDEF(_SC_2_LOCALEDEF)" },
-	{ _SC_2_SW_DEV, "POSIX2_SW_DEV(_SC_2_SW_DEV)" },
-	mk_sysconf_map_entry (_SC_PHYS_PAGES),
+
+#if defined (_SC_2_C_VERSION)
+	mk_sysconf_map_entry (_SC_2_C_VERSION),
+#endif
+
+#if defined (_SC_2_FORT_DEV)
+	mk_sysconf_map_entry (_SC_2_FORT_DEV),
+#endif
+
+#if defined (_SC_2_FORT_RUN)
+	mk_sysconf_map_entry (_SC_2_FORT_RUN),
+#endif
+
+#if defined (_SC_2_LOCALEDEF)
+	mk_sysconf_map_entry (_SC_2_LOCALEDEF),
+#endif
+
+#if defined (_SC_2_PBS)
+	mk_sysconf_map_entry (_SC_2_PBS),
+#endif
+
+#if defined (_SC_2_PBS_ACCOUNTING)
+	mk_sysconf_map_entry (_SC_2_PBS_ACCOUNTING),
+#endif
+
+#if defined (_SC_2_PBS_LOCATE)
+	mk_sysconf_map_entry (_SC_2_PBS_LOCATE),
+#endif
+
+#if defined (_SC_2_PBS_MESSAGE)
+	mk_sysconf_map_entry (_SC_2_PBS_MESSAGE),
+#endif
+
+#if defined (_SC_2_PBS_TRACK)
+	mk_sysconf_map_entry (_SC_2_PBS_TRACK),
+#endif
+
+#if defined (_SC_2_SW_DEV)
+	mk_sysconf_map_entry (_SC_2_SW_DEV),
+#endif
+
+#if defined (_SC_2_UPE)
+	mk_sysconf_map_entry (_SC_2_UPE), 
+#endif
+
+#if defined (_SC_2_VERSION)
+	mk_sysconf_map_entry (_SC_2_VERSION),
+#endif
+
+#if defined (_SC_ADVISORY_INFO)
+	mk_sysconf_map_entry (_SC_ADVISORY_INFO),
+#endif
+
+#if defined (_SC_AIO_LISTIO_MAX)
+	mk_sysconf_map_entry (_SC_AIO_LISTIO_MAX),
+#endif
+
+#if defined (_SC_AIO_MAX)
+	mk_sysconf_map_entry (_SC_AIO_MAX),
+#endif
+
+#if defined (_SC_AIO_PRIO_DELTA_MAX)
+	mk_sysconf_map_entry (_SC_AIO_PRIO_DELTA_MAX),
+#endif
+
+#if defined (_SC_ARG_MAX)
+	mk_sysconf_map_entry (_SC_ARG_MAX),
+#endif
+
+#if defined (_SC_ASYNCHRONOUS_IO)
+	mk_sysconf_map_entry (_SC_ASYNCHRONOUS_IO),
+#endif
+
+#if defined (_SC_ATEXIT_MAX)
+	mk_sysconf_map_entry (_SC_ATEXIT_MAX),
+#endif
+
 #if defined (_SC_AVPHYS_PAGES)
 	mk_sysconf_map_entry (_SC_AVPHYS_PAGES),
 #endif
-	mk_sysconf_map_entry (_SC_NPROCESSORS_CONF),
-	mk_sysconf_map_entry (_SC_NPROCESSORS_ONLN),
 
-#if defined (_SC_ADVISORY_INFO)
-	mk_posixopt_sysconf_map_entry (ADVISORY_INFO),
-#endif
-	mk_posixopt_sysconf_map_entry (ASYNCHRONOUS_IO),
 #if defined (_SC_BARRIERS)
-	mk_posixopt_sysconf_map_entry (BARRIERS),
+	mk_sysconf_map_entry (_SC_BARRIERS),
 #endif
-#if defined (_POSIX_CHOWN_RESTRICTED)
-	mk_sysconf_map_entry (_POSIX_CHOWN_RESTRICTED),
+
+#if defined (_SC_BASE)
+	mk_sysconf_map_entry (_SC_BASE),
 #endif
+
+#if defined (_SC_BC_BASE_MAX)
+	mk_sysconf_map_entry (_SC_BC_BASE_MAX),
+#endif
+
+#if defined (_SC_BC_DIM_MAX)
+	mk_sysconf_map_entry (_SC_BC_DIM_MAX),
+#endif
+
+#if defined (_SC_BC_SCALE_MAX)
+	mk_sysconf_map_entry (_SC_BC_SCALE_MAX),
+#endif
+
+#if defined (_SC_BC_STRING_MAX)
+	mk_sysconf_map_entry (_SC_BC_STRING_MAX),
+#endif
+
+#if defined (_SC_CHAR_BIT)
+	mk_sysconf_map_entry (_SC_CHAR_BIT),
+#endif
+
+#if defined (_SC_CHARCLASS_NAME_MAX)
+	mk_sysconf_map_entry (_SC_CHARCLASS_NAME_MAX),
+#endif
+
+#if defined (_SC_CHAR_MAX)
+	mk_sysconf_map_entry (_SC_CHAR_MAX),
+#endif
+
+#if defined (_SC_CHAR_MIN)
+	mk_sysconf_map_entry (_SC_CHAR_MIN),
+#endif
+
+#if defined (_SC_CHILD_MAX)
+	mk_sysconf_map_entry (_SC_CHILD_MAX),
+#endif
+
+#if defined (_SC_C_LANG_SUPPORT)
+	mk_sysconf_map_entry (_SC_C_LANG_SUPPORT),
+#endif
+
+#if defined (_SC_C_LANG_SUPPORT_R)
+	mk_sysconf_map_entry (_SC_C_LANG_SUPPORT_R),
+#endif
+
+#if defined (_SC_CLK_TCK)
+	mk_sysconf_map_entry (_SC_CLK_TCK),
+#endif
+
 #if defined (_SC_CLOCK_SELECTION)
-	mk_posixopt_sysconf_map_entry (CLOCK_SELECTION),
+	mk_sysconf_map_entry (_SC_CLOCK_SELECTION),
 #endif
+
+#if defined (_SC_COLL_WEIGHTS_MAX)
+	mk_sysconf_map_entry (_SC_COLL_WEIGHTS_MAX),
+#endif
+
 #if defined (_SC_CPUTIME)
-	mk_posixopt_sysconf_map_entry (CPUTIME),
+	mk_sysconf_map_entry (_SC_CPUTIME),
 #endif
+
+#if defined (_SC_DELAYTIMER_MAX)
+	mk_sysconf_map_entry (_SC_DELAYTIMER_MAX),
+#endif
+
+#if defined (_SC_DEVICE_IO)
+	mk_sysconf_map_entry (_SC_DEVICE_IO),
+#endif
+
+#if defined (_SC_DEVICE_SPECIFIC)
+	mk_sysconf_map_entry (_SC_DEVICE_SPECIFIC),
+#endif
+
+#if defined (_SC_DEVICE_SPECIFIC_R)
+	mk_sysconf_map_entry (_SC_DEVICE_SPECIFIC_R),
+#endif
+
+#if defined (_SC_EQUIV_CLASS_MAX)
+	 mk_sysconf_map_entry(_SC_EQUIV_CLASS_MAX),
+#endif
+
+#if defined (_SC_EXPR_NEST_MAX)
+	 mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
+#endif
+
+#if defined (_SC_FD_MGMT)
+	mk_sysconf_map_entry (_SC_FD_MGMT),
+#endif
+
+#if defined (_SC_FIFO)
+	mk_sysconf_map_entry (_SC_FIFO),
+#endif
+
+#if defined (_SC_FILE_ATTRIBUTES)
+	mk_sysconf_map_entry (_SC_FILE_ATTRIBUTES),
+#endif
+
 #if defined (_SC_FILE_LOCKING)
-	mk_posixopt_sysconf_map_entry (FILE_LOCKING),
+	mk_sysconf_map_entry (_SC_FILE_LOCKING),
 #endif
-	mk_posixopt_sysconf_map_entry (FSYNC),
-	mk_posixopt_sysconf_map_entry (JOB_CONTROL),
-	mk_posixopt_sysconf_map_entry (MAPPED_FILES),
-	mk_posixopt_sysconf_map_entry (MEMLOCK),
-	mk_posixopt_sysconf_map_entry (MEMLOCK_RANGE),
-	mk_posixopt_sysconf_map_entry (MEMORY_PROTECTION),
-	mk_posixopt_sysconf_map_entry (MESSAGE_PASSING),
+
+#if defined (_SC_FILE_SYSTEM)
+	mk_sysconf_map_entry (_SC_FILE_SYSTEM),
+#endif
+
+#if defined (_SC_FSYNC)
+	mk_sysconf_map_entry (_SC_FSYNC),
+#endif
+
+#if defined (_SC_GETGR_R_SIZE_MAX)
+	mk_sysconf_map_entry (_SC_GETGR_R_SIZE_MAX),
+#endif
+
+#if defined (_SC_GETPW_R_SIZE_MAX)
+	mk_sysconf_map_entry  (_SC_GETPW_R_SIZE_MAX),
+#endif
+
+#if defined (_SC_HOST_NAME_MAX)
+	mk_sysconf_map_entry (_SC_HOST_NAME_MAX),
+#endif
+
+#if defined (_SC_INT_MAX)
+	mk_sysconf_map_entry (_SC_INT_MAX),
+#endif
+
+#if defined (_SC_INT_MIN)
+	mk_sysconf_map_entry (_SC_INT_MIN),
+#endif
+
+#if defined (_SC_IOV_MAX)
+	mk_sysconf_map_entry (_SC_IOV_MAX),
+#endif
+
+#if defined (_SC_IPV6)
+	mk_sysconf_map_entry (_SC_IPV6),
+#endif
+
+#if defined (_SC_JOB_CONTROL)
+	mk_sysconf_map_entry (_SC_JOB_CONTROL),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL1_DCACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_DCACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL1_ICACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL1_ICACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL2_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL2_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL3_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL3_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_ASSOC)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_ASSOC),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_LINESIZE)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_LINESIZE),
+#endif
+
+#if defined (_SC_LEVEL4_CACHE_SIZE)
+	mk_sysconf_map_entry (_SC_LEVEL4_CACHE_SIZE),
+#endif
+
+#if defined (_SC_LINE_MAX)
+	mk_sysconf_map_entry (_SC_LINE_MAX),
+#endif
+
+#if defined (_SC_LOGIN_NAME_MAX)
+	mk_sysconf_map_entry (_SC_LOGIN_NAME_MAX),
+#endif
+
+#if defined (_SC_LONG_BIT)
+	mk_sysconf_map_entry (_SC_LONG_BIT),
+#endif
+
+#if defined (_SC_MAPPED_FILES)
+	mk_sysconf_map_entry (_SC_MAPPED_FILES),
+#endif
+
+#if defined (_SC_MB_LEN_MAX)
+	mk_sysconf_map_entry (_SC_MB_LEN_MAX),
+#endif
+
+#if defined (_SC_MEMLOCK)
+	mk_sysconf_map_entry (_SC_MEMLOCK),
+#endif
+
+#if defined (_SC_MEMLOCK_RANGE)
+	mk_sysconf_map_entry (_SC_MEMLOCK_RANGE),
+#endif
+
+#if defined (_SC_MEMORY_PROTECTION)
+	mk_sysconf_map_entry (_SC_MEMORY_PROTECTION),
+#endif
+
+#if defined (_SC_MESSAGE_PASSING)
+	mk_sysconf_map_entry (_SC_MESSAGE_PASSING),
+#endif
+
 #if defined (_SC_MONOTONIC_CLOCK)
-	mk_posixopt_sysconf_map_entry (MONOTONIC_CLOCK),
+	mk_sysconf_map_entry (_SC_MONOTONIC_CLOCK),
 #endif
+
+#if defined (_SC_MQ_OPEN_MAX)
+	mk_sysconf_map_entry (_SC_MQ_OPEN_MAX),
+#endif
+
+#if defined (_SC_MQ_PRIO_MAX)
+	mk_sysconf_map_entry (_SC_MQ_PRIO_MAX),
+#endif
+
 #ifdef _SC_MULTI_PROCESS
-	mk_posixopt_sysconf_map_entry (MULTI_PROCESS),
+	mk_sysconf_map_entry (_SC_MULTI_PROCESS),
 #endif
-	mk_posixopt_sysconf_map_entry (PRIORITIZED_IO),
-	mk_posixopt_sysconf_map_entry (PRIORITY_SCHEDULING),
-#if defined (_POSIX_RAW_SOCKETS)
-	mk_sysconf_map_entry (_POSIX_RAW_SOCKETS),
+
+#if defined (_SC_NETWORKING)
+	mk_sysconf_map_entry (_SC_NETWORKING),
 #endif
+
+#if defined (_SC_NGROUPS_MAX)
+	mk_sysconf_map_entry (_SC_NGROUPS_MAX),
+#endif
+
+#if defined (_SC_NL_ARGMAX)
+	mk_sysconf_map_entry (_SC_NL_ARGMAX),
+#endif
+
+#if defined (_SC_NL_LANGMAX)
+	mk_sysconf_map_entry (_SC_NL_LANGMAX),
+#endif
+
+#if defined (_SC_NL_MSGMAX)
+	mk_sysconf_map_entry (_SC_NL_MSGMAX),
+#endif
+
+#if defined (_SC_NL_NMAX)
+	mk_sysconf_map_entry (_SC_NL_NMAX),
+#endif
+
+#if defined (_SC_NL_SETMAX)
+	mk_sysconf_map_entry (_SC_NL_SETMAX),
+#endif
+
+#if defined (_SC_NL_TEXTMAX)
+	mk_sysconf_map_entry (_SC_NL_TEXTMAX),
+#endif
+
+#if defined (_SC_NPROCESSORS_CONF)
+	mk_sysconf_map_entry (_SC_NPROCESSORS_CONF),
+#endif
+
+#if defined (_SC_NPROCESSORS_ONLN)
+	mk_sysconf_map_entry (_SC_NPROCESSORS_ONLN),
+#endif
+
+#if defined (_SC_NZERO)
+	mk_sysconf_map_entry (_SC_NZERO),
+#endif
+
+#if defined (_SC_OPEN_MAX)
+	mk_sysconf_map_entry (_SC_OPEN_MAX),
+#endif
+
+#if defined (_SC_PAGESIZE)
+	mk_sysconf_map_entry (_SC_PAGESIZE),
+#endif
+
+#if defined (_SC_PAGE_SIZE)
+	mk_sysconf_map_entry (_SC_PAGE_SIZE),
+#endif
+
+#if defined (_SC_PASS_MAX)
+	mk_sysconf_map_entry (_SC_PASS_MAX),
+#endif
+
+#if defined (_SC_PHYS_PAGES)
+	mk_sysconf_map_entry (_SC_PHYS_PAGES),
+#endif
+
+#if defined (_SC_PII)
+	mk_sysconf_map_entry (_SC_PII),
+#endif
+
+#if defined (_SC_PII_INTERNET)
+	mk_sysconf_map_entry (_SC_PII_INTERNET),
+#endif
+
+#if defined (_SC_PII_INTERNET_DGRAM)
+	mk_sysconf_map_entry (_SC_PII_INTERNET_DGRAM),
+#endif
+
+#if defined (_SC_PII_INTERNET_STREAM)
+	mk_sysconf_map_entry (_SC_PII_INTERNET_STREAM),
+#endif
+
+#if defined (_SC_PII_OSI)
+	mk_sysconf_map_entry (_SC_PII_OSI),
+#endif
+
+#if defined (_SC_PII_OSI_CLTS)
+	mk_sysconf_map_entry (_SC_PII_OSI_CLTS),
+#endif
+
+#if defined (_SC_PII_OSI_COTS)
+	mk_sysconf_map_entry (_SC_PII_OSI_COTS),
+#endif
+
+#if defined (_SC_PII_OSI_M)
+	mk_sysconf_map_entry (_SC_PII_OSI_M),
+#endif
+
+#if defined (_SC_PII_SOCKET)
+	mk_sysconf_map_entry (_SC_PII_SOCKET),
+#endif
+
+#if defined (_SC_PII_XTI)
+	mk_sysconf_map_entry (_SC_PII_XTI),
+#endif
+
+#if defined (_SC_PIPE)
+	mk_sysconf_map_entry (_SC_PIPE),
+#endif
+
+#if defined (_SC_POLL)
+	mk_sysconf_map_entry (_SC_POLL),
+#endif
+
+#if defined (_SC_SINGLE_PROCESS)
+	mk_sysconf_map_entry (_SC_SINGLE_PROCESS),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE_R)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE_R),
+#endif
+
+#if defined (_SC_THREAD_KEYS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_KEYS_MAX),
+#endif
+
+#if defined (_SC_THREAD_DESTRUCTOR_ITERATIONS)
+	mk_sysconf_map_entry (_SC_THREAD_DESTRUCTOR_ITERATIONS),
+#endif
+
+#if defined (_SC_THREAD_THREADS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_THREADS_MAX),
+#endif
+
+#if defined (_SC_STREAM_MAX)
+	mk_sysconf_map_entry (_SC_STREAM_MAX),
+#endif
+
+#if defined (_SC_SYMLOOP_MAX)
+	mk_sysconf_map_entry (_SC_SYMLOOP_MAX),
+#endif
+
+#if defined (_SC_TTY_NAME_MAX)
+	mk_sysconf_map_entry (_SC_TTY_NAME_MAX),
+#endif
+
+#if defined (_SC_TZNAME_MAX)
+	mk_sysconf_map_entry (_SC_TZNAME_MAX),
+#endif
+
+#if defined (_SC_TYPED_MEMORY_OBJECTS)
+	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECTS),
+#endif
+
+#if defined (_SC_USER_GROUPS)
+	mk_sysconf_map_entry (_SC_USER_GROUPS),
+#endif
+
+#if defined (_SC_USER_GROUPS_R)
+	mk_sysconf_map_entry (_SC_USER_GROUPS_R),
+#endif
+
+#if defined (_SC_VERSION)
+	mk_sysconf_map_entry (_SC_VERSION),
+#endif
+
+#if defined (_SC_POSIX2_C_DEV)
+	mk_sysconf_map_entry (_SC_POSIX2_C_DEV),
+#endif
+
+#if defined (_SC_SIGQUEUE_MAX)
+	mk_sysconf_map_entry (_SC_SIGQUEUE_MAX),
+#endif
+
+#if defined (_SC_T_IOV_MAX)
+	mk_sysconf_map_entry (_SC_T_IOV_MAX),
+#endif
+
+#if defined (_SC_THREAD_STACK_MIN)
+	mk_sysconf_map_entry (_SC_THREAD_STACK_MIN),
+#endif
+
+#if defined (_SC_SSIZE_MAX)
+	mk_sysconf_map_entry (_SC_SSIZE_MAX),
+#endif
+
+#if defined (_SC_TIMER_MAX)
+	mk_sysconf_map_entry (_SC_TIMER_MAX),
+#endif
+
+#if defined (_SC_UCHAR_MAX)
+	mk_sysconf_map_entry (_SC_UCHAR_MAX),
+#endif
+
+#if defined (_SC_UINT_MAX)
+	mk_sysconf_map_entry (_SC_UINT_MAX),
+#endif
+
+#if defined (_SC_UIO_MAXIOV)
+	mk_sysconf_map_entry (_SC_UIO_MAXIOV),
+#endif
+
+#if defined (_SC_ULONG_MAX)
+	mk_sysconf_map_entry (_SC_ULONG_MAX),
+#endif
+
+#if defined (_SC_USHRT_MAX)
+	mk_sysconf_map_entry (_SC_USHRT_MAX),
+#endif
+
+#if defined (_SC_V6_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_WORD_BIT)
+	mk_sysconf_map_entry (_SC_WORD_BIT),
+#endif
+
+#if defined (_SC_EXPR_NEST_MAX)
+	mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
+#endif
+
+#if defined (_SC_V6_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V6_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V6_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V6_LP64_OFF64),
+#endif
+
+#if defined (_SC_V7_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V7_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V7_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_V7_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V7_LP64_OFF64),
+#endif
+
+#if defined (_SC_PRIORITIZED_IO)
+	mk_sysconf_map_entry (_SC_PRIORITIZED_IO),
+#endif
+
+#if defined (_SC_PRIORITY_SCHEDULING)
+	mk_sysconf_map_entry (_SC_PRIORITY_SCHEDULING),
+#endif
+
+#if defined (_SC_RAW_SOCKETS)
+	mk_sysconf_map_entry (_SC_RAW_SOCKETS),
+#endif
+
 #if defined (_SC_READER_WRITER_LOCKS)
-	mk_posixopt_sysconf_map_entry (READER_WRITER_LOCKS),
+	mk_sysconf_map_entry (_SC_READER_WRITER_LOCKS),
 #endif
-	mk_posixopt_sysconf_map_entry (REALTIME_SIGNALS),
+
+#if defined (_SC_REALTIME_SIGNALS)
+	mk_sysconf_map_entry (_SC_REALTIME_SIGNALS),
+#endif
+
+#if defined (_SC_RE_DUP_MAX)
+	mk_sysconf_map_entry (_SC_RE_DUP_MAX),
+#endif
+
 #if defined (_SC_REGEXP)
-	mk_posixopt_sysconf_map_entry (REGEXP),
+	mk_sysconf_map_entry (_SC_REGEXP),
 #endif
-	mk_posixopt_sysconf_map_entry (SAVED_IDS),
-	mk_posixopt_sysconf_map_entry (SEMAPHORES),
-	mk_posixopt_sysconf_map_entry (SHARED_MEMORY_OBJECTS),
+
+#if defined (_SC_REGEX_VERSION)
+	mk_sysconf_map_entry (_SC_REGEX_VERSION),
+#endif
+
+#if defined (_SC_RTSIG_MAX)
+	mk_sysconf_map_entry (_SC_RTSIG_MAX),
+#endif
+
+#if defined (_SC_SAVED_IDS)
+	mk_sysconf_map_entry (_SC_SAVED_IDS),
+#endif
+
+#if defined (_SC_SCHAR_MAX)
+	mk_sysconf_map_entry (_SC_SCHAR_MAX),
+#endif
+
+#if defined (_SC_SCHAR_MIN)
+	mk_sysconf_map_entry (_SC_SCHAR_MIN),
+#endif
+
+#if defined (_SC_SELECT)
+	mk_sysconf_map_entry (_SC_SELECT),
+#endif
+
+#if defined (_SC_SEMAPHORES)
+	mk_sysconf_map_entry (_SC_SEMAPHORES),
+#endif
+
+#if defined (_SC_SEM_NSEMS_MAX)
+	mk_sysconf_map_entry (_SC_SEM_NSEMS_MAX),
+#endif
+
+#if defined (_SC_SEM_VALUE_MAX)
+	mk_sysconf_map_entry (_SC_SEM_VALUE_MAX),
+#endif
+
+#if defined (_SC_SHARED_MEMORY_OBJECTS)
+	mk_sysconf_map_entry (_SC_SHARED_MEMORY_OBJECTS),
+#endif
+
 #if defined (_SC_SHELL)
-	mk_posixopt_sysconf_map_entry (SHELL),
+	mk_sysconf_map_entry (_SC_SHELL),
 #endif
+
+#if defined (_SC_SHRT_MAX)
+	mk_sysconf_map_entry (_SC_SHRT_MAX),
+#endif
+
+#if defined (_SC_SHRT_MIN)
+	mk_sysconf_map_entry (_SC_SHRT_MIN),
+#endif
+
+#if defined (_SC_SIGNALS)
+	mk_sysconf_map_entry (_SC_SIGNALS),
+#endif
+
 #if defined (_SC_SPAWN)
-	mk_posixopt_sysconf_map_entry (SPAWN),
+	mk_sysconf_map_entry (_SC_SPAWN),
 #endif
+
 #if defined (_SC_SPIN_LOCKS)
-	mk_posixopt_sysconf_map_entry (SPIN_LOCKS),
+	mk_sysconf_map_entry (_SC_SPIN_LOCKS),
 #endif
+
 #if defined (_SC_SPORADIC_SERVER)
-	mk_posixopt_sysconf_map_entry (SPORADIC_SERVER),
+	mk_sysconf_map_entry (_SC_SPORADIC_SERVER),
 #endif
-	mk_posixopt_sysconf_map_entry (SYNCHRONIZED_IO),
-	mk_posixopt_sysconf_map_entry (THREAD_ATTR_STACKSIZE),
+
+#if defined (_SC_SYNCHRONIZED_IO)
+	mk_sysconf_map_entry (_SC_SYNCHRONIZED_IO),
+#endif
+
+#if defined (_SC_THREAD_ATTR_STACKADDR)
+	mk_sysconf_map_entry (_SC_THREAD_ATTR_STACKADDR),
+#endif
+
+#if defined (_SC_THREAD_ATTR_STACKSIZE)
+	mk_sysconf_map_entry (_SC_THREAD_ATTR_STACKSIZE),
+#endif
+
 #if defined (_SC_THREAD_CPUTIME)
-	mk_posixopt_sysconf_map_entry (THREAD_CPUTIME),
+	mk_sysconf_map_entry (_SC_THREAD_CPUTIME),
 #endif
-	mk_posixopt_sysconf_map_entry (THREAD_PRIO_INHERIT),
-	mk_posixopt_sysconf_map_entry (THREAD_PRIO_PROTECT),
-	mk_posixopt_sysconf_map_entry (THREAD_PRIORITY_SCHEDULING),
+
+#if defined (_SC_THREAD_PRIO_INHERIT)
+	mk_sysconf_map_entry (_SC_THREAD_PRIO_INHERIT),
+#endif
+
+#if defined (_SC_THREAD_PRIO_PROTECT)
+	mk_sysconf_map_entry (_SC_THREAD_PRIO_PROTECT),
+#endif
+
+#if defined (_SC_THREAD_PRIORITY_SCHEDULING)
+	mk_sysconf_map_entry (_SC_THREAD_PRIORITY_SCHEDULING),
+#endif
+
 #if defined (_SC_THREAD_PROCESS_SHARED)
-	mk_posixopt_sysconf_map_entry (THREAD_PROCESS_SHARED),
+	mk_sysconf_map_entry (_SC_THREAD_PROCESS_SHARED),
 #endif
-	mk_posixopt_sysconf_map_entry (THREAD_SAFE_FUNCTIONS),
+
+#if defined (_SC_THREAD_ROBUST_PRIO_INHERIT)
+	mk_sysconf_map_entry (_SC_THREAD_ROBUST_PRIO_INHERIT),
+#endif
+
+#if defined (_SC_THREAD_ROBUST_PRIO_PROTECT)
+	mk_sysconf_map_entry (_SC_THREAD_ROBUST_PRIO_PROTECT),
+#endif
+
+#if defined (_SC_THREAD_SAFE_FUNCTIONS)
+	mk_sysconf_map_entry (_SC_THREAD_SAFE_FUNCTIONS),
+#endif
+
 #if defined (_SC_THREAD_SPORADIC_SERVER)
-	mk_posixopt_sysconf_map_entry (THREAD_SPORADIC_SERVER),
+	mk_sysconf_map_entry (_SC_THREAD_SPORADIC_SERVER),
 #endif
-	mk_posixopt_sysconf_map_entry (THREADS),
+
+#if defined (_SC_THREADS)
+	mk_sysconf_map_entry (_SC_THREADS),
+#endif
+
 #if defined (_SC_TIMEOUTS)
-	mk_posixopt_sysconf_map_entry (TIMEOUTS),
+	mk_sysconf_map_entry (_SC_TIMEOUTS),
 #endif
-	mk_posixopt_sysconf_map_entry (TIMERS),
+
+#if defined (_SC_TIMERS)
+	mk_sysconf_map_entry (_SC_TIMERS),
+#endif
+
 #if defined (_SC_TRACE)
-	mk_posixopt_sysconf_map_entry (TRACE),
+	mk_sysconf_map_entry (_SC_TRACE),
 #endif
+
 #if defined (_SC_TRACE_EVENT_FILTER)
-	mk_posixopt_sysconf_map_entry (TRACE_EVENT_FILTER),
+	mk_sysconf_map_entry (_SC_TRACE_EVENT_FILTER),
 #endif
+
 #if defined (_SC_TRACE_INHERIT)
-	mk_posixopt_sysconf_map_entry (TRACE_INHERIT),
+	mk_sysconf_map_entry (_SC_TRACE_INHERIT),
 #endif
+
 #if defined (_SC_TRACE_LOG)
-	mk_posixopt_sysconf_map_entry (TRACE_LOG),
+	mk_sysconf_map_entry (_SC_TRACE_LOG),
 #endif
-#ifdef _SC_TYPED_MEMORY_OBJECT
-	mk_posixopt_sysconf_map_entry (TYPED_MEMORY_OBJECT),
+
+#if defined (_SC_TYPED_MEMORY_OBJECT)
+	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECT),
 #endif
-#if defined (_POSIX_VDISABLE)
-	mk_sysconf_map_entry (_POSIX_VDISABLE),
+
+#if defined (_SC_XBS5_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_XBS5_ILP32_OFF32),
 #endif
-	mk_sysconf_map_entry (_XOPEN_CRYPT),
-	mk_sysconf_map_entry (_XOPEN_LEGACY),
-#if defined (_XOPEN_REALTIME)
-	mk_sysconf_map_entry (_XOPEN_REALTIME),
+
+#if defined (_SC_XBS5_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_XBS5_ILP32_OFFBIG),
 #endif
-#if defined (_XOPEN_REALTIME_THREADS)
-	mk_sysconf_map_entry (_XOPEN_REALTIME_THREADS),
+
+#if defined (_SC_XBS5_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_XBS5_LP64_OFF64),
 #endif
-	mk_sysconf_map_entry (_XOPEN_UNIX),
+
+#if defined (_SC_XBS5_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_XBS5_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_XOPEN_CRYPT)
+	mk_sysconf_map_entry (_SC_XOPEN_CRYPT),
+#endif
+
+#if defined (_SC_XOPEN_ENH_I18N)
+	mk_sysconf_map_entry (_SC_XOPEN_ENH_I18N),
+#endif
+
+#if defined (_SC_XOPEN_LEGACY)
+	mk_sysconf_map_entry (_SC_XOPEN_LEGACY),
+#endif
+
+#if defined (_SC_XOPEN_REALTIME)
+	mk_sysconf_map_entry (_SC_XOPEN_REALTIME),
+#endif
+
+#if defined (_SC_XOPEN_REALTIME_THREADS)
+	mk_sysconf_map_entry (_SC_XOPEN_REALTIME_THREADS),
+#endif
+
+#if defined (_SC_XOPEN_SHM)
+	mk_sysconf_map_entry (_SC_XOPEN_SHM),
+#endif
+
+#if defined (_SC_XOPEN_UNIX)
+	mk_sysconf_map_entry (_SC_XOPEN_UNIX),
+#endif
+
+#if defined (_SC_XOPEN_XPG2)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG2),
+#endif
+
+#if defined (_SC_XOPEN_XPG3)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG3),
+#endif
+
+#if defined (_SC_XOPEN_XPG4)
+	mk_sysconf_map_entry (_SC_XOPEN_XPG4),
+#endif
+
+#if defined (_SC_XOPEN_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_VERSION),
+#endif
+
+#if defined (_SC_XOPEN_XCU_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_XCU_VERSION),
+#endif
 
 	{ 0, NULL }
 };
@@ -804,15 +1522,90 @@ show_pathconfs (ShowMountType what,
 		header ("pathconf");
 	}
 
-	show_pathconf (what, dir, _PC_LINK_MAX);
-	show_pathconf (what, dir, _PC_MAX_CANON);
-	show_pathconf (what, dir, _PC_MAX_INPUT);
-	show_pathconf (what, dir, _PC_NAME_MAX);
-	show_pathconf (what, dir, _PC_PATH_MAX);
-	show_pathconf (what, dir, _PC_PIPE_BUF);
+
+#if defined (_PC_ALLOC_SIZE_MIN)
+	show_pathconf (what, dir, _PC_ALLOC_SIZE_MIN);
+#endif
+
+#if defined (_PC_ASYNC_IO)
+	show_pathconf (what, dir, _PC_ASYNC_IO);
+#endif
+
+#if defined (_PC_CHOWN_RESTRICTED)
 	show_pathconf (what, dir, _PC_CHOWN_RESTRICTED);
+#endif
+
+#if defined (_PC_FILESIZEBITS)
+	show_pathconf (what, dir, _PC_FILESIZEBITS);
+#endif
+
+#if defined (_PC_LINK_MAX)
+	show_pathconf (what, dir, _PC_LINK_MAX);
+#endif
+
+#if defined (_PC_MAX_CANON)
+	show_pathconf (what, dir, _PC_MAX_CANON);
+#endif
+
+#if defined (_PC_MAX_INPUT)
+	show_pathconf (what, dir, _PC_MAX_INPUT);
+#endif
+
+#if defined (_PC_NAME_MAX)
+	show_pathconf (what, dir, _PC_NAME_MAX);
+#endif
+
+#if defined (_PC_NO_TRUNC)
 	show_pathconf (what, dir, _PC_NO_TRUNC);
+#endif
+
+#if defined (_PC_PATH_MAX)
+	show_pathconf (what, dir, _PC_PATH_MAX);
+#endif
+
+#if defined (_PC_PIPE_BUF)
+	show_pathconf (what, dir, _PC_PIPE_BUF);
+#endif
+
+#if defined (_PC_PRIO_IO)
+	show_pathconf (what, dir, _PC_PRIO_IO);
+#endif
+
+#if defined (_PC_REC_INCR_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_INCR_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_MAX_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_MAX_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_MIN_XFER_SIZE)
+	show_pathconf (what, dir, _PC_REC_MIN_XFER_SIZE);
+#endif
+
+#if defined (_PC_REC_XFER_ALIGN)
+	show_pathconf (what, dir, _PC_REC_XFER_ALIGN);
+#endif
+
+#if defined (_PC_SOCK_MAXBUF)
+	show_pathconf (what, dir, _PC_SOCK_MAXBUF);
+#endif
+
+#if defined (_PC_SYMLINK_MAX)
+	show_pathconf (what, dir, _PC_SYMLINK_MAX);
+#endif
+
+#if defined (_PC_2_SYMLINKS)
+	show_pathconf (what, dir, _PC_2_SYMLINKS);
+#endif
+
+#if defined (_PC_SYNC_IO)
+	show_pathconf (what, dir, _PC_SYNC_IO);
+#endif
+
+#if defined (_PC_VDISABLE)
 	show_pathconf (what, dir, _PC_VDISABLE);
+#endif
 
 	footer ();
 }
@@ -884,8 +1677,8 @@ void
 entry (const char *name, const char *fmt, ...)
 {
 	va_list   ap;
-	char     *encoded_name = NULL;
-	char     *encoded_value = NULL;
+	pstring  *encoded_name = NULL;
+	pstring  *encoded_value = NULL;
 
 	assert (name);
 	assert (fmt);
@@ -894,14 +1687,22 @@ entry (const char *name, const char *fmt, ...)
 
 	change_element (ELEMENT_TYPE_ENTRY);
 
-	encoded_name = strdup (name);
-	assert (encoded_name);
+	encoded_name = char_to_pstring (name);
+	if (! encoded_name)
+		die ("failed to encode name");
 
+	/* annoyingly, we must encode here; we cannot simply call
+	 * encode_string() once just prior to showing the output
+	 * document since if the output format is XML, we'd end
+	 * up encoding the XML tags themselves, not just the values
+	 * within!
+	 */
 	if (encode_string (&encoded_name) < 0)
 		die ("failed to encode name");
 
+	/* expand format */
 	va_start (ap, fmt);
-	appendva (&encoded_value, fmt, ap);
+	wmappendva (&encoded_value, fmt, ap);
 	va_end (ap);
 
 	if (encode_string (&encoded_value) < 0)
@@ -915,32 +1716,39 @@ entry (const char *name, const char *fmt, ...)
 		/* Add the bread crumbs */
 		PR_LIST_FOREACH (crumb_list, iter) {
 			char *crumb = (char *)iter->data;
-			appendf (&doc, "%s%s",
-					crumb,
-					crumb_separator);
+			wappendf (&doc,
+				L"%s%s",
+				crumb,
+				crumb_separator);
 		}
-		appendf (&doc, "%s%s%s\n",
-				encoded_name,
-				text_separator,
-				encoded_value);
+
+		wappendf (&doc,
+			L"%ls%s%ls\n",
+			encoded_name->buf,
+			text_separator,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s%s%s",
-				encoded_name,
-				text_separator,
-				encoded_value);
+		wappendf (&doc,
+			L"%ls%s%ls",
+			encoded_name->buf,
+			text_separator,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : \"%s\"",
-				encoded_name,
-				encoded_value);
+		wappendf (&doc,
+			L"\"%ls\" : \"%ls\"",
+			encoded_name->buf,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<entry name=\"%s\">%s</entry>",
-				encoded_name, encoded_value);
+		wappendf (&doc,
+			L"<entry name=\"%ls\">%ls</entry>",
+			encoded_name->buf,
+			encoded_value->buf);
 		break;
 
 	default:
@@ -948,8 +1756,8 @@ entry (const char *name, const char *fmt, ...)
 		break;
 	}
 
-	free (encoded_name);
-	free (encoded_value);
+	pstring_free (encoded_name);
+	pstring_free (encoded_value);
 }
 
 /**
@@ -961,30 +1769,43 @@ entry (const char *name, const char *fmt, ...)
  * destination.
  **/
 void
-_show_output (const char *string)
+_show_output_pstring (const pstring *pstr)
+{
+	char *str;
+
+	assert (pstr);
+
+	str = pstring_to_char (pstr);
+
+	_show_output (str);
+
+	free (str);
+}
+
+void
+_show_output (const char *str)
 {
 	int ret;
 
-	if (! string || ! *string)
-		return;
+	assert (str);
 
 	switch (output) {
 	case OUTPUT_SYSLOG:
-		syslog (LOG_INFO, "%s", string);
+		syslog (LOG_INFO, "%s", str);
 		ret = 0;
 		break;
 
 	case OUTPUT_STDOUT:
-		ret = fputs (string, stdout);
+		ret = fputs (str, stdout);
 		break;
 
 	case OUTPUT_STDERR:
-		ret = fputs (string, stderr);
+		ret = fputs (str, stderr);
 		break;
 
 	case OUTPUT_TERM:
 		assert (user.tty_fd != -1);
-		ret = write (user.tty_fd, string, strlen (string));
+		ret = write (user.tty_fd, str, strlen (str));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to terminal\n");
 			exit (EXIT_FAILURE);
@@ -1003,7 +1824,7 @@ _show_output (const char *string)
 				exit (EXIT_FAILURE);
 			}
 		}
-		ret = write (output_fd, string, strlen (string));
+		ret = write (output_fd, str, strlen (str));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to file '%s'\n",
 					output_file);
@@ -1057,7 +1878,7 @@ dec_indent (void)
  * Insert the current indent to the output document.
  **/
 void
-add_indent (char **doc)
+add_indent (pstring **doc)
 {
 	common_assert ();
 
@@ -1065,7 +1886,7 @@ add_indent (char **doc)
 		return;
 
 	if (indent_char == DEFAULT_INDENT_CHAR) {
-		appendf (doc, "%*c", indent, indent_char);
+		wappendf (doc, L"%*c", indent, indent_char);
 	} else {
 		char *buffer = NULL;
 
@@ -1077,7 +1898,7 @@ add_indent (char **doc)
 		 */
 		memset (buffer, indent_char, strlen (buffer));
 
-		append (doc, buffer);
+		wmappend (doc, buffer);
 		free (buffer);
 	}
 }
@@ -1090,7 +1911,7 @@ add_indent (char **doc)
  * Main header which is displayed once.
  **/
 void
-master_header (char **doc)
+master_header (pstring **doc)
 {
 	common_assert ();
 
@@ -1106,8 +1927,8 @@ master_header (char **doc)
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (doc, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		appendf (doc, "<%s version=\"%s\" package_string=\"%s\" "
+		wappend (doc, L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		wappendf (doc, L"<%s version=\"%s\" package_string=\"%s\" "
 				"mode=\"%s%s\" format_version=\"%d\">\n",
 				PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING,
 				user.euid ? _(NON_STR) "-" : "",
@@ -1132,7 +1953,7 @@ master_header (char **doc)
  * Main footer which is displayed once.
  **/
 void
-master_footer (char **doc)
+master_footer (pstring **doc)
 {
     common_assert ();
 
@@ -1141,21 +1962,21 @@ master_footer (char **doc)
 	case OUTPUT_FORMAT_CRUMB: /* FALL */
         case OUTPUT_FORMAT_TEXT:
             /* Tweak */
-	    append (doc, "\n");
+	    wappend (doc, L"\n");
             break;
 
         case OUTPUT_FORMAT_JSON:
             object_close (FALSE);
 
             /* Tweak */
-            append (doc, "\n");
+            wappend (doc, L"\n");
             break;
 
         case OUTPUT_FORMAT_XML:
             /* Tweak */
-            append (doc, "\n");
+            wappend (doc, L"\n");
             dec_indent ();
-            appendf (doc, "</%s>\n", PACKAGE_NAME);
+            wappendf (doc, L"</%s>\n", PACKAGE_NAME);
             break;
 
         default:
@@ -1206,7 +2027,7 @@ object_open (int retain)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "{");
+		wappend (&doc, L"{");
 		break;
 
 	case OUTPUT_FORMAT_XML:
@@ -1261,7 +2082,7 @@ object_close (int retain)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "}");
+		wappend (&doc, L"}");
 		break;
 
 	case OUTPUT_FORMAT_XML:
@@ -1292,7 +2113,7 @@ section_open (const char *name)
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s:", name);
+		wappendf (&doc, L"%s:", name);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -1300,11 +2121,11 @@ section_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : {", name);
+		wappendf (&doc, L"\"%s\" : {", name);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<section name=\"%s\">", name);
+		wappendf (&doc, L"<section name=\"%s\">", name);
 		break;
 
 	default:
@@ -1331,11 +2152,11 @@ section_close (void)
 		break;
 		
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "}");
+		wappend (&doc, L"}");
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (&doc, "</section>");
+		wappend (&doc, L"</section>");
 		break;
 
 	default:
@@ -1364,7 +2185,7 @@ container_open (const char *name)
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s:", name);
+		wappendf (&doc, L"%s:", name);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -1372,11 +2193,11 @@ container_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : [", name);
+		wappendf (&doc, L"\"%s\" : [", name);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<container name=\"%s\">", name);
+		wappendf (&doc, L"<container name=\"%s\">", name);
 		break;
 
 	default:
@@ -1408,11 +2229,11 @@ container_close (void)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "]");
+		wappend (&doc, L"]");
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (&doc, "</container>");
+		wappend (&doc, L"</container>");
 		break;
 
 	default:
@@ -1485,7 +2306,7 @@ fd_valid (int fd)
  *
  * In additional to the classical semantics, by careful use of clone(2),
  * it is possible for a child to inherit its parents dispositions
- * (using clones CLONE_SIGHAND+CLONE_VM flags). This is possible since
+ * (using clone's CLONE_SIGHAND+CLONE_VM flags). This is possible since
  * the child then shares the parents signal handlers, which inherantly
  * therefore provide access to the dispositions).
  **/
@@ -1655,7 +2476,10 @@ show_sysconf (void)
 
 	for (p = sysconf_map; p && p->name; p++) {
 		value = get_sysconf (p->num);
-		entry (p->name, "%ld", value);
+		if (value == -1)
+			entry (p->name, "%s", NA_STR);
+		else
+			entry (p->name, "%ld", value);
 	}
 
     footer ();
@@ -1671,10 +2495,267 @@ show_confstrs (void)
 #if defined (_CS_GNU_LIBC_VERSION)
 	show_confstr (_CS_GNU_LIBC_VERSION);
 #endif
+
 #if defined (_CS_GNU_LIBPTHREAD_VERSION)
 	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
 #endif
+
+#if defined (_CS_LFS64_CFLAGS)
+	show_confstr (_CS_LFS64_CFLAGS);
+#endif
+
+#if defined (_CS_LFS64_LDFLAGS)
+	show_confstr (_CS_LFS64_LDFLAGS);
+#endif
+
+#if defined (_CS_LFS64_LIBS)
+	show_confstr (_CS_LFS64_LIBS);
+#endif
+
+#if defined (_CS_LFS64_LINTFLAGS)
+	show_confstr (_CS_LFS64_LINTFLAGS);
+#endif
+
+#if defined (_CS_LFS_CFLAGS)
+	show_confstr (_CS_LFS_CFLAGS);
+#endif
+
+#if defined (_CS_LFS_LDFLAGS)
+	show_confstr (_CS_LFS_LDFLAGS);
+#endif
+
+#if defined (_CS_LFS_LIBS)
+	show_confstr (_CS_LFS_LIBS);
+#endif
+
+#if defined (_CS_LFS_LINTFLAGS)
+	show_confstr (_CS_LFS_LINTFLAGS);
+#endif
+
+#if defined (_CS_PATH)
 	show_confstr (_CS_PATH);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LIBS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LIBS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LIBS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LIBS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS);
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "_XBS5_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "XBS5_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS);
+#endif
+
+#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
+	_show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS, "POSIX_V6_WIDTH_RESTRICTED_ENVS,_POSIX_V6_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V7_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_V7_WIDTH_RESTRICTED_ENVS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFF32_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFF32_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_CFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LDFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LIBS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LP64_OFF64_LINTFLAGS)
+	show_confstr (_CS_XBS5_LP64_OFF64_LINTFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_CFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_CFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LIBS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LIBS);
+#endif
+
+#if defined (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS)
+	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS);
+#endif
+
 
 	footer ();
 }
@@ -1981,7 +3062,7 @@ show_cpu_affinities (void)
 	int                   ret = 0;
 	long                  max;
 	size_t                size;
-#if defined (PROCENV_BSD)
+#if defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
 	PROCENV_CPU_SET_TYPE  cpu_set_real;
 #endif
 	PROCENV_CPU_SET_TYPE *cpu_set;
@@ -2004,13 +3085,25 @@ show_cpu_affinities (void)
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
 
+#if defined (CPU_ALLOC)
+
 	cpu_set = CPU_ALLOC (max);
 	assert (cpu_set);
 
 	size = CPU_ALLOC_SIZE (max);
 	CPU_ZERO_S (size, cpu_set);
 
-#elif defined (PROCENV_BSD)
+#else /* ! CPU_ALLOC */
+
+	/* RHEL 5 */
+
+	cpu_set = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+#endif /* CPU_ALLOC */
+
+#elif defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
 	cpu_set = &cpu_set_real;
 
 	size = sizeof (PROCENV_CPU_SET_TYPE);
@@ -2023,11 +3116,11 @@ show_cpu_affinities (void)
 	 * Except it is missing on kFreeBSD systems (!) so we have to
 	 * use sched_getaffinity() there. :(
 	 */
-#if defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+#if (defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)) || (defined (PROCENV_LINUX) && ! defined (CPU_ALLOC))
 	ret = sched_getaffinity (0, size, cpu_set);
 #else
 
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_LINUX) && defined (CPU_ALLOC)
 	/* On a hyperthreaded system, "size" as above may not actually
 	   be big enough, and we get EINVAL.  (hwloc has a similar
 	   workaround.)  */
@@ -2045,7 +3138,7 @@ show_cpu_affinities (void)
 			CPU_ZERO_S (size, cpu_set);
 		}
 	}
-#endif /* PROCENV_LINUX */
+#endif /* PROCENV_LINUX && CPU_ALLOC */
 
 #endif
 
@@ -2098,7 +3191,9 @@ out:
 	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
+#if defined (CPU_ALLOC)
 	CPU_FREE (cpu_set);
+#endif
 #endif
 
 	free (cpu_list);
@@ -2305,103 +3400,414 @@ get_user_info (void)
 	assert (p == (void *)&user.passwd);
 }
 
+/* append @src to @dest */
+void
+append (char **dest, const char *src)
+{
+	size_t  len;
+
+	assert (dest);
+	assert (src);
+
+	len = strlen (src);
+
+	appendn (dest, src, len);
+}
+
+/* Version of append() that operates on a wide string @dest and @src */
+void
+wappend (pstring **dest, const wchar_t *src)
+{
+	size_t  len;
+
+	assert (dest);
+	assert (src);
+
+	len = wcslen (src);
+
+	wappendn (dest, src, len);
+}
+
+/* Version of append() that operates on a wide string @dest
+ * and multi-byte @src.
+ */
+void
+wmappend (pstring **dest, const char *src)
+{
+	wchar_t  *wide_src = NULL;
+
+	assert (dest);
+	assert (src);
+
+	wide_src = char_to_wchar (src);
+	if (! wide_src)
+		die ("failed to allocate space for wide string");
+
+	wappend (dest, wide_src);
+
+	free (wide_src);
+}
+
 /**
  * appendn:
  *
- * @str: [output] string to append to,
- * @new: string to append to @str,
+ * @dest: [output] string to append to,
+ * @src: string to append to @dest,
  * @len: length of @new.
  *
  * Append first @len bytes of @new to @str,
  * ensuring result is nul-terminated.
  **/
 void
-appendn (char **str, const char *new, size_t len)
+appendn (char **dest, const char *src, size_t len)
 {
 	size_t  total;
 
-	assert (str);
-	assert (new);
+	assert (dest);
+	assert (src);
 
 	if (! len)
 		return;
 
-	if (! *str)
-		*str = strdup ("");
+	if (! *dest)
+		*dest = strdup ("");
+	if (! *dest)
+		die ("failed to allocate space for string");
 
 	/* +1 for terminating nul */
-	total = strlen (*str) + 1;
+	total = strlen (*dest) + 1;
 
 	total += len;
 
-	*str = realloc (*str, total);
-	assert (*str);
+	*dest = realloc (*dest, total);
+	assert (*dest);
 
-	strncat (*str, new, len);
+	if (! *dest) {
+		/* string is empty, so initialise the memory to avoid
+		 * surprises with strncat() being unable to find the
+		 * terminator!
+		 */
+		memset (*dest, '\0', total);
+	}
 
-	assert ((*str)[total-1] == '\0');
+	strncat (*dest, src, len);
+
+	assert ((*dest)[total-1] == '\0');
 }
 
-/* append @new to @str */
+/* Version of appendn() that operates on a wide string @dest and @src */
 void
-append (char **str, const char *new)
+wappendn (pstring **dest, const wchar_t *src, size_t len)
 {
-	size_t  len;
-	assert (str);
-	assert (new);
+	wchar_t  *p;
+	size_t    total;
+	size_t    bytes;
 
-	len = strlen (new);
+	assert (dest);
+	assert (src);
 
-	appendn (str, new, len);
+	if (! len)
+		return;
+
+	if (! *dest)
+		*dest = pstring_new ();
+	if (! *dest)
+		die ("failed to allocate space for pstring");
+
+	total = (*dest)->len + len;
+
+	/* +1 for terminating nul */
+	bytes = (1 + total) * sizeof (wchar_t);
+
+	p = realloc ((*dest)->buf, bytes);
+
+	/* FIXME: turn into die() [all occurences!] */
+	assert (p);
+
+	(*dest)->buf = p;
+
+	if (! (*dest)->len) {
+		/* pstring is empty, so initialise the memory to avoid
+		 * surprises with wcsncat() being unable to find the
+		 * terminator!
+		 */
+		memset ((*dest)->buf, 0, bytes);
+	}
+
+	/* Used to check for overrun */
+	(*dest)->buf[total] = L'\0';
+
+	wcsncat ((*dest)->buf + (*dest)->len, src, len);
+
+	/* update */
+	(*dest)->len = total;
+	(*dest)->size = bytes;
+
+	/* check for overrun */
+	assert ((*dest)->buf[total] == L'\0');
 }
 
-/* append @fmt and args to @str */
+
+/* Version of appendn() that operates on a wide string @dest and
+ * multi-byte @src.
+ */
 void
-appendf (char **str, const char *fmt, ...)
+wmappendn (pstring **dest, const char *src, size_t len)
+{
+	wchar_t  *wide_src = NULL;
+
+	assert (dest);
+	assert (src);
+
+	if (! len)
+		return;
+
+	wide_src = char_to_wchar (src);
+	if (! wide_src)
+		die ("failed to allocate space for wide string");
+
+	wappendn (dest, wide_src, wcslen (wide_src));
+
+	free (wide_src);
+}
+
+/* append @fmt and args to @dest */
+void
+appendf (char **dest, const char *fmt, ...)
 {
 	va_list   ap;
-	char     *new = NULL;
 
-	assert (str);
+	assert (dest);
 	assert (fmt);
 
 	va_start (ap, fmt);
 
-	if (vasprintf (&new, fmt, ap) < 0) {
-		perror ("vasprintf");
-		exit (EXIT_FAILURE);
-	}
+	appendva (dest, fmt, ap);
+
+	va_end (ap);
+}
+
+/* Version of appendf() that operates on a wide string @dest
+ * and @fmt.
+ */
+void
+wappendf (pstring **dest, const wchar_t *fmt, ...)
+{
+	va_list  ap;
+
+	assert (dest);
+	assert (fmt);
+
+	va_start (ap, fmt);
+
+	wappendva (dest, fmt, ap);
+
+	va_end (ap);
+}
+
+/* Version of appendf() that operates on a wide string @dest
+ * and multi-byte @fmt.
+ */
+void
+wmappendf (pstring **dest, const char *fmt, ...)
+{
+	wchar_t  *wide_fmt = NULL;
+	va_list   ap;
+
+	assert (dest);
+	assert (fmt);
+
+	wide_fmt = char_to_wchar (fmt);
+	if (! wide_fmt)
+		die ("failed to allocate memory for wide format");
+
+	va_start (ap, fmt);
+
+	wappendva (dest, wide_fmt, ap);
 
 	va_end (ap);
 
-	if (*str) {
-		append (str, new);
+	free (wide_fmt);
+}
+
+/* append @fmt and args to @dest */
+void
+appendva (char **dest, const char *fmt, va_list ap)
+{
+	int      ret;
+	char    *new = NULL;
+	char    *p;
+	size_t   bytes;
+
+	/* Start with a guess for how big we think the buffer needs to
+	 * be.
+	 */
+	size_t   len = DEFAULT_ALLOC_GUESS_SIZE;
+
+	assert (dest);
+	assert (fmt);
+
+	bytes = (1 + len) * sizeof (char);
+
+	/* we could use vasprintf(3), but that's GNU-specific and hence
+	 * not available everywhere we need it.
+	 */
+	new = malloc (bytes);
+	if (! new)
+		die ("failed to allocate space for string");
+
+	memset (new, '\0', bytes);
+
+	/* keep on increasing size of buffer until the translation
+	 * succeeds.
+	 */
+	while (TRUE) {
+		va_list  ap_copy;
+
+		va_copy (ap_copy, ap);
+		ret = vsnprintf (new, len, fmt, ap_copy);
+		va_end (ap_copy);
+
+		if (ret < 0)
+			die ("failed to format string");
+
+		if ((size_t)ret < len) {
+			/* now we have sufficient space */
+			break;
+		}
+
+		/* Bump to allow one char to be written */
+		len++;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (char);
+
+		p = realloc (new, bytes);
+		if (! p)
+			die ("failed to allocate space for string");
+
+		new = p;
+	}
+
+	if (*dest) {
+		append (dest, new);
 		free (new);
 	} else {
-		*str = new;
+		*dest = new;
 	}
 }
 
-/* append @fmt and args to @str */
+/* Version of appendva() that operates on a wide string @dest
+ * and @fmt.
+ */
 void
-appendva (char **str, const char *fmt, va_list ap)
+wappendva (pstring **dest, const wchar_t *fmt, va_list ap)
 {
-	char  *new = NULL;
+	int       ret;
+	wchar_t  *new = NULL;
+	wchar_t  *p;
+	size_t    bytes;
+	va_list   ap_copy;
 
-	assert (str);
+	/* Start with a guess for how big we think the buffer needs to
+	 * be.
+	 */
+	size_t    len = DEFAULT_ALLOC_GUESS_SIZE;
+
+	assert (dest);
 	assert (fmt);
 
-	if (vasprintf (&new, fmt, ap) < 0) {
-		perror ("vasprintf");
-		exit (EXIT_FAILURE);
+	bytes = (1 + len) * sizeof (wchar_t);
+
+	new = malloc (bytes);
+	if (! new)
+		die ("failed to allocate space for wide string");
+
+	memset (new, '\0', bytes);
+
+	/* keep on increasing size of buffer until the translation
+	 * succeeds.
+	 */
+	while (TRUE) {
+		va_copy (ap_copy, ap);
+		ret = vswprintf (new, len, fmt, ap_copy);
+		va_end (ap_copy);
+
+		if ((size_t)ret < len) {
+			/* now we have sufficient space, so update for
+			 * actual number of bytes used (including the
+			 * terminator!)
+			 *
+			 * Note that, conveniently, if the string is
+			 * zero-characters long (ie ""), ret will be -1
+			 * which we correct to 0.
+			 */
+			len = ret + 1;
+
+			break;
+		}
+
+		/* Bump to allow one more wide-char to be written */
+		len++;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (wchar_t);
+
+		p = realloc (new, bytes);
+		if (! p)
+			die ("failed to allocate space for string");
+
+		new = p;
+
+		memset (new, '\0', bytes);
 	}
 
-	if (*str) {
-		append (str, new);
+	if (*dest) {
+		wappend (dest, new);
 		free (new);
 	} else {
-		*str = new;
+		wchar_t *n;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (wchar_t);
+
+		/* compress */
+		n = realloc (new, bytes);
+
+		if (! n)
+			die ("failed to reallocate space");
+
+		new = n;
+
+		(*dest) = pstring_new ();
+		assert (*dest);
+		(*dest)->buf = new;
+		(*dest)->len = len;
+		(*dest)->size = bytes;
 	}
+}
+
+/* Version of appendva() that operates on a wide string @dest
+ * and multi-byte @fmt.
+ */
+void
+wmappendva (pstring **dest, const char *fmt, va_list ap)
+{
+	wchar_t  *wide_fmt = NULL;
+	va_list   ap_copy;
+
+	assert (dest);
+	assert (fmt);
+
+	wide_fmt = char_to_wchar (fmt);
+	if (! wide_fmt)
+		die ("failed to allocate memory for wide format");
+
+	va_copy (ap_copy, ap);
+	wappendva (dest, wide_fmt, ap_copy);
+	va_end (ap_copy);
+
+	free (wide_fmt);
 }
 
 void
@@ -2420,10 +3826,15 @@ show_all_groups (void)
 	gid_t  *groups = NULL;
 	gid_t  *g;
 	char  **group_names = NULL;
+	size_t  bytes;
 
-	groups = malloc (size * sizeof (gid_t));
+	bytes = size * sizeof (gid_t);
+
+	groups = malloc (bytes);
 	if (! groups)
 		goto error;
+
+	memset (groups, '\0', bytes);
 
 	while (TRUE) {
 		ret = getgroups (size, groups);
@@ -2469,10 +3880,8 @@ show_all_groups (void)
 	appendf (&str, " ");
 
 	for (i = 0; i < size; i++) {
-		ret = asprintf (&group_names[i], "'%s' (%d)",
+		appendf (&group_names[i], "'%s' (%d)",
 				get_group_name (groups[i]), groups[i]);
-		if (ret < 0)
-			die ("unable to create group entry");
 	}
 
 	qsort (group_names, size, sizeof (char *), qsort_compar);
@@ -2497,8 +3906,48 @@ error:
 }
 
 void
+save_locale (void)
+{
+	char  *value;
+
+	assert (! saved_locale);
+
+	value = setlocale (LC_ALL, NULL);
+	if (! value) {
+		/* Can't determine locale, so ignore */
+		return;
+	}
+
+	saved_locale = strdup (value);
+	if (! saved_locale)
+		die ("failed to allocate space for locale");
+
+	if (atexit (restore_locale))
+		die ("failed to register exit handler");
+}
+
+void
+restore_locale (void)
+{
+	if (! saved_locale) {
+		/* Nothing to do */
+		return;
+	}
+
+	(void)setlocale (LC_ALL, saved_locale);
+
+	free (saved_locale);
+}
+
+void
 init (void)
 {
+	save_locale ();
+
+	wide_indent_char = btowc (indent_char);
+	if (wide_indent_char == WEOF)
+		die ("failed to convert indent char");
+
 	/* required to allow for more graceful handling of prctl(2)
 	 * options that were introduced in kernel version 'x.y'.
 	 */
@@ -2512,6 +3961,9 @@ init (void)
 void
 cleanup (void)
 {
+	common_assert ();
+	assert (doc);
+
 	close (user.tty_fd);
 
 	if (output_fd != -1)
@@ -2525,7 +3977,7 @@ cleanup (void)
 		free (crumb_list);
 	}
 
-	free (doc);
+	pstring_free (doc);
 }
 
 /**
@@ -2550,6 +4002,7 @@ show_meta (void)
 	header ("meta");
 
 	entry ("version", "%s", PACKAGE_VERSION);
+
 	entry ("package", "%s", PACKAGE_STRING);
 	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
@@ -2841,7 +4294,7 @@ get_mtu (const struct ifaddrs *ifaddr)
 {
 	int            sock;
 	struct ifreq   ifr;
-	int            request = SIOCGIFMTU;
+	unsigned long  request = SIOCGIFMTU;
 
 	assert (ifaddr);
 
@@ -2883,7 +4336,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 #endif
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	int            request = SIOCGIFHWADDR;
+	unsigned long  request = SIOCGIFHWADDR;
 #endif
 
 	assert (ifaddr);
@@ -3192,10 +4645,18 @@ show_numa_memory (void)
 #if defined (HAVE_NUMA_H)
 	int              policy;
 	const char      *policy_name;
-	struct bitmask  *allowed;
 	char            *allowed_list = NULL;
 	int              ret;
 	unsigned long    node;
+	unsigned long    allowed_size;
+
+#if defined (HAVE_NUMA_H)
+#if LIBNUMA_API_VERSION == 2
+	struct bitmask  *allowed;
+#else
+	nodemask_t       allowed;
+#endif
+#endif
 
 	/* part of the libnuma public API - stop the library calling
 	 * exit(3) on error.
@@ -3220,10 +4681,16 @@ show_numa_memory (void)
 		/* NUMA not supported on this system */
 		goto out;
 
+#if LIBNUMA_API_VERSION == 2
+	entry ("api version", "%d", 2);
+#else
+	entry ("api version", "%d", 1);
+#endif
+
 	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
 
 	if (ret < 0) {
-		show ("policy", "%s", UNKNOWN_STR);
+		entry ("policy", "%s", UNKNOWN_STR);
 		goto out;
 	}
 
@@ -3231,6 +4698,7 @@ show_numa_memory (void)
 
 	entry ("policy", "%s", policy_name ? policy_name : UNKNOWN_STR);
 
+#if LIBNUMA_API_VERSION == 2
 	entry ("maximum nodes", "%d", numa_num_possible_nodes ());
 	entry ("configured nodes", "%d", numa_num_configured_nodes ());
 
@@ -3238,8 +4706,18 @@ show_numa_memory (void)
 	if (! allowed)
 		die ("failed to query NUMA allowed list");
 
-	for (node = 0; node < allowed->size; node++) {
-		if (numa_bitmask_isbitset (allowed, node)) {
+	allowed_size = allowed->size;
+
+#else
+	entry ("maximum nodes", "%s", UNKNOWN_STR);
+	entry ("configured nodes", "%d", numa_max_node ());
+
+	allowed = numa_get_run_node_mask ();
+	allowed_size = NUMA_NUM_NODES;
+#endif
+
+	for (node = 0; node < allowed_size; node++) {
+		if (PROCENV_NUMA_BITMASK_ISSET (allowed, node)) {
 			/* Record first entry in the range */
 			if (! count)
 				first = node;
@@ -3280,8 +4758,11 @@ show_numa_memory (void)
 
 	entry ("allowed list", "%s", allowed_list);
 
-	free (allowed_list);
+#if LIBNUMA_API_VERSION == 2
 	numa_free_nodemask (allowed);
+#endif
+
+	free (allowed_list);
 
 out:
 #endif /* HAVE_NUMA_H */
@@ -3519,9 +5000,9 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 void
 show_network (void)
 {
-	header ("network");
 	/* Bionic isn't actually that bionic at all :( */
-	show ("%s", UNKNOWN_STR);
+	header ("network");
+	footer ();
 }
 
 #else
@@ -5202,6 +6683,18 @@ show_sizeof (void)
 	show_sizeof_type (imaxdiv_t);
 	show_sizeof_type (ino_t);
 	show_sizeof_type (int);
+	show_sizeof_type (int16_t);
+	show_sizeof_type (int32_t);
+	show_sizeof_type (int64_t);
+	show_sizeof_type (int8_t);
+	show_sizeof_type (int_fast16_t);
+	show_sizeof_type (int_fast32_t);
+	show_sizeof_type (int_fast64_t);
+	show_sizeof_type (int_fast8_t);
+	show_sizeof_type (int_least16_t);
+	show_sizeof_type (int_least32_t);
+	show_sizeof_type (int_least64_t);
+	show_sizeof_type (int_least8_t);
 	show_sizeof_type (intmax_t);
 	show_sizeof_type (intptr_t);
 	show_sizeof_type (key_t);
@@ -5239,6 +6732,18 @@ show_sizeof (void)
 	show_sizeof_type (timer_t);
 	show_sizeof_type (time_t);
 	show_sizeof_type (uid_t);
+	show_sizeof_type (uint16_t);
+	show_sizeof_type (uint32_t);
+	show_sizeof_type (uint64_t);
+	show_sizeof_type (uint8_t);
+	show_sizeof_type (uint_fast16_t);
+	show_sizeof_type (uint_fast32_t);
+	show_sizeof_type (uint_fast64_t);
+	show_sizeof_type (uint_fast8_t);
+	show_sizeof_type (uint_least16_t);
+	show_sizeof_type (uint_least32_t);
+	show_sizeof_type (uint_least64_t);
+	show_sizeof_type (uint_least8_t);
 	show_sizeof_type (uintmax_t);
 	show_sizeof_type (uintptr_t);
 	show_sizeof_type (useconds_t);
@@ -5427,6 +6932,12 @@ show_compiler (void)
 	entry ("_POSIX_C_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#if defined (_POSIX_RAW_SOCKETS)
+	entry ("_POSIX_RAW_SOCKETS", "%s", DEFINED_STR),
+#else
+	entry ("_POSIX_RAW_SOCKETS", "%s", NOT_DEFINED_STR),
+#endif
+
 #ifdef _POSIX_SOURCE
 	entry ("_POSIX_SOURCE", "%s", DEFINED_STR);
 #else
@@ -5579,9 +7090,7 @@ show_uname (void)
 	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
-	assert (uts.domainname);
-	assert (uts.domainname[0]);
-	entry ("domainname", "%s", uts.domainname);
+	entry ("domainname", "%s", uts.domainname ? uts.domainname : UNKNOWN_STR);
 #endif
 
 	footer ();
@@ -5619,6 +7128,7 @@ show_capabilities (void)
 
 #if defined (PROCENV_LINUX)
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 int
 get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
 {
@@ -5631,20 +7141,24 @@ get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
 
     return ret < 0 ? ret : result;
 }
+#endif /* HAVE_SYS_CAPABILITY_H */
 
 void
 show_capabilities_linux (void)
 {
+#if defined (HAVE_SYS_CAPABILITY_H)
+	int    last_known;
+	cap_t  caps;
+
 	/* Most recently-added capability that procenv knew about at
 	 * compile time.
 	 */
-	int    last_known = CAP_LAST_CAP;
-
-	int    ret;
-	cap_t  caps;
+	last_known = CAP_LAST_CAP;
+#endif
 
 	header ("capabilities");
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 	caps = cap_get_proc ();
 
 	entry ("count (CAP_LAST_CAP+1)", "%d", CAP_LAST_CAP+1);
@@ -5725,8 +7239,10 @@ show_capabilities_linux (void)
 	 */
 	section_open ("unknown");
 
+#if defined (PR_CAPBSET_READ)
 	for (int i = 1+last_known; ; i++) {
-		char  *name = NULL;
+		int   ret;
+		char *name = NULL;
 
 		ret = cap_get_bound (i);
 		if (ret < 0)
@@ -5740,6 +7256,7 @@ show_capabilities_linux (void)
 
 		free (name);
 	}
+#endif
 
 	cap_free (caps);
 
@@ -5747,6 +7264,7 @@ show_capabilities_linux (void)
 
 #ifdef PR_GET_KEEPCAPS
 	if (LINUX_KERNEL_MMR (2, 2, 18)) {
+		int   ret;
 		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
 		if (ret < 0)
 			entry ("keep", "%s", UNKNOWN_STR);
@@ -5758,6 +7276,8 @@ show_capabilities_linux (void)
 
 #if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
 	if (LINUX_KERNEL_MMR (2, 6, 26)) {
+		int ret;
+
 		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
 		if (ret < 0)
 			entry ("securebits", "%s", UNKNOWN_STR);
@@ -5785,17 +7305,24 @@ show_capabilities_linux (void)
 #endif
 
 out:
+#endif /* HAVE_SYS_CAPABILITY_H */
 	footer ();
 }
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 #ifdef PROCENV_NEED_LOCAL_CAP_GET_BOUND
 
 int cap_get_bound (cap_value_t cap)
 {
+#if defined (PR_CAPBSET_READ)
 	return prctl (PR_CAPBSET_READ, cap);
+#else
+	return -1;
+#endif
 }
 
 #endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */
+#endif /* HAVE_SYS_CAPABILITY_H */
 
 void
 show_timezone_linux (void)
@@ -5816,14 +7343,22 @@ void
 show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
-#if defined (HAVE_APPARMOR)
+
+#if defined (HAVE_SYS_APPARMOR_H)
 	if (aa_is_enabled ())
 		lsm = "AppArmor";
 #endif
-#if defined (HAVE_SELINUX)
-	if (is_selinux_enabled ())
-		lsm = "SELinux";
+
+#if defined (HAVE_SELINUX_SELINUX_H)
+	if (is_selinux_enabled () == 1) {
+
+		if (is_selinux_mls_enabled () == 1)
+			lsm = "SELinux (MLS)";
+		else
+			lsm = "SELinux";
+	}
 #endif
+
 	entry ("name", "%s", lsm);
 }
 
@@ -5833,12 +7368,13 @@ show_security_module_context_linux (void)
 	char   *context = NULL;
 	char   *mode = NULL;
 
-#if defined (HAVE_APPARMOR)
+#if defined (HAVE_SYS_APPARMOR_H)
 	if (aa_is_enabled ())
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
 #endif
-#if defined (HAVE_SELINUX)
+
+#if defined (HAVE_SELINUX_SELINUX_H)
 	if (is_selinux_enabled ())
 		if (getpidcon (user.pid, &context) < 0)
 			die ("failed to query SELinux context");
@@ -5851,8 +7387,11 @@ show_security_module_context_linux (void)
 	} else
 		entry ("context", "%s", UNKNOWN_STR);
 
-	free (context);
-	free (mode);
+	if (context)
+		free (context);
+
+	if (mode)
+		free (mode);
 }
 
 void
@@ -6049,7 +7588,7 @@ get_scheduler_name (int sched)
 void
 show_cpu_linux (void)
 {
-	int cpu;
+	int cpu = -1;
 	long max;
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
@@ -6059,16 +7598,72 @@ show_cpu_linux (void)
 	if (cpu < 0)
 		goto unknown_sched_cpu;
 
+#else
+	cpu = procenv_getcpu ();
+	if (cpu < 0)
+		goto unknown_sched_cpu;
+#endif
+
 	/* adjust to make 1-based */
 	cpu++;
 
-	entry ("number", "%u of %lu", cpu, max);
+	entry ("number", "%u of %ld", cpu, max);
 	return;
 
 unknown_sched_cpu:
-#endif
-	entry ("number", "%s of %lu", UNKNOWN_STR, max);
+
+	entry ("number", "%s of %ld", UNKNOWN_STR, max);
 }
+
+#if ! defined(HAVE_SCHED_GETCPU)
+
+/* Crutch function for RHEL 5 */
+int
+procenv_getcpu (void)
+{
+	int          cpu = -1;
+	FILE        *f;
+	char       **fields;
+	const char  *field;
+	char         buffer[1024];
+	size_t       len;
+	size_t       count;
+
+	f = fopen ("/proc/self/stat", "r");
+	if (! f)
+		goto out;
+
+	if (! fgets (buffer, sizeof (buffer), f))
+		goto out;
+
+	fclose (f);
+
+	len = strlen (buffer);
+	buffer[len-1] = '\0';
+
+	count = split_fields (buffer, ' ', TRUE, &fields);
+
+	if (! count)
+		return -1;
+
+	if (count != 42)
+		goto cleanup;
+
+	field = fields[41];
+	assert (field);
+	
+	cpu = atoi (field);
+
+cleanup:
+
+	for (len = 0; len < count; len++)
+		free (fields[len]);
+	free (fields);
+
+out:
+	return cpu;
+}
+#endif
 
 /**
  * get_canonical:
@@ -6610,9 +8205,9 @@ int
 main (int    argc,
 		char  *argv[])
 {
-	int    option;
-	int    long_index;
-	int    done = FALSE;
+	int       option;
+	int       long_index;
+	int       done = FALSE;
 
 	struct option long_options[] = {
 		{"meta"            , no_argument, NULL, 'a'},
@@ -6665,7 +8260,9 @@ main (int    argc,
 		{NULL              , no_argument      , NULL, 0}
 	};
 
-	doc = strdup ("");
+	doc = pstring_new ();
+	if (! doc)
+		die ("failed to allocate string");
 
 	program_name = argv[0];
 	argvp = argv;
@@ -6905,9 +8502,11 @@ main (int    argc,
 		master_footer (&doc);
 
 		chomp (doc);
-		compress (&doc);
 
-		_show_output (doc);
+
+		if (output_format != OUTPUT_FORMAT_XML && output_format != OUTPUT_FORMAT_JSON) {
+			compress (&doc, wide_indent_char);
+		}
 
 		goto finish;
 	}
@@ -6929,11 +8528,11 @@ main (int    argc,
 	dump ();
 
 	chomp (doc);
-	compress (&doc);
 
-	_show_output (doc);
+	compress (&doc, wide_indent_char);
 
 finish:
+	_show_output_pstring (doc);
 	cleanup ();
 
 	/* Perform re-exec */
@@ -6969,23 +8568,42 @@ get_group_name (gid_t gid)
 /**
  * encode_string:
  *
+ * @str: string to encode.
+ *
  * Returns: 0 on success, -1 on failure.
  *
- * Note: It is the callers responsibility to free @str iff this function
+ * Convert the specified string to its encoded form. If no encoding is
+ * necessary, the string will not be modified.
+ *
+ * Notes:
+ *
+ * - By encoding, we mean replacing literals with their
+ *   format-langage-specific encodings. For example for XML output,
+ *   '<' is converted to '&lt;'.
+ *
+ * - It is the callers responsibility to free @str iff this function
  * is successful. any previous value of @str will be freed by
  * encode_string().
+ *
+ * BUGS: this is just horribly, horribly gross :(
  **/
 int
-encode_string (char **str)
+encode_string (pstring **pstr)
 {
-	int      ret = 0;
-	char    *new;
-	char    *p, *q;
-	size_t   non_printables;
-	size_t   len = 0;
+	int       ret = 0;
+	pstring  *new = NULL;
+	wchar_t  *p, *q;
+	size_t    non_printables;
+	size_t    len = 0;
+	size_t    bytes;
 
-	assert (str);
-	assert (*str);
+	assert (pstr);
+	assert (*pstr);
+
+	if ((*pstr)->len <= 1) {
+		/* Nothing to do */
+		return 0;
+	}
 
 	switch (output_format) {
 
@@ -6997,10 +8615,11 @@ encode_string (char **str)
 
 	case OUTPUT_FORMAT_JSON: /* FALL THROUGH */
 	case OUTPUT_FORMAT_XML:
-		new = translate (*str);
+		new = translate (*pstr);
 		if (new) {
-			free (*str);
-			*str = new;
+			pstring_free (*pstr);
+			*pstr = new;
+			new = NULL;
 		} else {
 			ret = -1;
 		}
@@ -7017,8 +8636,8 @@ encode_string (char **str)
 	/* Now, search for evil non-printable characters and encode those
 	 * appropriately.
 	 */
-	for (p = *str, non_printables = 0; p && *p; p++) {
-		if (! isprint (*p))
+	for (p = (*pstr)->buf, non_printables = 0; p && *p; p++) {
+		if (! iswprint (*p))
 			non_printables++;
 	}
 
@@ -7027,7 +8646,8 @@ encode_string (char **str)
 		 || output_format == OUTPUT_FORMAT_JSON)) {
 
 		size_t   new_size = 0;
-		char    *json_format = "\\u%4.4x";
+
+		wchar_t  *json_format = L"\\u%4.4x";
 
 		/* XXX:
 		 *
@@ -7054,9 +8674,9 @@ encode_string (char **str)
 		 * simply discarding all non-printables when attempting
 		 * XML output.
 		 */
-		char    *xml_format = "&#x%2.2x;";
+		wchar_t    *xml_format = L"&#x%2.2x;";
 
-		len = strlen (*str);
+		len = (*pstr)->len;
 
 		/* Calculate expanded size of string by removing
 		 * count of non-printable byte and adding back the
@@ -7065,26 +8685,40 @@ encode_string (char **str)
 		 */
 		switch (output_format) {
 		case OUTPUT_FORMAT_XML:
-			new_size = (len - non_printables) + (non_printables * strlen ("&#x..;"));
+			new_size = (len - non_printables) + (non_printables * wcslen (L"&#x..;"));
 			break;
 
 		case OUTPUT_FORMAT_JSON:
-			new_size = (len - non_printables) + (non_printables * strlen ("\\u...."));
+			new_size = (len - non_printables) + (non_printables * wcslen (L"\\u...."));
 			break;
 		default:
 			break;
 		}
 
-		new = calloc (1+new_size, 1);
+		new = pstring_new ();
 		if (! new)
 			return -1;
 
-		for (p = *str, q = new; p && *p; p++) {
-			if (isprint (*p)) {
+		bytes = (1 + new_size) * sizeof (wchar_t);
+
+		new->buf = malloc (bytes);
+		if (! new->buf) {
+			free (new);
+			return -1;
+		}
+
+		new->size = bytes;
+
+		memset (new->buf, '\0', bytes);
+
+		for (p = (*pstr)->buf, q = new->buf; p && *p; p++) {
+			if (iswprint (*p)) {
 				*q = *p;
 				q++;
+				new->len++;
 			} else {
-				ret = sprintf (q,
+				ret = swprintf (q,
+						new_size,
 						output_format == OUTPUT_FORMAT_JSON
 						? json_format : xml_format,
 						*p);
@@ -7092,31 +8726,34 @@ encode_string (char **str)
 			}
 		}
 
-		free (*str);
-		*str = new;
+		/* include terminator */
+		new->len = wcslen (new->buf) + 1;
+
+		pstring_free (*pstr);
+		*pstr = new;
 	}
 
 	return ret;
 }
 
 /* Performs simple substitution on the input */
-char *
-translate (const char *str)
+pstring *
+translate (const pstring *pstr)
 {
-	char               *result = NULL;
-	const char         *start;
-	const char         *p;
-	TranslateTable     *table;
-	size_t              i;
-	size_t              len;
-	char                from;
+	pstring           *result = NULL;
+	const wchar_t     *start;
+	const wchar_t     *p;
+	TranslateTable    *table;
+	size_t             i;
+	size_t             len;
+	size_t             extra;
+	size_t             bytes;
+	size_t             amount;
+	wchar_t            from;
 
-	assert (str);
+	assert (pstr);
 	assert (output_format != OUTPUT_FORMAT_TEXT);
 	assert (output_format != OUTPUT_FORMAT_CRUMB);
-
-	len = 1 + strlen (str);
-	start = str;
 
 	/* Find the correct translation table for the chosen output format */
 	for (i = 0; i < sizeof (translate_table) / sizeof (translate_table[0]); i++) {
@@ -7128,62 +8765,115 @@ translate (const char *str)
 	if (! table)
 		return NULL;
 
+	len = pstr->len;
+	start = pstr->buf;
+
 	/* First, calculate the amount of space needed for the expanded
 	 * buffer.
 	 */
+	extra = 0;
 	while (start && *start) {
 		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
 			from = table->map[i].from;
 			if (*start == from) {
-				len += strlen (table->map[i].to);
+				/* Subtract one to take account of the
+				 * pre-existing character we're going to
+				 * replace.
+				 */
+				extra += (wcslen (table->map[i].to) - 1);
 			}
 		}
 		start++;
 	}
 
-	result = calloc (len, 1);
+	if (! extra) {
+		/* No translation required.
+		 *
+		 * FIXME: this is inefficient - we should really have
+		 * the function accept a 'pstring **' to avoid
+		 * re-copying.
+		 */
+		return pstring_create (pstr->buf);
+	}
+
+	len += extra;
+
+	result = pstring_new ();
 	if (! result)
 		return NULL;
+
+	/* Note that this includes the space for the terminator
+	 * (since a pstring's len includes the terminator)
+	 */
+	bytes = len * sizeof (wchar_t);
+
+	result->buf = malloc (bytes);
+	if (! result->buf)
+		return NULL;
+
+	/* We're using wcsncat() so we'd better make sure there is a
+	 * nul for it to find!
+	 *
+	 * Note: we could have used calloc to do this for us, but
+	 * the code is clearer using the @bytes idiom.
+	 */
+	memset (result->buf, '\0', bytes);
+
+	result->size = bytes;
+
+	/* Sanity check for upcoming overrun check */
+	assert (result->buf[len-1] == L'\0');
 
 	/* Now, iterate the string again, performing the actual
 	 * replacements.
 	 */
-	p = start = str;
+	p = start = pstr->buf;
 
 	while (p && *p) {
 		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
+			wchar_t  *to;
+			size_t    len;
+
 			from = table->map[i].from;
-			if (*p == from) {
-				size_t   amount;
-				char    *to;
 
-				to = table->map[i].to;
+			if (*p != from)
+				continue;
 
-				amount = (p - start);
+			to = table->map[i].to;
 
-				/* Copy from start to match */
-				strncat (result, start, amount);
+			amount = p - start;
 
-				/* Nudge along the string, jumping over
-				 * matching character.
-				 */
-				start += (amount+1);
+			/* Copy from start to match */
+			wcsncat (result->buf + result->len, start, amount);
 
-				/* Copy replacement text */
-				strncat (result, to, strlen (to));
+			result->len += amount;
 
-				break;
-			}
+			/* Copy replacement text */
+			len = wcslen (to);
+			wcsncat (result->buf + result->len, to, len);
+			result->len += len;
+
+			/* Jump over the matching character */
+			start = p + 1;
+
+			break;
 		}
 		p++;
 	}
 
 	/* Copy remaining non-matching chars */
-	strncat (result, start, (p - start));
+	amount = p - start;
+	wcsncat (result->buf + result->len, start, amount);
+	result->len += amount;
+
+	/* Account for terminator */
+	result->len += 1;
+
+	/* check for buffer overrun */
+	assert (result->buf[len-1] == L'\0');
 
 	return result;
 }
-
 /**
  * change_element:
  *
@@ -7242,13 +8932,13 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7266,7 +8956,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7287,7 +8977,7 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7295,7 +8985,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7312,7 +9002,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7333,7 +9023,7 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7341,7 +9031,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7393,14 +9083,14 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7418,7 +9108,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7445,7 +9135,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
@@ -7455,13 +9145,13 @@ format_json_element (void)
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7480,7 +9170,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7508,14 +9198,14 @@ format_json_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7533,7 +9223,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7554,14 +9244,14 @@ format_json_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_OPEN:
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
@@ -7612,14 +9302,14 @@ format_xml_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7637,13 +9327,13 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7663,20 +9353,20 @@ format_xml_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7693,7 +9383,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7703,7 +9393,7 @@ format_xml_element (void)
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7724,7 +9414,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -7732,7 +9422,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -7748,13 +9438,13 @@ format_xml_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -7780,7 +9470,7 @@ format_xml_element (void)
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
 			case ELEMENT_TYPE_ENTRY:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				break;
 
@@ -7830,92 +9520,110 @@ format_xml_element (void)
  * invisible.
  **/
 void
-compress (char **str)
+compress (pstring **wstr, wchar_t remove_char)
 {
-#define NUMBER_MATCHES 1
-	char         *new = NULL;
-	regex_t       regex;
-	regmatch_t    matches[NUMBER_MATCHES];
-	regmatch_t   *match;
-	char         *start;
-	char         *pattern = NULL;
-	int           ret;
+	wchar_t  *from;
+	wchar_t  *to;
+	wchar_t  *p;
+	wchar_t  *start;
+	size_t    count = 0;
+	size_t    blanks = 0;
+	size_t    new_len;
+	size_t    bytes;
 
-	assert (str);
-	assert (*str);
+	assert (wstr);
 
-	start = *str;
+	to = from = (*wstr)->buf;
 
-	/* Match lines composed entirely of indent_char chars, and
-	 * entirely blank lines.
-	 */
-	appendf (&pattern, "^([%c][%c]*$|^$)", indent_char, indent_char);
-
-	if (regcomp (&regex, pattern, REG_EXTENDED|REG_NEWLINE))
-		goto error;
-
-	while (start && *start) {
-
-		ret = regexec (&regex, start, NUMBER_MATCHES, matches, 0);
-		if (ret == REG_NOMATCH)
-			break;
-
-		match = &matches[0];
-		if (match->rm_so == -1)
-			break;
-
-		/* Newlines annoyingly need to be special-cased
-		 * (due to the "^$" pattern) to avoid
-		 * looping when the input contains say "\n\n".
-		 */
-		if (! match->rm_so && ! match->rm_eo && start[match->rm_so] == '\n') {
-			start++;
-			continue;
+	while (to && *to) {
+again:
+		while (*to == L'\n' && *(to+1) == L'\n') {
+			/* skip over blank lines */
+			to++;
+			blanks++;
 		}
 
-		/* Copy text before the match to the output buffer */
-		appendn (&new, start, match->rm_so);
+		start = to;
 
-		/* Jump over the matching chars */
-		start += match->rm_eo;
+		while (*to == remove_char) {
+			/* skip runs of contiguous characters */
+			to++;
+			count++;
+		}
+
+		if (to != start) {
+			/* Only start consuming NLs at the end of a
+			 * contiguous run *iff* there was more than a
+			 * single removed char. This is a heuristic to
+			 * avoid removing valid entries for example env
+			 * vars that are set to nul are shown as:
+			 *
+			 *  'var: '
+			 *
+			 * Shudder.
+			 */
+			if (*to == L'\n' && to != start+1) {
+				while (*to == L'\n') {
+					/* consume the NL at the end of the contiguous run */
+					to++;
+				}
+
+				/* check to ensure that we haven't entered a new line
+				 * containing another block of chars to remove.
+				 */
+				if (*to == remove_char)
+					goto again;
+
+				blanks++;
+
+			} else  {
+				/* not a full line so backtrack */
+				to = start;
+				count = 0;
+			}
+		}
+
+		*from++ = *to++;
 	}
 
-	regfree (&regex);
+	/* terminate */
+	*from = L'\0';
 
-	if (new) {
-		free (*str);
-		*str = new;
+	if (blanks || count) {
+		new_len = (*wstr)->len - (blanks + count);
+
+		bytes = new_len * sizeof (wchar_t);
+
+		p = realloc ((*wstr)->buf, bytes);
+		assert (p);
+
+		(*wstr)->buf = p;
+
+		(*wstr)->buf[new_len-1] = L'\0';
+
+		(*wstr)->len = new_len;
+		(*wstr)->size = bytes;
 	}
-
-	free (pattern);
-	return;
-
-error:
-	free (pattern);
-	die ("failed to compile regex");
 }
-
 /**
  * chomp:
  *
  * Remove trailing extraneous newlines and indent_chars from @str.
  **/
 void
-chomp (char *str)
+chomp (pstring *str)
 {
-	size_t  len;
-	int     removable = 0;
-	char   *p;
+	size_t    len;
+	int       removable = 0;
+	wchar_t  *p;
 
 	assert (str);
 
-	len = strlen (str);
-
 	/* Unable to add '\n' in this scenario */
-	if (len < 2)
+	if (str->len < 2)
 		return;
 
-	for (p = str+len-1; *p == '\n' || *p == (char)indent_char;
+	for (p = str->buf+str->len-1; *p == L'\n' || *p == (wchar_t)indent_char;
 			p--, removable++)
 		;
 
@@ -7923,9 +9631,10 @@ chomp (char *str)
 	 * newline.
 	 */
 	if (removable > 1) {
-		len -= (removable-1);
-		str[len-1] = '\n';
-		str[len] = '\0';
+		len = str->len - (removable-1);
+		str->buf[len-1] = L'\n';
+		str->buf[len] = L'\0';
+		str->len = len;
 	}
 }
 
@@ -7995,7 +9704,7 @@ show_shared_mem_linux (void)
 
 	header ("shared memory");
 
-	max = shmctl (0, SHM_INFO, (struct shmid_ds *)&info);
+	max = shmctl (0, SHM_INFO, (void *)&info);
 	if (max < 0)
 		goto out;
 
@@ -8007,6 +9716,10 @@ show_shared_mem_linux (void)
 	entry ("pages", "%lu", info.shm_tot);
 	entry ("shm_rss", "%lu", info.shm_rss);
 	entry ("shm_swp", "%lu", info.shm_swp);
+
+	/* Apparently unused */
+	entry ("swap_attempts", "%lu", info.swap_attempts);
+	entry ("swap_successes", "%lu", info.swap_successes);
 
 	section_close ();
 
@@ -8241,7 +9954,7 @@ show_msg_queues_linux (void)
 
 	header ("message queues");
 
-	max = msgctl (0, MSG_INFO, (struct msqid_ds  *)&info);
+	max = msgctl (0, MSG_INFO, (void *)&info);
 	if (max < 0)
 		goto out;
 
@@ -8396,7 +10109,7 @@ format_perms (mode_t mode)
 	/*
 	 * "-rwxrwxrwx" = 10+1 bytes.
 	 */
-	modestr = calloc ((1+3+3+3)+1, 1);
+	modestr = calloc ((1+3+3+3)+1, sizeof (char));
 
 	if (! modestr)
 		return NULL;
@@ -8494,3 +10207,223 @@ clear_breadcrumbs (void)
 	while (crumb_list->prev != crumb_list)
 		remove_breadcrumb ();
 }
+
+wchar_t *
+char_to_wchar (const char *str)
+{
+	const char  *p;
+	wchar_t     *wstr = NULL;
+	size_t       len;
+	size_t       bytes;
+
+	assert (str);
+
+	len = mbsrtowcs (NULL, &str, 0, NULL);
+	if (len <= 0)
+		return NULL;
+
+	/* include space for terminator */
+	bytes = (1 + len) * sizeof (wchar_t);
+
+	wstr = malloc (bytes);
+	if (! wstr)
+		return NULL;
+
+	p = str;
+
+	if (mbsrtowcs (wstr, &p, len, NULL) != len)
+		goto error;
+
+	/* ensure it's terminated */
+	wstr[len] = L'\0';
+
+	return wstr;
+
+error:
+	free (wstr);
+	return NULL;
+}
+
+pstring *
+pstring_new (void)
+{
+	pstring *pstr = NULL;
+
+	pstr = calloc (1, sizeof (pstring));
+	if (! pstr)
+		return NULL;
+
+	pstr->len = 0;
+	pstr->size = 0;
+	pstr->buf = NULL;
+
+	return pstr;
+}
+
+pstring *
+pstring_create (const wchar_t *str)
+{
+	pstring *pstr = NULL;
+
+	assert (str);
+
+	pstr = pstring_new ();
+
+	if (! pstr)
+		return NULL;
+
+	pstr->buf = wcsdup (str);
+	if (! pstr->buf)
+		return NULL;
+
+	/* include the L'\0' terminator */
+	pstr->len = 1 + wcslen (pstr->buf);
+
+	pstr->size = pstr->len * sizeof (wchar_t);
+
+	return pstr;
+}
+
+void
+pstring_free (pstring *str)
+{
+	assert (str);
+
+	if (str->buf)
+		free (str->buf);
+
+	free (str);
+}
+
+pstring *
+char_to_pstring (const char *str)
+{
+	pstring  *pstr = NULL;
+	wchar_t  *s;
+
+	assert (str);
+
+	s = char_to_wchar (str);
+	if (! s)
+		return NULL;
+
+	pstr = pstring_create (s);
+
+	free (s);
+
+	return pstr;
+}
+
+char *
+pstring_to_char (const pstring *str)
+{
+	assert (str);
+
+	return wchar_to_char (str->buf);
+}
+
+char *
+wchar_to_char (const wchar_t *wstr)
+{
+	char           *str = NULL;
+	size_t          len;
+	size_t          bytes;
+	size_t          ret;
+
+	assert (wstr);
+
+	len = wcslen (wstr);
+
+	/* determine number of MBS (char) bytes requires to hold the
+	 * wchar_t string.
+	 */
+	bytes = wcstombs (NULL, wstr, len);
+	if (! bytes)
+		return NULL;
+
+	str = calloc (bytes + 1, sizeof (char));
+	if (! str)
+		return NULL;
+
+	/* actually perform the conversion */
+	ret = wcstombs (str, wstr, bytes);
+
+	if (! ret)
+		goto error;
+
+	return str;
+
+error:
+	free (str);
+	return NULL;
+}
+
+#if ! defined(HAVE_SCHED_GETCPU)
+
+/**
+ * @string: input,
+ * @delimiter: field delimiter,
+ * @compress: if TRUE, ignore repeated contiguous delimiter characters,
+ * @array: [output] array of fields, which this function will allocate.
+ *
+ * Notes: it is the callers responsibility to free @array
+ * if the returned value is >0.
+ *
+ * Returns: number of fields in @string.
+ **/
+size_t
+split_fields (const char *string, char delimiter, int compress, char ***array)
+{
+	const char  *p = NULL;
+	const char  *start = NULL;
+	size_t       count = 0;
+	char        *elem;
+	char       **new;
+
+	assert (string);
+	assert (delimiter);
+	assert (array);
+
+	*array = NULL;
+
+	new = realloc ((*array), sizeof (char *) * (1+count));
+	assert (new);
+
+	new[0] = NULL;
+	*array = new;
+
+	p = string;
+
+	while (p && *p) {
+		/* skip leading prefix */
+		while (compress && p && *p == delimiter)
+			p++;
+
+		if (! *p)
+			break;
+
+		/* found a field */
+		count++;
+
+		if (! compress)
+			p++;
+
+		/* skip over the field */
+		start = p;
+		while (p && *p && *p != delimiter)
+			p++;
+
+		elem = strndup (start, p-start);
+		assert (elem);
+
+		new = realloc ((*array), sizeof (char *) * (1+count));
+		assert (new);
+
+		new[count-1] = elem;
+		*array = new;
+	}
+
+	return count;
+}
+
+#endif

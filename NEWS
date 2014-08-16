@@ -1,3 +1,20 @@
+0.36	2014-08-16
+
+	* RHEL/Centos spec file - thanks Dave Love
+	  (LP: #1327594).
+	* Improved checks for SELinux/Apparmor (LP: #1333182).
+	* Added missing types from stdint.h to '--sizeof'.
+	* Fixed building on systems with old NUMA libraries, such as
+	  Centos/RHEL 5 (LP: #1333194). However, bug is not yet fully
+	  resolved since cpu details seem to be reported incorrectly
+	  on these old systems.
+	* Corrected SELinux detection code and added MLS detection.
+	* Added missing conf calls such that '--sysconf', '--pathconf' and
+	  '--confstr' combined are now on par with getconf(1).
+	* More man page examples.
+	* Major internal rewrite to handle all data as wchar_t to avoid failing
+	  in locales using UTF-8 characters (LP: #1325494).
+
 0.35	2014-06-03
 
 	* Update to handle Linux 3.15 kernel which has
