@@ -1,9 +1,10 @@
-procenv (0.35-2) UNRELEASED; urgency=medium
+procenv (0.36-1) UNRELEASED; urgency=medium
 
   * debian/control: Make libselinux1-dev and libapparmor-dev Build-Depends
     Linux-specific.
+  * New upstream release.
 
- -- James Hunt <james.hunt@ubuntu.com>  Tue, 03 Jun 2014 13:19:36 +0100
+ -- James Hunt <james.hunt@ubuntu.com>  Sat, 16 Aug 2014 20:51:29 +0100
 
 procenv (0.35-1) unstable; urgency=medium
 

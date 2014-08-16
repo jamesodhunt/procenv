@@ -1,3 +1,105 @@
+2014-08-14  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1: More examples.
+	* configure.ac: Add profiling for debug mode.
+
+2014-07-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: Correct guard used around procenv_getcpu()
+	  and split_fields().
+
+2014-07-03  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/pr_list.c: 
+	  - New functions:
+	    - pr_list_append_str()
+	    - pr_list_appendn_str()
+	    - pr_list_prependn_str()
+	* src/procenv.c: 
+	  - procenv_getcpu(): A {RHEL,Centos} 5-pecific hack to fully
+	    resolve LP: #1333194 by working around fact that glibc on that
+	    platform does not provide sched_getcpu(3).
+
+2014-06-26  James Hunt  <james.hunt@ubuntu.com>
+
+	* TODO: Updates.
+	* src/procenv.c:
+	  - More fixes for LP: #1333194:
+	    - show_capabilities_linux(): Guard PR_CAPBSET_READ.
+	    - cap_get_bound(): Guard PR_CAPBSET_READ.
+	* src/procenv.h: Define CAP_LAST_CAP when using old versions of libcap.
+
+2014-06-26  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_numa_memory():
+	    - Fix for systems using old numa libraries (RHEL5). This should
+	      really fix LP: #1333194.
+	  - show_security_module():
+	    - Corrected SELinux checking code.
+	    - Added MLS detail.
+	  - show_shared_mem_linux():
+	    - Compiler appeasement.
+	    - Added 'swap_attempts' and 'swap_successes' (apparently now unused,
+	      but displayed for completeness).
+	  - show_msg_queues_linux(): Compiler appeasement.
+	* src/procenv.h:
+	  - PROCENV_FORMAT_VERSION: Bumped to v8.
+	  - Added PROCENV_NUMA_BITMASK_ISSET() macro to handle both old and new
+	    libnuma API's.
+
+2014-06-25  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - get_mtu(): Ensure unsigned long used for ioctl(2) request parameter
+	    (caught by FreeBSD's "WARNING ioctl sign-extension ioctl" console
+	    message).
+	  - get_mac_address(): As above.
+	  - show_uname(): Handle unset uts.domainname without an
+	    assertion to cope on OpenSuSE 13.1 systems.
+
+2014-06-24  James Hunt  <james.hunt@ubuntu.com>
+
+	* configure.ac: Add header checks for selinux and apparmor (LP: #1333182).
+	* procenv.spec.in: Added 'libselinux-devel' to BuildRequires.
+	* src/Makefile.am: Use $(top_builddir) and $(subdir) rather than
+	  $(abs_builddir) since the RHEL5 / Centos 5 version of automake don't
+	  define the latter.
+	* src/procenv.c:
+	  - Fix building on RHEL5 / Centos 5 by guarding undefined personality
+	    symbols (LP: #1333194).
+	  - Guard code based on CPU_ALLOC(3) availability.
+	  - Guard capabilities, SELinux and AppArmor code.
+	  - show_numa_memory(): Use entry() rather than show(), the latter of
+	    which could have cause invalid formatted output if the NUMA policy
+	    could not be queried.
+	  - show_sizeof(): Add missing typedefs from stdint.h.
+	* src/procenv.h: SELinux and capability guards.
+	* src/tests/check_all_args.in:
+	  - Don't die if JSON or XML checker are unavailable - just run
+	    what tests are possible.
+	  - Test using C locale and current (if different).
+
+2014-06-09  James Hunt  <james.hunt@ubuntu.com>
+
+	* procenv.spec.in: Fix for spec file on RHEL - thanks Dave Love
+	  (LP: #1327594).
+
+2014-06-07  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: sysconf and confstr cleanups.
+	* src/procenv.h:
+	  - Removed now unecessary macros.
+	  - Bumped PROCENV_FORMAT_VERSION.
+
+2014-06-04  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - show_pathconfs(): Guard all defines.
+	  - show_confstrs(): Guard all defines.
+	* src/procenv.h: Added _show_confstr() macro to allow name to be
+	  specified.
+
 2014-06-03  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/procenv.c:

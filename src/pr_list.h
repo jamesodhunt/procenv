@@ -21,6 +21,10 @@
 #ifndef _PROCENV_LIST
 #define _PROCENV_LIST
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif /* HAVE_CONFIG_H */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,8 +39,13 @@ typedef void (*PRListVisitor) (PRList *entry);
 PRList *pr_list_new (void *data);
 
 PRList *pr_list_append (PRList *list, PRList *entry);
+PRList *pr_list_append_str (PRList *list, const char *str);
+PRList *pr_list_appendn_str (PRList *list, const char *str, size_t len);
+
 PRList *pr_list_prepend (PRList *list, PRList *entry);
 PRList *pr_list_prepend_str (PRList *list, const char *str);
+PRList *pr_list_prependn_str (PRList *list, const char *str, size_t len);
+
 PRList *pr_list_remove (PRList *entry);
 
 void pr_list_foreach_visit (PRList *list, PRListVisitor visitor);

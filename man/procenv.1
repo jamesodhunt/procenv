@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2014-01-10" "User Commands"
+.TH PROCENV "1" "2014-08-14" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -450,6 +450,9 @@ the values are queryable, there is no documented method to do so.
 \& # Send compiler information to syslog (note the order of the options).
 \& procenv \-\-output=syslog \-\-compiler
 \&
+\& # Write compiler details direct to the terminal
+\& procenv \-\-output=terminal \-\-compiler
+\&
 \& # Run a command ('mycmd \-\-arg1 \-\-foo=bar') without creating a new
 \& # process, but have procenv run first and log its output to a
 \& # regular file.
@@ -466,11 +469,18 @@ the values are queryable, there is no documented method to do so.
 \& # Display all data in XML format using tabs for indents
 \& procenv \-\-format=xml \-\-indent\-char="\\t"
 \&
+\& # Display signal details in XML format
+\& procenv \-\-format=xml \-\-signals
+\&
 \& # Display resource limits in easily-parseable format
 \& procenv \-\-format=crumb \-\-limits
 \&
 \& # Produce output suitable for importing into a spreadsheet
-\& procenv \-\-format=crumb \-\-crumb-separator=\(aq,\(aq \-\-separator=\(aq,\(aq \-\-limits
+\& procenv \-\-format=crumb \-\-crumb\-separator=\(aq,\(aq \-\-separator=\(aq,\(aq \-\-limits
+\&
+\& # Produce stylised output
+\& procenv \-\-format=crumb \-\-crumb\-separator=\(aq → \(aq \-\-separator=\(aq=\(aq
+\&
 .Ve
 .Ve
 .\"

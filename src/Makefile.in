@@ -721,7 +721,7 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 @ENABLE_TESTS_TRUE@check_all_args: tests/check_all_args.in
-@ENABLE_TESTS_TRUE@	sed -e 's|[@]abs_builddir[@]|$(abs_builddir)|g' \
+@ENABLE_TESTS_TRUE@	sed -e 's|[@]builddir[@]|$(top_builddir)/$(subdir)|g' \
 @ENABLE_TESTS_TRUE@	    $< > $@
 @ENABLE_TESTS_TRUE@	chmod +x $@
 
