@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright 2012-2014 James Hunt.
+ * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <wchar.h>
+#include <wctype.h>
 #include <unistd.h>
 #include <limits.h>
 #include <libgen.h>
@@ -69,7 +70,6 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
-#include <regex.h>
 
 #include <pr_list.h>
 
@@ -409,6 +409,7 @@ int cap_get_bound (cap_value_t cap);
 
 #define CTIME_BUFFER 32
 #define PROCENV_BUFFER     1024
+#define DEFAULT_ALLOC_GUESS_SIZE 8
 #define MOUNTS            "/proc/mounts"
 #define ROOT_PATH         "/proc/self/root"
 
@@ -676,6 +677,17 @@ int cap_get_bound (cap_value_t cap);
 			(unsigned long int)sizeof (type), \
 			sizeof (type) == 1 ? "" : "s")
 
+/**
+ * @buf: string,
+ * @len: number of _characters_ (*NOT* bytes!) in @buf,
+ * @size: allocated size of @buf in bytes.
+ **/
+typedef struct procenv_string {
+	wchar_t  *buf;
+	size_t    len;
+	size_t    size;
+} pstring;
+
 typedef enum {
 	SHOW_ALL,
 	SHOW_MOUNTS,
@@ -690,8 +702,8 @@ typedef enum {
 } OutputFormat;
 
 typedef struct translate_map_entry {
-	char  from;
-	char *to;
+	wchar_t   from;
+	wchar_t  *to;
 } TranslateMapEntry;
 
 typedef enum element_type {
@@ -803,8 +815,16 @@ struct network_map {
 	struct network_map *prev;
 };
 
-void master_header (char **doc);
-void master_footer (char **doc);
+pstring *pstring_new (void);
+pstring *pstring_create (const wchar_t *str);
+void pstring_free (pstring *str);
+pstring *char_to_pstring (const char *str);
+wchar_t *char_to_wchar (const char *str);
+char *wchar_to_char (const wchar_t *wstr);
+char *pstring_to_char (const pstring *str);
+
+void master_header (pstring **doc);
+void master_footer (pstring **doc);
 
 void header (const char *name);
 void footer (void);
@@ -819,12 +839,31 @@ void container_close (void);
 
 void entry (const char *name, const char *fmt, ...);
 void _show (const char *prefix, int indent, const char *fmt, ...);
-void _show_output (const char *string);
+void _show_output (const char *str);
+void _show_output_pstring (const pstring *pstr);
+
+/* operate on multi-bytes */
+void append (char **dest, const char *src);
+void appendn (char **dest, const char *src, size_t len);
+void appendf (char **dest, const char *fmt, ...);
+void appendva (char **dest, const char *fmt, va_list ap);
+
+/* operate on pure wide-characters */
+void wappend (pstring **dest, const wchar_t *src);
+void wappendn (pstring **dest, const wchar_t *src, size_t len);
+void wappendf (pstring **dest, const wchar_t *fmt, ...);
+void wappendva (pstring **dest, const wchar_t *fmt, va_list ap);
+
+/* operate on wide-characters, but using multi-byte formats */
+void wmappend (pstring **dest, const char *src);
+void wmappendn (pstring **dest, const char *src, size_t len);
+void wmappendf (pstring **dest, const char *fmt, ...);
+void wmappendva (pstring **dest, const char *fmt, va_list ap);
 
 int get_indent (void);
 void inc_indent (void);
 void dec_indent (void);
-void add_indent (char **doc);
+void add_indent (pstring **doc);
 
 void change_element (ElementType new);
 void format_element (void);
@@ -832,12 +871,14 @@ void format_text_element (void);
 void format_json_element (void);
 void format_xml_element (void);
 
-int encode_string (char **str);
-char *translate (const char *from);
-void compress (char **str);
-void chomp (char *str);
+int encode_string (pstring **pstr);
+pstring *translate (const pstring *pstr);
+void compress (pstring **wstr, wchar_t remove_char);
+void chomp (pstring *str);
 
 void show_version (void);
+void save_locale (void);
+void restore_locale (void);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);
@@ -914,10 +955,6 @@ void show_cpu (void);
 void show_cpu_affinities (void);
 void show_memory (void);
 void show_threads (void);
-void append (char **str, const char *new);
-void appendn (char **str, const char *new, size_t len);
-void appendf (char **str, const char *fmt, ...);
-void appendva (char **str, const char *fmt, va_list ap);
 void check_envvars (void);
 int get_output_value (const char *name);
 int get_output_format (const char *name);

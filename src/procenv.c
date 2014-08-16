@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright 2012-2014 James Hunt.
+ * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,9 @@
 /**
  * doc:
  *
- * The output document.
+ * The output document in wide-character format.
  **/
-char *doc = NULL;
+pstring *doc = NULL;
 
 /**
  * output:
@@ -110,11 +110,12 @@ int indent = 0;
 int indent_amount = DEFAULT_INDENT_AMOUNT;
 
 /**
- * indent_char:
+ * indent_char, wide_indent_char:
  *
- * Character to use for indenting.
+ * Character to use for indenting and wide-char equivalent.
  **/
-int indent_char = DEFAULT_INDENT_CHAR;
+int      indent_char = DEFAULT_INDENT_CHAR;
+wchar_t  wide_indent_char;
 
 /**
  * program_name:
@@ -135,6 +136,11 @@ char **exec_args = NULL;
  **/
 char **argvp = NULL;
 int argvc = 0;
+
+/**
+ * Locale in effect at program startup.
+ **/
+char *saved_locale = NULL;
 
 /**
  * last_element: Type of previous element handled.
@@ -289,29 +295,29 @@ TranslateTable translate_table[] = {
 	{
 		OUTPUT_FORMAT_XML,
 		{
-			{ '\'', "&apos;" },
-			{ '"', "&quot;" },
-			{ '&', "&amp;" },
-			{ '<', "&lt;" },
-			{ '>', "&gt;" },
+			{ L'\'', L"&apos;" },
+			{ L'"', L"&quot;" },
+			{ L'&', L"&amp;" },
+			{ L'<', L"&lt;" },
+			{ L'>', L"&gt;" },
 
 			/* terminator */
-			{ '\0', NULL }
+			{ L'\0', NULL }
 		}
 	},
 	{
 		OUTPUT_FORMAT_JSON,
 		{
-			{ '"', "\\\"" },
-			{ '\\', "\\\\" },
+			{ L'"', L"\\\"" },
+			{ L'\\', L"\\\\" },
 
 			/* hack! */
-			{ '\0', NULL },
-			{ '\0', NULL },
-			{ '\0', NULL },
+			{ L'\0', NULL },
+			{ L'\0', NULL },
+			{ L'\0', NULL },
 
 			/* terminator */
-			{ '\0', NULL }
+			{ L'\0', NULL }
 		}
 	},
 };
@@ -1671,8 +1677,8 @@ void
 entry (const char *name, const char *fmt, ...)
 {
 	va_list   ap;
-	char     *encoded_name = NULL;
-	char     *encoded_value = NULL;
+	pstring  *encoded_name = NULL;
+	pstring  *encoded_value = NULL;
 
 	assert (name);
 	assert (fmt);
@@ -1681,14 +1687,22 @@ entry (const char *name, const char *fmt, ...)
 
 	change_element (ELEMENT_TYPE_ENTRY);
 
-	encoded_name = strdup (name);
-	assert (encoded_name);
+	encoded_name = char_to_pstring (name);
+	if (! encoded_name)
+		die ("failed to encode name");
 
+	/* annoyingly, we must encode here; we cannot simply call
+	 * encode_string() once just prior to showing the output
+	 * document since if the output format is XML, we'd end
+	 * up encoding the XML tags themselves, not just the values
+	 * within!
+	 */
 	if (encode_string (&encoded_name) < 0)
 		die ("failed to encode name");
 
+	/* expand format */
 	va_start (ap, fmt);
-	appendva (&encoded_value, fmt, ap);
+	wmappendva (&encoded_value, fmt, ap);
 	va_end (ap);
 
 	if (encode_string (&encoded_value) < 0)
@@ -1702,32 +1716,39 @@ entry (const char *name, const char *fmt, ...)
 		/* Add the bread crumbs */
 		PR_LIST_FOREACH (crumb_list, iter) {
 			char *crumb = (char *)iter->data;
-			appendf (&doc, "%s%s",
-					crumb,
-					crumb_separator);
+			wappendf (&doc,
+				L"%s%s",
+				crumb,
+				crumb_separator);
 		}
-		appendf (&doc, "%s%s%s\n",
-				encoded_name,
-				text_separator,
-				encoded_value);
+
+		wappendf (&doc,
+			L"%ls%s%ls\n",
+			encoded_name->buf,
+			text_separator,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s%s%s",
-				encoded_name,
-				text_separator,
-				encoded_value);
+		wappendf (&doc,
+			L"%ls%s%ls",
+			encoded_name->buf,
+			text_separator,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : \"%s\"",
-				encoded_name,
-				encoded_value);
+		wappendf (&doc,
+			L"\"%ls\" : \"%ls\"",
+			encoded_name->buf,
+			encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<entry name=\"%s\">%s</entry>",
-				encoded_name, encoded_value);
+		wappendf (&doc,
+			L"<entry name=\"%ls\">%ls</entry>",
+			encoded_name->buf,
+			encoded_value->buf);
 		break;
 
 	default:
@@ -1735,8 +1756,8 @@ entry (const char *name, const char *fmt, ...)
 		break;
 	}
 
-	free (encoded_name);
-	free (encoded_value);
+	pstring_free (encoded_name);
+	pstring_free (encoded_value);
 }
 
 /**
@@ -1748,30 +1769,43 @@ entry (const char *name, const char *fmt, ...)
  * destination.
  **/
 void
-_show_output (const char *string)
+_show_output_pstring (const pstring *pstr)
+{
+	char *str;
+
+	assert (pstr);
+
+	str = pstring_to_char (pstr);
+
+	_show_output (str);
+
+	free (str);
+}
+
+void
+_show_output (const char *str)
 {
 	int ret;
 
-	if (! string || ! *string)
-		return;
+	assert (str);
 
 	switch (output) {
 	case OUTPUT_SYSLOG:
-		syslog (LOG_INFO, "%s", string);
+		syslog (LOG_INFO, "%s", str);
 		ret = 0;
 		break;
 
 	case OUTPUT_STDOUT:
-		ret = fputs (string, stdout);
+		ret = fputs (str, stdout);
 		break;
 
 	case OUTPUT_STDERR:
-		ret = fputs (string, stderr);
+		ret = fputs (str, stderr);
 		break;
 
 	case OUTPUT_TERM:
 		assert (user.tty_fd != -1);
-		ret = write (user.tty_fd, string, strlen (string));
+		ret = write (user.tty_fd, str, strlen (str));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to terminal\n");
 			exit (EXIT_FAILURE);
@@ -1790,7 +1824,7 @@ _show_output (const char *string)
 				exit (EXIT_FAILURE);
 			}
 		}
-		ret = write (output_fd, string, strlen (string));
+		ret = write (output_fd, str, strlen (str));
 		if (ret < 0) {
 			fprintf (stderr, "ERROR: failed to write to file '%s'\n",
 					output_file);
@@ -1844,7 +1878,7 @@ dec_indent (void)
  * Insert the current indent to the output document.
  **/
 void
-add_indent (char **doc)
+add_indent (pstring **doc)
 {
 	common_assert ();
 
@@ -1852,7 +1886,7 @@ add_indent (char **doc)
 		return;
 
 	if (indent_char == DEFAULT_INDENT_CHAR) {
-		appendf (doc, "%*c", indent, indent_char);
+		wappendf (doc, L"%*c", indent, indent_char);
 	} else {
 		char *buffer = NULL;
 
@@ -1864,7 +1898,7 @@ add_indent (char **doc)
 		 */
 		memset (buffer, indent_char, strlen (buffer));
 
-		append (doc, buffer);
+		wmappend (doc, buffer);
 		free (buffer);
 	}
 }
@@ -1877,7 +1911,7 @@ add_indent (char **doc)
  * Main header which is displayed once.
  **/
 void
-master_header (char **doc)
+master_header (pstring **doc)
 {
 	common_assert ();
 
@@ -1893,8 +1927,8 @@ master_header (char **doc)
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (doc, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		appendf (doc, "<%s version=\"%s\" package_string=\"%s\" "
+		wappend (doc, L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		wappendf (doc, L"<%s version=\"%s\" package_string=\"%s\" "
 				"mode=\"%s%s\" format_version=\"%d\">\n",
 				PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING,
 				user.euid ? _(NON_STR) "-" : "",
@@ -1919,7 +1953,7 @@ master_header (char **doc)
  * Main footer which is displayed once.
  **/
 void
-master_footer (char **doc)
+master_footer (pstring **doc)
 {
     common_assert ();
 
@@ -1928,21 +1962,21 @@ master_footer (char **doc)
 	case OUTPUT_FORMAT_CRUMB: /* FALL */
         case OUTPUT_FORMAT_TEXT:
             /* Tweak */
-	    append (doc, "\n");
+	    wappend (doc, L"\n");
             break;
 
         case OUTPUT_FORMAT_JSON:
             object_close (FALSE);
 
             /* Tweak */
-            append (doc, "\n");
+            wappend (doc, L"\n");
             break;
 
         case OUTPUT_FORMAT_XML:
             /* Tweak */
-            append (doc, "\n");
+            wappend (doc, L"\n");
             dec_indent ();
-            appendf (doc, "</%s>\n", PACKAGE_NAME);
+            wappendf (doc, L"</%s>\n", PACKAGE_NAME);
             break;
 
         default:
@@ -1993,7 +2027,7 @@ object_open (int retain)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "{");
+		wappend (&doc, L"{");
 		break;
 
 	case OUTPUT_FORMAT_XML:
@@ -2048,7 +2082,7 @@ object_close (int retain)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "}");
+		wappend (&doc, L"}");
 		break;
 
 	case OUTPUT_FORMAT_XML:
@@ -2079,7 +2113,7 @@ section_open (const char *name)
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s:", name);
+		wappendf (&doc, L"%s:", name);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -2087,11 +2121,11 @@ section_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : {", name);
+		wappendf (&doc, L"\"%s\" : {", name);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<section name=\"%s\">", name);
+		wappendf (&doc, L"<section name=\"%s\">", name);
 		break;
 
 	default:
@@ -2118,11 +2152,11 @@ section_close (void)
 		break;
 		
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "}");
+		wappend (&doc, L"}");
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (&doc, "</section>");
+		wappend (&doc, L"</section>");
 		break;
 
 	default:
@@ -2151,7 +2185,7 @@ container_open (const char *name)
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		appendf (&doc, "%s:", name);
+		wappendf (&doc, L"%s:", name);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -2159,11 +2193,11 @@ container_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		appendf (&doc, "\"%s\" : [", name);
+		wappendf (&doc, L"\"%s\" : [", name);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		appendf (&doc, "<container name=\"%s\">", name);
+		wappendf (&doc, L"<container name=\"%s\">", name);
 		break;
 
 	default:
@@ -2195,11 +2229,11 @@ container_close (void)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		append (&doc, "]");
+		wappend (&doc, L"]");
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		append (&doc, "</container>");
+		wappend (&doc, L"</container>");
 		break;
 
 	default:
@@ -2272,7 +2306,7 @@ fd_valid (int fd)
  *
  * In additional to the classical semantics, by careful use of clone(2),
  * it is possible for a child to inherit its parents dispositions
- * (using clones CLONE_SIGHAND+CLONE_VM flags). This is possible since
+ * (using clone's CLONE_SIGHAND+CLONE_VM flags). This is possible since
  * the child then shares the parents signal handlers, which inherantly
  * therefore provide access to the dispositions).
  **/
@@ -3366,103 +3400,414 @@ get_user_info (void)
 	assert (p == (void *)&user.passwd);
 }
 
+/* append @src to @dest */
+void
+append (char **dest, const char *src)
+{
+	size_t  len;
+
+	assert (dest);
+	assert (src);
+
+	len = strlen (src);
+
+	appendn (dest, src, len);
+}
+
+/* Version of append() that operates on a wide string @dest and @src */
+void
+wappend (pstring **dest, const wchar_t *src)
+{
+	size_t  len;
+
+	assert (dest);
+	assert (src);
+
+	len = wcslen (src);
+
+	wappendn (dest, src, len);
+}
+
+/* Version of append() that operates on a wide string @dest
+ * and multi-byte @src.
+ */
+void
+wmappend (pstring **dest, const char *src)
+{
+	wchar_t  *wide_src = NULL;
+
+	assert (dest);
+	assert (src);
+
+	wide_src = char_to_wchar (src);
+	if (! wide_src)
+		die ("failed to allocate space for wide string");
+
+	wappend (dest, wide_src);
+
+	free (wide_src);
+}
+
 /**
  * appendn:
  *
- * @str: [output] string to append to,
- * @new: string to append to @str,
+ * @dest: [output] string to append to,
+ * @src: string to append to @dest,
  * @len: length of @new.
  *
  * Append first @len bytes of @new to @str,
  * ensuring result is nul-terminated.
  **/
 void
-appendn (char **str, const char *new, size_t len)
+appendn (char **dest, const char *src, size_t len)
 {
 	size_t  total;
 
-	assert (str);
-	assert (new);
+	assert (dest);
+	assert (src);
 
 	if (! len)
 		return;
 
-	if (! *str)
-		*str = strdup ("");
+	if (! *dest)
+		*dest = strdup ("");
+	if (! *dest)
+		die ("failed to allocate space for string");
 
 	/* +1 for terminating nul */
-	total = strlen (*str) + 1;
+	total = strlen (*dest) + 1;
 
 	total += len;
 
-	*str = realloc (*str, total);
-	assert (*str);
+	*dest = realloc (*dest, total);
+	assert (*dest);
 
-	strncat (*str, new, len);
+	if (! *dest) {
+		/* string is empty, so initialise the memory to avoid
+		 * surprises with strncat() being unable to find the
+		 * terminator!
+		 */
+		memset (*dest, '\0', total);
+	}
 
-	assert ((*str)[total-1] == '\0');
+	strncat (*dest, src, len);
+
+	assert ((*dest)[total-1] == '\0');
 }
 
-/* append @new to @str */
+/* Version of appendn() that operates on a wide string @dest and @src */
 void
-append (char **str, const char *new)
+wappendn (pstring **dest, const wchar_t *src, size_t len)
 {
-	size_t  len;
-	assert (str);
-	assert (new);
+	wchar_t  *p;
+	size_t    total;
+	size_t    bytes;
 
-	len = strlen (new);
+	assert (dest);
+	assert (src);
 
-	appendn (str, new, len);
+	if (! len)
+		return;
+
+	if (! *dest)
+		*dest = pstring_new ();
+	if (! *dest)
+		die ("failed to allocate space for pstring");
+
+	total = (*dest)->len + len;
+
+	/* +1 for terminating nul */
+	bytes = (1 + total) * sizeof (wchar_t);
+
+	p = realloc ((*dest)->buf, bytes);
+
+	/* FIXME: turn into die() [all occurences!] */
+	assert (p);
+
+	(*dest)->buf = p;
+
+	if (! (*dest)->len) {
+		/* pstring is empty, so initialise the memory to avoid
+		 * surprises with wcsncat() being unable to find the
+		 * terminator!
+		 */
+		memset ((*dest)->buf, 0, bytes);
+	}
+
+	/* Used to check for overrun */
+	(*dest)->buf[total] = L'\0';
+
+	wcsncat ((*dest)->buf + (*dest)->len, src, len);
+
+	/* update */
+	(*dest)->len = total;
+	(*dest)->size = bytes;
+
+	/* check for overrun */
+	assert ((*dest)->buf[total] == L'\0');
 }
 
-/* append @fmt and args to @str */
+
+/* Version of appendn() that operates on a wide string @dest and
+ * multi-byte @src.
+ */
 void
-appendf (char **str, const char *fmt, ...)
+wmappendn (pstring **dest, const char *src, size_t len)
+{
+	wchar_t  *wide_src = NULL;
+
+	assert (dest);
+	assert (src);
+
+	if (! len)
+		return;
+
+	wide_src = char_to_wchar (src);
+	if (! wide_src)
+		die ("failed to allocate space for wide string");
+
+	wappendn (dest, wide_src, wcslen (wide_src));
+
+	free (wide_src);
+}
+
+/* append @fmt and args to @dest */
+void
+appendf (char **dest, const char *fmt, ...)
 {
 	va_list   ap;
-	char     *new = NULL;
 
-	assert (str);
+	assert (dest);
 	assert (fmt);
 
 	va_start (ap, fmt);
 
-	if (vasprintf (&new, fmt, ap) < 0) {
-		perror ("vasprintf");
-		exit (EXIT_FAILURE);
-	}
+	appendva (dest, fmt, ap);
+
+	va_end (ap);
+}
+
+/* Version of appendf() that operates on a wide string @dest
+ * and @fmt.
+ */
+void
+wappendf (pstring **dest, const wchar_t *fmt, ...)
+{
+	va_list  ap;
+
+	assert (dest);
+	assert (fmt);
+
+	va_start (ap, fmt);
+
+	wappendva (dest, fmt, ap);
+
+	va_end (ap);
+}
+
+/* Version of appendf() that operates on a wide string @dest
+ * and multi-byte @fmt.
+ */
+void
+wmappendf (pstring **dest, const char *fmt, ...)
+{
+	wchar_t  *wide_fmt = NULL;
+	va_list   ap;
+
+	assert (dest);
+	assert (fmt);
+
+	wide_fmt = char_to_wchar (fmt);
+	if (! wide_fmt)
+		die ("failed to allocate memory for wide format");
+
+	va_start (ap, fmt);
+
+	wappendva (dest, wide_fmt, ap);
 
 	va_end (ap);
 
-	if (*str) {
-		append (str, new);
+	free (wide_fmt);
+}
+
+/* append @fmt and args to @dest */
+void
+appendva (char **dest, const char *fmt, va_list ap)
+{
+	int      ret;
+	char    *new = NULL;
+	char    *p;
+	size_t   bytes;
+
+	/* Start with a guess for how big we think the buffer needs to
+	 * be.
+	 */
+	size_t   len = DEFAULT_ALLOC_GUESS_SIZE;
+
+	assert (dest);
+	assert (fmt);
+
+	bytes = (1 + len) * sizeof (char);
+
+	/* we could use vasprintf(3), but that's GNU-specific and hence
+	 * not available everywhere we need it.
+	 */
+	new = malloc (bytes);
+	if (! new)
+		die ("failed to allocate space for string");
+
+	memset (new, '\0', bytes);
+
+	/* keep on increasing size of buffer until the translation
+	 * succeeds.
+	 */
+	while (TRUE) {
+		va_list  ap_copy;
+
+		va_copy (ap_copy, ap);
+		ret = vsnprintf (new, len, fmt, ap_copy);
+		va_end (ap_copy);
+
+		if (ret < 0)
+			die ("failed to format string");
+
+		if ((size_t)ret < len) {
+			/* now we have sufficient space */
+			break;
+		}
+
+		/* Bump to allow one char to be written */
+		len++;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (char);
+
+		p = realloc (new, bytes);
+		if (! p)
+			die ("failed to allocate space for string");
+
+		new = p;
+	}
+
+	if (*dest) {
+		append (dest, new);
 		free (new);
 	} else {
-		*str = new;
+		*dest = new;
 	}
 }
 
-/* append @fmt and args to @str */
+/* Version of appendva() that operates on a wide string @dest
+ * and @fmt.
+ */
 void
-appendva (char **str, const char *fmt, va_list ap)
+wappendva (pstring **dest, const wchar_t *fmt, va_list ap)
 {
-	char  *new = NULL;
+	int       ret;
+	wchar_t  *new = NULL;
+	wchar_t  *p;
+	size_t    bytes;
+	va_list   ap_copy;
 
-	assert (str);
+	/* Start with a guess for how big we think the buffer needs to
+	 * be.
+	 */
+	size_t    len = DEFAULT_ALLOC_GUESS_SIZE;
+
+	assert (dest);
 	assert (fmt);
 
-	if (vasprintf (&new, fmt, ap) < 0) {
-		perror ("vasprintf");
-		exit (EXIT_FAILURE);
+	bytes = (1 + len) * sizeof (wchar_t);
+
+	new = malloc (bytes);
+	if (! new)
+		die ("failed to allocate space for wide string");
+
+	memset (new, '\0', bytes);
+
+	/* keep on increasing size of buffer until the translation
+	 * succeeds.
+	 */
+	while (TRUE) {
+		va_copy (ap_copy, ap);
+		ret = vswprintf (new, len, fmt, ap_copy);
+		va_end (ap_copy);
+
+		if ((size_t)ret < len) {
+			/* now we have sufficient space, so update for
+			 * actual number of bytes used (including the
+			 * terminator!)
+			 *
+			 * Note that, conveniently, if the string is
+			 * zero-characters long (ie ""), ret will be -1
+			 * which we correct to 0.
+			 */
+			len = ret + 1;
+
+			break;
+		}
+
+		/* Bump to allow one more wide-char to be written */
+		len++;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (wchar_t);
+
+		p = realloc (new, bytes);
+		if (! p)
+			die ("failed to allocate space for string");
+
+		new = p;
+
+		memset (new, '\0', bytes);
 	}
 
-	if (*str) {
-		append (str, new);
+	if (*dest) {
+		wappend (dest, new);
 		free (new);
 	} else {
-		*str = new;
+		wchar_t *n;
+
+		/* recalculate number of bytes */
+		bytes = (1 + len) * sizeof (wchar_t);
+
+		/* compress */
+		n = realloc (new, bytes);
+
+		if (! n)
+			die ("failed to reallocate space");
+
+		new = n;
+
+		(*dest) = pstring_new ();
+		assert (*dest);
+		(*dest)->buf = new;
+		(*dest)->len = len;
+		(*dest)->size = bytes;
 	}
+}
+
+/* Version of appendva() that operates on a wide string @dest
+ * and multi-byte @fmt.
+ */
+void
+wmappendva (pstring **dest, const char *fmt, va_list ap)
+{
+	wchar_t  *wide_fmt = NULL;
+	va_list   ap_copy;
+
+	assert (dest);
+	assert (fmt);
+
+	wide_fmt = char_to_wchar (fmt);
+	if (! wide_fmt)
+		die ("failed to allocate memory for wide format");
+
+	va_copy (ap_copy, ap);
+	wappendva (dest, wide_fmt, ap_copy);
+	va_end (ap_copy);
+
+	free (wide_fmt);
 }
 
 void
@@ -3481,10 +3826,15 @@ show_all_groups (void)
 	gid_t  *groups = NULL;
 	gid_t  *g;
 	char  **group_names = NULL;
+	size_t  bytes;
 
-	groups = malloc (size * sizeof (gid_t));
+	bytes = size * sizeof (gid_t);
+
+	groups = malloc (bytes);
 	if (! groups)
 		goto error;
+
+	memset (groups, '\0', bytes);
 
 	while (TRUE) {
 		ret = getgroups (size, groups);
@@ -3530,10 +3880,8 @@ show_all_groups (void)
 	appendf (&str, " ");
 
 	for (i = 0; i < size; i++) {
-		ret = asprintf (&group_names[i], "'%s' (%d)",
+		appendf (&group_names[i], "'%s' (%d)",
 				get_group_name (groups[i]), groups[i]);
-		if (ret < 0)
-			die ("unable to create group entry");
 	}
 
 	qsort (group_names, size, sizeof (char *), qsort_compar);
@@ -3558,8 +3906,48 @@ error:
 }
 
 void
+save_locale (void)
+{
+	char  *value;
+
+	assert (! saved_locale);
+
+	value = setlocale (LC_ALL, NULL);
+	if (! value) {
+		/* Can't determine locale, so ignore */
+		return;
+	}
+
+	saved_locale = strdup (value);
+	if (! saved_locale)
+		die ("failed to allocate space for locale");
+
+	if (atexit (restore_locale))
+		die ("failed to register exit handler");
+}
+
+void
+restore_locale (void)
+{
+	if (! saved_locale) {
+		/* Nothing to do */
+		return;
+	}
+
+	(void)setlocale (LC_ALL, saved_locale);
+
+	free (saved_locale);
+}
+
+void
 init (void)
 {
+	save_locale ();
+
+	wide_indent_char = btowc (indent_char);
+	if (wide_indent_char == WEOF)
+		die ("failed to convert indent char");
+
 	/* required to allow for more graceful handling of prctl(2)
 	 * options that were introduced in kernel version 'x.y'.
 	 */
@@ -3573,6 +3961,9 @@ init (void)
 void
 cleanup (void)
 {
+	common_assert ();
+	assert (doc);
+
 	close (user.tty_fd);
 
 	if (output_fd != -1)
@@ -3586,7 +3977,7 @@ cleanup (void)
 		free (crumb_list);
 	}
 
-	free (doc);
+	pstring_free (doc);
 }
 
 /**
@@ -3611,6 +4002,7 @@ show_meta (void)
 	header ("meta");
 
 	entry ("version", "%s", PACKAGE_VERSION);
+
 	entry ("package", "%s", PACKAGE_STRING);
 	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
@@ -6995,8 +7387,11 @@ show_security_module_context_linux (void)
 	} else
 		entry ("context", "%s", UNKNOWN_STR);
 
-	free (context);
-	free (mode);
+	if (context)
+		free (context);
+
+	if (mode)
+		free (mode);
 }
 
 void
@@ -7810,9 +8205,9 @@ int
 main (int    argc,
 		char  *argv[])
 {
-	int    option;
-	int    long_index;
-	int    done = FALSE;
+	int       option;
+	int       long_index;
+	int       done = FALSE;
 
 	struct option long_options[] = {
 		{"meta"            , no_argument, NULL, 'a'},
@@ -7865,7 +8260,9 @@ main (int    argc,
 		{NULL              , no_argument      , NULL, 0}
 	};
 
-	doc = strdup ("");
+	doc = pstring_new ();
+	if (! doc)
+		die ("failed to allocate string");
 
 	program_name = argv[0];
 	argvp = argv;
@@ -8105,9 +8502,11 @@ main (int    argc,
 		master_footer (&doc);
 
 		chomp (doc);
-		compress (&doc);
 
-		_show_output (doc);
+
+		if (output_format != OUTPUT_FORMAT_XML && output_format != OUTPUT_FORMAT_JSON) {
+			compress (&doc, wide_indent_char);
+		}
 
 		goto finish;
 	}
@@ -8129,11 +8528,11 @@ main (int    argc,
 	dump ();
 
 	chomp (doc);
-	compress (&doc);
 
-	_show_output (doc);
+	compress (&doc, wide_indent_char);
 
 finish:
+	_show_output_pstring (doc);
 	cleanup ();
 
 	/* Perform re-exec */
@@ -8176,25 +8575,35 @@ get_group_name (gid_t gid)
  * Convert the specified string to its encoded form. If no encoding is
  * necessary, the string will not be modified.
  *
- * Note: It is the callers responsibility to free @str iff this function
+ * Notes:
+ *
+ * - By encoding, we mean replacing literals with their
+ *   format-langage-specific encodings. For example for XML output,
+ *   '<' is converted to '&lt;'.
+ *
+ * - It is the callers responsibility to free @str iff this function
  * is successful. any previous value of @str will be freed by
  * encode_string().
  *
  * BUGS: this is just horribly, horribly gross :(
- *
- * BUG: FIXME: memory corruption bug in here somewhere!!
  **/
 int
-encode_string (char **str)
+encode_string (pstring **pstr)
 {
-	int      ret = 0;
-	char    *new;
-	char    *p, *q;
-	size_t   non_printables;
-	size_t   len = 0;
+	int       ret = 0;
+	pstring  *new = NULL;
+	wchar_t  *p, *q;
+	size_t    non_printables;
+	size_t    len = 0;
+	size_t    bytes;
 
-	assert (str);
-	assert (*str);
+	assert (pstr);
+	assert (*pstr);
+
+	if ((*pstr)->len <= 1) {
+		/* Nothing to do */
+		return 0;
+	}
 
 	switch (output_format) {
 
@@ -8206,10 +8615,11 @@ encode_string (char **str)
 
 	case OUTPUT_FORMAT_JSON: /* FALL THROUGH */
 	case OUTPUT_FORMAT_XML:
-		new = translate (*str);
+		new = translate (*pstr);
 		if (new) {
-			free (*str);
-			*str = new;
+			pstring_free (*pstr);
+			*pstr = new;
+			new = NULL;
 		} else {
 			ret = -1;
 		}
@@ -8226,8 +8636,8 @@ encode_string (char **str)
 	/* Now, search for evil non-printable characters and encode those
 	 * appropriately.
 	 */
-	for (p = *str, non_printables = 0; p && *p; p++) {
-		if (! isprint (*p))
+	for (p = (*pstr)->buf, non_printables = 0; p && *p; p++) {
+		if (! iswprint (*p))
 			non_printables++;
 	}
 
@@ -8236,7 +8646,8 @@ encode_string (char **str)
 		 || output_format == OUTPUT_FORMAT_JSON)) {
 
 		size_t   new_size = 0;
-		char    *json_format = "\\u%4.4x";
+
+		wchar_t  *json_format = L"\\u%4.4x";
 
 		/* XXX:
 		 *
@@ -8263,9 +8674,9 @@ encode_string (char **str)
 		 * simply discarding all non-printables when attempting
 		 * XML output.
 		 */
-		char    *xml_format = "&#x%2.2x;";
+		wchar_t    *xml_format = L"&#x%2.2x;";
 
-		len = strlen (*str);
+		len = (*pstr)->len;
 
 		/* Calculate expanded size of string by removing
 		 * count of non-printable byte and adding back the
@@ -8274,26 +8685,40 @@ encode_string (char **str)
 		 */
 		switch (output_format) {
 		case OUTPUT_FORMAT_XML:
-			new_size = (len - non_printables) + (non_printables * strlen ("&#x..;"));
+			new_size = (len - non_printables) + (non_printables * wcslen (L"&#x..;"));
 			break;
 
 		case OUTPUT_FORMAT_JSON:
-			new_size = (len - non_printables) + (non_printables * strlen ("\\u...."));
+			new_size = (len - non_printables) + (non_printables * wcslen (L"\\u...."));
 			break;
 		default:
 			break;
 		}
 
-		new = calloc (1+new_size, 1);
+		new = pstring_new ();
 		if (! new)
 			return -1;
 
-		for (p = *str, q = new; p && *p; p++) {
-			if (isprint (*p)) {
+		bytes = (1 + new_size) * sizeof (wchar_t);
+
+		new->buf = malloc (bytes);
+		if (! new->buf) {
+			free (new);
+			return -1;
+		}
+
+		new->size = bytes;
+
+		memset (new->buf, '\0', bytes);
+
+		for (p = (*pstr)->buf, q = new->buf; p && *p; p++) {
+			if (iswprint (*p)) {
 				*q = *p;
 				q++;
+				new->len++;
 			} else {
-				ret = sprintf (q,
+				ret = swprintf (q,
+						new_size,
 						output_format == OUTPUT_FORMAT_JSON
 						? json_format : xml_format,
 						*p);
@@ -8301,31 +8726,34 @@ encode_string (char **str)
 			}
 		}
 
-		free (*str);
-		*str = new;
+		/* include terminator */
+		new->len = wcslen (new->buf) + 1;
+
+		pstring_free (*pstr);
+		*pstr = new;
 	}
 
 	return ret;
 }
 
 /* Performs simple substitution on the input */
-char *
-translate (const char *str)
+pstring *
+translate (const pstring *pstr)
 {
-	char               *result = NULL;
-	const char         *start;
-	const char         *p;
-	TranslateTable     *table;
-	size_t              i;
-	size_t              len;
-	char                from;
+	pstring           *result = NULL;
+	const wchar_t     *start;
+	const wchar_t     *p;
+	TranslateTable    *table;
+	size_t             i;
+	size_t             len;
+	size_t             extra;
+	size_t             bytes;
+	size_t             amount;
+	wchar_t            from;
 
-	assert (str);
+	assert (pstr);
 	assert (output_format != OUTPUT_FORMAT_TEXT);
 	assert (output_format != OUTPUT_FORMAT_CRUMB);
-
-	len = 1 + strlen (str);
-	start = str;
 
 	/* Find the correct translation table for the chosen output format */
 	for (i = 0; i < sizeof (translate_table) / sizeof (translate_table[0]); i++) {
@@ -8337,62 +8765,115 @@ translate (const char *str)
 	if (! table)
 		return NULL;
 
+	len = pstr->len;
+	start = pstr->buf;
+
 	/* First, calculate the amount of space needed for the expanded
 	 * buffer.
 	 */
+	extra = 0;
 	while (start && *start) {
 		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
 			from = table->map[i].from;
 			if (*start == from) {
-				len += strlen (table->map[i].to);
+				/* Subtract one to take account of the
+				 * pre-existing character we're going to
+				 * replace.
+				 */
+				extra += (wcslen (table->map[i].to) - 1);
 			}
 		}
 		start++;
 	}
 
-	result = calloc (len, 1);
+	if (! extra) {
+		/* No translation required.
+		 *
+		 * FIXME: this is inefficient - we should really have
+		 * the function accept a 'pstring **' to avoid
+		 * re-copying.
+		 */
+		return pstring_create (pstr->buf);
+	}
+
+	len += extra;
+
+	result = pstring_new ();
 	if (! result)
 		return NULL;
+
+	/* Note that this includes the space for the terminator
+	 * (since a pstring's len includes the terminator)
+	 */
+	bytes = len * sizeof (wchar_t);
+
+	result->buf = malloc (bytes);
+	if (! result->buf)
+		return NULL;
+
+	/* We're using wcsncat() so we'd better make sure there is a
+	 * nul for it to find!
+	 *
+	 * Note: we could have used calloc to do this for us, but
+	 * the code is clearer using the @bytes idiom.
+	 */
+	memset (result->buf, '\0', bytes);
+
+	result->size = bytes;
+
+	/* Sanity check for upcoming overrun check */
+	assert (result->buf[len-1] == L'\0');
 
 	/* Now, iterate the string again, performing the actual
 	 * replacements.
 	 */
-	p = start = str;
+	p = start = pstr->buf;
 
 	while (p && *p) {
 		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
+			wchar_t  *to;
+			size_t    len;
+
 			from = table->map[i].from;
-			if (*p == from) {
-				size_t   amount;
-				char    *to;
 
-				to = table->map[i].to;
+			if (*p != from)
+				continue;
 
-				amount = (p - start);
+			to = table->map[i].to;
 
-				/* Copy from start to match */
-				strncat (result, start, amount);
+			amount = p - start;
 
-				/* Nudge along the string, jumping over
-				 * matching character.
-				 */
-				start += (amount+1);
+			/* Copy from start to match */
+			wcsncat (result->buf + result->len, start, amount);
 
-				/* Copy replacement text */
-				strncat (result, to, strlen (to));
+			result->len += amount;
 
-				break;
-			}
+			/* Copy replacement text */
+			len = wcslen (to);
+			wcsncat (result->buf + result->len, to, len);
+			result->len += len;
+
+			/* Jump over the matching character */
+			start = p + 1;
+
+			break;
 		}
 		p++;
 	}
 
 	/* Copy remaining non-matching chars */
-	strncat (result, start, (p - start));
+	amount = p - start;
+	wcsncat (result->buf + result->len, start, amount);
+	result->len += amount;
+
+	/* Account for terminator */
+	result->len += 1;
+
+	/* check for buffer overrun */
+	assert (result->buf[len-1] == L'\0');
 
 	return result;
 }
-
 /**
  * change_element:
  *
@@ -8451,13 +8932,13 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8475,7 +8956,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8496,7 +8977,7 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8504,7 +8985,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8521,7 +9002,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8542,7 +9023,7 @@ format_text_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8550,7 +9031,7 @@ format_text_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8602,14 +9083,14 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8627,7 +9108,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8654,7 +9135,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
@@ -8664,13 +9145,13 @@ format_json_element (void)
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8689,7 +9170,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8717,14 +9198,14 @@ format_json_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8742,7 +9223,7 @@ format_json_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8763,14 +9244,14 @@ format_json_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_OPEN:
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, ",\n");
+				wappend (&doc, L",\n");
 				add_indent (&doc);
 				break;
 
@@ -8821,14 +9302,14 @@ format_xml_element (void)
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8846,13 +9327,13 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8872,20 +9353,20 @@ format_xml_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8902,7 +9383,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8912,7 +9393,7 @@ format_xml_element (void)
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8933,7 +9414,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
 			case ELEMENT_TYPE_OBJECT_CLOSE:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				add_indent (&doc);
 				break;
@@ -8941,7 +9422,7 @@ format_xml_element (void)
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				add_indent (&doc);
 				break;
 
@@ -8957,13 +9438,13 @@ format_xml_element (void)
 			switch (current_element) {
 			case ELEMENT_TYPE_ENTRY: /* FALL */
 			case ELEMENT_TYPE_SECTION_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
 
 			case ELEMENT_TYPE_CONTAINER_OPEN:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				inc_indent ();
 				add_indent (&doc);
 				break;
@@ -8989,7 +9470,7 @@ format_xml_element (void)
 
 			case ELEMENT_TYPE_CONTAINER_CLOSE:
 			case ELEMENT_TYPE_ENTRY:
-				append (&doc, "\n");
+				wappend (&doc, L"\n");
 				dec_indent ();
 				break;
 
@@ -9039,93 +9520,110 @@ format_xml_element (void)
  * invisible.
  **/
 void
-compress (char **str)
+compress (pstring **wstr, wchar_t remove_char)
 {
-#define NUMBER_MATCHES 1
-	char         *new = NULL;
-	regex_t       regex;
-	regmatch_t    matches[NUMBER_MATCHES];
-	regmatch_t   *match;
-	char         *start;
-	char         *pattern = NULL;
-	int           ret;
+	wchar_t  *from;
+	wchar_t  *to;
+	wchar_t  *p;
+	wchar_t  *start;
+	size_t    count = 0;
+	size_t    blanks = 0;
+	size_t    new_len;
+	size_t    bytes;
 
-	assert (str);
-	assert (*str);
+	assert (wstr);
 
-	start = *str;
+	to = from = (*wstr)->buf;
 
-	/* Match lines composed entirely of indent_char chars, and
-	 * entirely blank lines.
-	 */
-	appendf (&pattern, "^([%c][%c]*$|^$)", indent_char, indent_char);
-
-	if (regcomp (&regex, pattern, REG_EXTENDED|REG_NEWLINE))
-		goto error;
-
-	while (start && *start) {
-
-		/* FIXME: rewrite using strstr! */
-		ret = regexec (&regex, start, NUMBER_MATCHES, matches, 0);
-		if (ret == REG_NOMATCH)
-			break;
-
-		match = &matches[0];
-		if (match->rm_so == -1)
-			break;
-
-		/* Newlines annoyingly need to be special-cased
-		 * (due to the "^$" pattern) to avoid
-		 * looping when the input contains say "\n\n".
-		 */
-		if (! match->rm_so && ! match->rm_eo && start[match->rm_so] == '\n') {
-			start++;
-			continue;
+	while (to && *to) {
+again:
+		while (*to == L'\n' && *(to+1) == L'\n') {
+			/* skip over blank lines */
+			to++;
+			blanks++;
 		}
 
-		/* Copy text before the match to the output buffer */
-		appendn (&new, start, match->rm_so);
+		start = to;
 
-		/* Jump over the matching chars */
-		start += match->rm_eo;
+		while (*to == remove_char) {
+			/* skip runs of contiguous characters */
+			to++;
+			count++;
+		}
+
+		if (to != start) {
+			/* Only start consuming NLs at the end of a
+			 * contiguous run *iff* there was more than a
+			 * single removed char. This is a heuristic to
+			 * avoid removing valid entries for example env
+			 * vars that are set to nul are shown as:
+			 *
+			 *  'var: '
+			 *
+			 * Shudder.
+			 */
+			if (*to == L'\n' && to != start+1) {
+				while (*to == L'\n') {
+					/* consume the NL at the end of the contiguous run */
+					to++;
+				}
+
+				/* check to ensure that we haven't entered a new line
+				 * containing another block of chars to remove.
+				 */
+				if (*to == remove_char)
+					goto again;
+
+				blanks++;
+
+			} else  {
+				/* not a full line so backtrack */
+				to = start;
+				count = 0;
+			}
+		}
+
+		*from++ = *to++;
 	}
 
-	regfree (&regex);
+	/* terminate */
+	*from = L'\0';
 
-	if (new) {
-		free (*str);
-		*str = new;
+	if (blanks || count) {
+		new_len = (*wstr)->len - (blanks + count);
+
+		bytes = new_len * sizeof (wchar_t);
+
+		p = realloc ((*wstr)->buf, bytes);
+		assert (p);
+
+		(*wstr)->buf = p;
+
+		(*wstr)->buf[new_len-1] = L'\0';
+
+		(*wstr)->len = new_len;
+		(*wstr)->size = bytes;
 	}
-
-	free (pattern);
-	return;
-
-error:
-	free (pattern);
-	die ("failed to compile regex");
 }
-
 /**
  * chomp:
  *
  * Remove trailing extraneous newlines and indent_chars from @str.
  **/
 void
-chomp (char *str)
+chomp (pstring *str)
 {
-	size_t  len;
-	int     removable = 0;
-	char   *p;
+	size_t    len;
+	int       removable = 0;
+	wchar_t  *p;
 
 	assert (str);
 
-	len = strlen (str);
-
 	/* Unable to add '\n' in this scenario */
-	if (len < 2)
+	if (str->len < 2)
 		return;
 
-	for (p = str+len-1; *p == '\n' || *p == (char)indent_char;
+	for (p = str->buf+str->len-1; *p == L'\n' || *p == (wchar_t)indent_char;
 			p--, removable++)
 		;
 
@@ -9133,9 +9631,10 @@ chomp (char *str)
 	 * newline.
 	 */
 	if (removable > 1) {
-		len -= (removable-1);
-		str[len-1] = '\n';
-		str[len] = '\0';
+		len = str->len - (removable-1);
+		str->buf[len-1] = L'\n';
+		str->buf[len] = L'\0';
+		str->len = len;
 	}
 }
 
@@ -9610,7 +10109,7 @@ format_perms (mode_t mode)
 	/*
 	 * "-rwxrwxrwx" = 10+1 bytes.
 	 */
-	modestr = calloc ((1+3+3+3)+1, 1);
+	modestr = calloc ((1+3+3+3)+1, sizeof (char));
 
 	if (! modestr)
 		return NULL;
@@ -9707,6 +10206,156 @@ clear_breadcrumbs (void)
 
 	while (crumb_list->prev != crumb_list)
 		remove_breadcrumb ();
+}
+
+wchar_t *
+char_to_wchar (const char *str)
+{
+	const char  *p;
+	wchar_t     *wstr = NULL;
+	size_t       len;
+	size_t       bytes;
+
+	assert (str);
+
+	len = mbsrtowcs (NULL, &str, 0, NULL);
+	if (len <= 0)
+		return NULL;
+
+	/* include space for terminator */
+	bytes = (1 + len) * sizeof (wchar_t);
+
+	wstr = malloc (bytes);
+	if (! wstr)
+		return NULL;
+
+	p = str;
+
+	if (mbsrtowcs (wstr, &p, len, NULL) != len)
+		goto error;
+
+	/* ensure it's terminated */
+	wstr[len] = L'\0';
+
+	return wstr;
+
+error:
+	free (wstr);
+	return NULL;
+}
+
+pstring *
+pstring_new (void)
+{
+	pstring *pstr = NULL;
+
+	pstr = calloc (1, sizeof (pstring));
+	if (! pstr)
+		return NULL;
+
+	pstr->len = 0;
+	pstr->size = 0;
+	pstr->buf = NULL;
+
+	return pstr;
+}
+
+pstring *
+pstring_create (const wchar_t *str)
+{
+	pstring *pstr = NULL;
+
+	assert (str);
+
+	pstr = pstring_new ();
+
+	if (! pstr)
+		return NULL;
+
+	pstr->buf = wcsdup (str);
+	if (! pstr->buf)
+		return NULL;
+
+	/* include the L'\0' terminator */
+	pstr->len = 1 + wcslen (pstr->buf);
+
+	pstr->size = pstr->len * sizeof (wchar_t);
+
+	return pstr;
+}
+
+void
+pstring_free (pstring *str)
+{
+	assert (str);
+
+	if (str->buf)
+		free (str->buf);
+
+	free (str);
+}
+
+pstring *
+char_to_pstring (const char *str)
+{
+	pstring  *pstr = NULL;
+	wchar_t  *s;
+
+	assert (str);
+
+	s = char_to_wchar (str);
+	if (! s)
+		return NULL;
+
+	pstr = pstring_create (s);
+
+	free (s);
+
+	return pstr;
+}
+
+char *
+pstring_to_char (const pstring *str)
+{
+	assert (str);
+
+	return wchar_to_char (str->buf);
+}
+
+char *
+wchar_to_char (const wchar_t *wstr)
+{
+	char           *str = NULL;
+	size_t          len;
+	size_t          bytes;
+	size_t          ret;
+
+	assert (wstr);
+
+	len = wcslen (wstr);
+
+	/* determine number of MBS (char) bytes requires to hold the
+	 * wchar_t string.
+	 */
+	bytes = wcstombs (NULL, wstr, len);
+	if (! bytes)
+		return NULL;
+
+	str = calloc (bytes + 1, sizeof (char));
+	if (! str)
+		return NULL;
+
+	/* actually perform the conversion */
+	ret = wcstombs (str, wstr, bytes);
+
+	if (! ret)
+		goto error;
+
+	return str;
+
+error:
+	free (str);
+	return NULL;
 }
 
 #if ! defined(HAVE_SCHED_GETCPU)

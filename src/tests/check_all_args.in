@@ -132,6 +132,10 @@ run_tests()
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+
+	# ensure internal compression is working
+	grep -q '^$' "$stdout" && die "Found blank lines in output"
+
 	rm -f "$stdout" "$stderr"
 	
 	#---------------------------------------------------------------------
@@ -154,10 +158,9 @@ run_tests()
 	stderr=$(mktemp "$template")
 	$procenv --output=file --file="$out" \
 		--exec echo "$str" 1>"$stdout" 2>"$stderr"
-	
+
 	[ -s "$out" ] || die "Expected $procenv output in file $out"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
-	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	result=$(cat "$stdout")
 	

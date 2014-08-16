@@ -13,6 +13,7 @@ AC_CONFIG_AUX_DIR([config])
 AC_SUBST(PROCENV_VERSION, procenv_version)
 
 AC_GNU_SOURCE
+AC_SYS_LARGEFILE
 
 # Checks for programs.
 AC_PROG_CC
