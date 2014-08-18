@@ -1,2 +1,3 @@
 version=3
 https://launchpad.net/procenv/+download https://launchpad.net/procenv/.*/procenv-(.+).tar.gz
+opts=pgpsigurlmangle=s/$/.asc/
