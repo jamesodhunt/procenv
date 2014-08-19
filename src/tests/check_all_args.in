@@ -216,6 +216,24 @@ run_tests()
 			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 			
 			rm -f "$stdout" "$stderr"
+
+			# XXX: specifying a format option _after_
+			# specifing a non-format option is an NOP, but
+			# this used to result in a crash for JSON+XML.
+			
+			# FIXME:
+## 			msg "Ensure '$arg' works after --meta"
+## 			
+## 			stdout=$(mktemp "$template")
+## 			stderr=$(mktemp "$template")
+## 			$procenv --meta $arg 1>"$stdout" 2>"$stderr"
+## 			
+## 			[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+## 			[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+## 			
+## 			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
+## 			
+## 			rm -f "$stdout" "$stderr"
 		fi
 	fi
 	
@@ -236,6 +254,24 @@ run_tests()
 		$json_checker < "$stdout" >/dev/null
 		
 		rm -f "$stdout" "$stderr"
+
+		# XXX: specifying a format option _after_
+		# specifing a non-format option is an NOP, but
+		# this used to result in a crash for JSON+XML.
+
+		# FIXME:
+		#msg "Ensure '$arg' works after --meta"
+
+## 		stdout=$(mktemp "$template")
+## 		stderr=$(mktemp "$template")
+## 		$procenv --meta $arg 1>"$stdout" 2>"$stderr"
+## 		
+## 		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+## 		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+## 		
+## 		$json_checker < "$stdout" >/dev/null
+## 		
+## 		rm -f "$stdout" "$stderr"
 	fi
 	
 	#---------------------------------------------------------------------
@@ -285,6 +321,27 @@ run_tests()
 
 		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+
+		if [ "$section" = "capabilities:" ]
+		then
+			last=$(grep 'CAP_LAST_CAP+1' "$stdout"|cut -d: -f2|tr -d ' ' || :)
+			[ -n "$last" ] || die "unable to establish last capability"
+			{ grep -q "number: $last" "$stdout"; ret=$?; } || :
+			if [ $ret -ne 0 ]
+			then
+				warn ""
+				warn ""
+				warn "Found extra capability procenv is not aware of (number $last)"
+				warn ""
+				warn "Please check for a newer version of procenv "
+				warn "or raise a bug at:"
+				warn ""
+				warn "    https://bugs.launchpad.net/procenv/+filebug"
+				warn ""
+				warn ""
+			fi
+		fi
+
 		rm -f "$stdout" "$stderr"
 
 		# JSON format

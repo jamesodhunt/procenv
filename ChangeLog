@@ -3,6 +3,8 @@
 	* src/procenv.c: Restore Coverity 0.0 defect density:
 	  - translate(): Cleanup on error path.
 	  - pstring_create(): Cleanup on error path.
+	* src/tests/check_all_args.in: Warn if more capabilities found
+	  than procenv is unaware of.
 
 2014-08-14  James Hunt  <james.hunt@ubuntu.com>
 
