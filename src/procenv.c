@@ -7200,6 +7200,7 @@ show_capabilities_linux (void)
 		show_capability (caps, CAP_MKNOD);
 		show_capability (caps, CAP_LEASE);
 	}
+
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
 		show_capability (caps, CAP_AUDIT_WRITE);
 		show_capability (caps, CAP_AUDIT_CONTROL);
@@ -8808,8 +8809,10 @@ translate (const pstring *pstr)
 	bytes = len * sizeof (wchar_t);
 
 	result->buf = malloc (bytes);
-	if (! result->buf)
+	if (! result->buf) {
+		pstring_free (result);
 		return NULL;
+	}
 
 	/* We're using wcsncat() so we'd better make sure there is a
 	 * nul for it to find!
@@ -10273,8 +10276,10 @@ pstring_create (const wchar_t *str)
 		return NULL;
 
 	pstr->buf = wcsdup (str);
-	if (! pstr->buf)
+	if (! pstr->buf) {
+		pstring_free (pstr);
 		return NULL;
+	}
 
 	/* include the L'\0' terminator */
 	pstr->len = 1 + wcslen (pstr->buf);
