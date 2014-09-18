@@ -7228,6 +7228,12 @@ show_capabilities_linux (void)
 		show_capability (caps, CAP_BLOCK_SUSPEND);
 #endif
 
+#ifdef CAP_AUDIT_READ
+	if (LINUX_KERNEL_MM (3, 16)) {
+		show_capability (caps, CAP_AUDIT_READ);
+	}
+#endif
+
 	section_close ();
 
 	/* It's possible that procenv is running on a system which has
@@ -8297,6 +8303,10 @@ main (int    argc,
 		switch (option)
 		{
 		case 0:
+			/* The exception is '--exec' */
+			if (done && strcmp ("exec", long_options[long_index].name))
+				die ("Must specify non-display options before display options");
+
 			if (! strcmp ("output", long_options[long_index].name)) {
 				output = get_output_value (optarg);
 			} else if (! strcmp ("file", long_options[long_index].name)) {

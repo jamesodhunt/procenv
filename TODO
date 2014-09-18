@@ -1,5 +1,12 @@
 # TODO
 
+- "--path" ? which shows:
+
+	path:
+	  _POSIX_PATH_MAX: 256 (absolute)
+	  PATH_MAX: 4096 (relative)
+	  MAXPATHLEN: 4096
+
 - allow following to be UTF-8:
   --crumb-separator=<str>
   --indent-char=<c>

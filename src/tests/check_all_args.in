@@ -22,6 +22,16 @@ json_checker=json_pp
 # the value 1.
 control_chars_in_env=0
 
+# with random values
+non_display_options="
+--crumb-separator=.
+--file=/tmp/foo
+--format=crumb
+--indent=7
+--indent-char=X
+--separator=X
+"
+
 lang_list=
 
 die ()
@@ -170,6 +180,24 @@ run_tests()
 	rm -f "$stdout" "$stderr" "$out"
 	
 	#---------------------------------------------------------------------
+	msg "Ensure --exec can exec $procenv"
+	
+	out=$(mktemp "$template")
+	out2=$(mktemp "$template")
+
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	$procenv --output=file --file="$out" \
+		--exec -- $procenv --file="$out2" 1>"$stdout" 2>"$stderr"
+
+	[ -s "$out" ] || die "Expected $procenv output in file $out"
+	[ -s "$out2" ] || die "Expected $procenv output in file $out2"
+	[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+	
+	rm -f "$stdout" "$stderr" "$out" "$out2"
+	
+	#---------------------------------------------------------------------
 	arg='--format=text'
 	msg "Ensure '$arg' works"
 	
@@ -216,24 +244,6 @@ run_tests()
 			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
 			
 			rm -f "$stdout" "$stderr"
-
-			# XXX: specifying a format option _after_
-			# specifing a non-format option is an NOP, but
-			# this used to result in a crash for JSON+XML.
-			
-			# FIXME:
-## 			msg "Ensure '$arg' works after --meta"
-## 			
-## 			stdout=$(mktemp "$template")
-## 			stderr=$(mktemp "$template")
-## 			$procenv --meta $arg 1>"$stdout" 2>"$stderr"
-## 			
-## 			[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-## 			[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-## 			
-## 			[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-## 			
-## 			rm -f "$stdout" "$stderr"
 		fi
 	fi
 	
@@ -254,24 +264,6 @@ run_tests()
 		$json_checker < "$stdout" >/dev/null
 		
 		rm -f "$stdout" "$stderr"
-
-		# XXX: specifying a format option _after_
-		# specifing a non-format option is an NOP, but
-		# this used to result in a crash for JSON+XML.
-
-		# FIXME:
-		#msg "Ensure '$arg' works after --meta"
-
-## 		stdout=$(mktemp "$template")
-## 		stderr=$(mktemp "$template")
-## 		$procenv --meta $arg 1>"$stdout" 2>"$stderr"
-## 		
-## 		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
-## 		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
-## 		
-## 		$json_checker < "$stdout" >/dev/null
-## 		
-## 		rm -f "$stdout" "$stderr"
 	fi
 	
 	#---------------------------------------------------------------------
@@ -324,21 +316,28 @@ run_tests()
 
 		if [ "$section" = "capabilities:" ]
 		then
-			last=$(grep 'CAP_LAST_CAP+1' "$stdout"|cut -d: -f2|tr -d ' ' || :)
-			[ -n "$last" ] || die "unable to establish last capability"
-			{ grep -q "number: $last" "$stdout"; ret=$?; } || :
-			if [ $ret -ne 0 ]
+			tmp=$(grep 'CAP_LAST_CAP+1' "$stdout"|cut -d: -f2|tr -d ' ' || :)
+			# take care to only perform this test on
+			# platforms the _have_ capabilities :)
+			if [ -n "$tmp" ]
 			then
-				warn ""
-				warn ""
-				warn "Found extra capability procenv is not aware of (number $last)"
-				warn ""
-				warn "Please check for a newer version of procenv "
-				warn "or raise a bug at:"
-				warn ""
-				warn "    https://bugs.launchpad.net/procenv/+filebug"
-				warn ""
-				warn ""
+				last=$(expr "$tmp" - 1)
+			
+				[ -n "$last" ] || die "unable to establish last capability"
+				{ grep -q "number: $last" "$stdout"; ret=$?; } || :
+				if [ $ret -ne 0 ]
+				then
+					warn ""
+					warn ""
+					warn "Found extra capability procenv is not aware of (number $last)"
+					warn ""
+					warn "Please check for a newer version of procenv "
+					warn "or raise a bug at:"
+					warn ""
+					warn "    https://bugs.launchpad.net/procenv/+filebug"
+					warn ""
+					warn ""
+				fi
 			fi
 		fi
 
@@ -377,6 +376,28 @@ run_tests()
 
 			rm -f "$stdout" "$stderr"
 		fi
+	done
+
+	for arg in $non_display_options
+	do
+		# XXX: specifying a non-display option _after_
+		# specifing a display option used to be a NOP, but
+		# is now disallowed as it is non-sensical and
+		# the result could be surprising to the user. 
+		#
+		# We select '--meta' as a random display option.
+		msg "Ensure non-display option ('$arg') disallowed after display option ('--meta')"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+		cmdline="$procenv --meta $arg 1>'$stdout' 2>'$stderr'"
+		{ eval "$cmdline"; ret=$?; } || :
+		[ "$ret" -eq 0 ] && die "Command '$cmdline' returned $ret but expected command to fail"
+
+		[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+		[ -s "$stderr" ] || die "Expected stderr output in file $stdout"
+
+		rm -f "$stdout" "$stderr"
 	done
 
 	# If there are any remaining sections that were produced by default

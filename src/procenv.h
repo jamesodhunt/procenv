@@ -518,6 +518,7 @@ int cap_get_bound (cap_value_t cap);
 
 #define die(...) \
 { \
+	output = OUTPUT_STDERR; \
 	_message ("ERROR", __VA_ARGS__); \
 	cleanup (); \
 	die_finalise (); \

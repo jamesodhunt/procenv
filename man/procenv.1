@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2014-08-14" "User Commands"
+.TH PROCENV "1" "2014-09-18" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -22,6 +22,9 @@ Display details of the process environment in a parseable format.
 .\"
 .SH OPTIONS
 .\"
+Options shown with a bracketed asterisk \(aq(*)\(aq are non-display
+options and must preceed any other (display) options.
+
 .TP
 \fB\-a\fR, \fB\-\-meta\fR
 Display meta details.
@@ -51,7 +54,7 @@ See
 .BR sched_getcpu (3) "" " (Linux)" "" "."
 .\"
 .TP
-\fB\-\-crumb\-separator=\fR\fIstr\fR
+\fB\-\-crumb\-separator=\fR\fIstr\fR (*)
 Specify string
 .I str
 as alternate delimiter for crumb format output (default=\(aq:\(aq).
@@ -75,7 +78,7 @@ See
 .BR semctl (2) "" .
 .\"
 .TP
-\fB\-\-exec\fR
+\fB\-\-exec\fR (*)
 Treat non-option arguments as program to execute after running
 \fBprocenv\fR.
 See
@@ -94,12 +97,12 @@ See
 .BR isatty (5) "" "."
 .\"
 .TP
-\fB\-\-file=\fR\fIFILE\fR
+\fB\-\-file=\fR\fIFILE\fR (*)
 Send output to file \fIFILE\fR (implies \fB\-\-output=file\fR).
 .PP
 .\"
 .TP
-\fB\-\-format=\fR\fIFORMAT\fR
+\fB\-\-format=\fR\fIFORMAT\fR (*)
 Specify output format.
 .I FORMAT
 may be one of:
@@ -139,12 +142,12 @@ See
 .BR getpriority (2) "" .
 .\"
 .TP
-\fB\-\-indent\fR
+\fB\-\-indent\fR (*)
 Number of indent characters to use for each indent
 (default=2).
 .\"
 .TP
-\fB\-\-indent\-char=\fR\fIc\fR
+\fB\-\-indent\-char=\fR\fIc\fR (*)
 Use character
 .I c
 for indenting
@@ -209,7 +212,7 @@ See
 .PP
 .\"
 .TP
-\fB\-\-output=\fR\fITYPE\fR
+\fB\-\-output=\fR\fITYPE\fR (*)
 Send output to alternative location. \fITYPE\fR can be one of:
 .RS
 .IP \(bu 4
@@ -275,7 +278,7 @@ See
 .PP
 .\"
 .TP
-\fB\-\-separator=\fR\fIstr\fR
+\fB\-\-separator=\fR\fIstr\fR (*)
 Specify string
 .I str
 as alternate delimiter for text format output (default=\(aq: \(aq).
