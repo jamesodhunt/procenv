@@ -15,6 +15,7 @@
 	  - Fixed check on unknown capabilities.
 	  - Test to ensure a non-display option is disallowed after
 	    a display option is now more comprehensive.
+	  - src/tests/check_all_args.in: Ensure an empty environment is tolerated.
 
 2014-08-19  James Hunt  <james.hunt@ubuntu.com>
 

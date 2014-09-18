@@ -410,6 +410,9 @@ run_tests()
 		die "No command-line option found for the following section(s): '$remaining'"
 
 	rm -f "$remaining_file"
+
+	msg "Ensure an empty environment is tolerated"
+	command -v env >/dev/null 2>&1 && env -i $procenv --environment >/dev/null 2>&1
 }
 
 #---------------------------------------------------------------------
