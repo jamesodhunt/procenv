@@ -7351,7 +7351,7 @@ show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
 
-#if defined (HAVE_SYS_APPARMOR_H)
+#if defined (HAVE_APPARMOR)
 	if (aa_is_enabled ())
 		lsm = "AppArmor";
 #endif
@@ -7375,7 +7375,7 @@ show_security_module_context_linux (void)
 	char   *context = NULL;
 	char   *mode = NULL;
 
-#if defined (HAVE_SYS_APPARMOR_H)
+#if defined (HAVE_APPARMOR)
 	if (aa_is_enabled ())
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
