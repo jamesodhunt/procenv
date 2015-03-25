@@ -1,5 +1,9 @@
 # TODO
 
+- BUG: SPINNER: The utf-8 crumb-separator causes 100% CPU! WTF!?!
+
+   src/procenv --format=crumb --crumb-separator "→"
+
 - allow build on lucid
 	- no dh-autoreconf
 	- no aa_is_enabled().
