@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

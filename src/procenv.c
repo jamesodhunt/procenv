@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -4482,8 +4482,19 @@ show_mounts_linux (ShowMountType what)
 			entry ("fsck pass number", "%d", mnt->mnt_passno);
 
 			if (have_stats) {
+				union fsid_u {
+					unsigned long int fsid;
+					unsigned int val[2];
+				} fsid_val;
 
-				entry ("fsid", "%.*x", sizeof (fs.f_fsid), fs.f_fsid);
+				fsid_val.fsid = fs.f_fsid;
+
+				entry ("fsid", "%.*x%.*x", 
+						2 * sizeof (fsid_val.val[0]),
+						fsid_val.val[0],
+						2 * sizeof (fsid_val.val[1]),
+						fsid_val.val[1]);
+
 				entry ("optimal block size", "%lu", fs.f_bsize);
 
 				section_open ("blocks");
@@ -5244,9 +5255,9 @@ show_mounts_bsd (ShowMountType what)
 
 			entry ("fsid", "%.*x%.*x", 
 					/* Always zero on BSD? */
-					sizeof (mnt->f_fsid.val[0]),
+					2 * sizeof (mnt->f_fsid.val[0]),
 					mnt->f_fsid.val[0],
-					sizeof (mnt->f_fsid.val[1]),
+					2 * sizeof (mnt->f_fsid.val[1]),
 					mnt->f_fsid.val[1]);
 
 			entry ("optimal block size", "%" statfs_int_fmt,
