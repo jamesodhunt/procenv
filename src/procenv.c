@@ -7387,29 +7387,35 @@ show_security_module_context_linux (void)
 	char   *mode = NULL;
 
 #if defined (HAVE_APPARMOR)
-	if (aa_is_enabled ())
+	if (aa_is_enabled ()) {
+		/* XXX: The mode string is *NOT* be freed since it forms
+		 * part of the allocation returned in context.
+		 *
+		 * See aa_gettaskcon(2) for details.
+		 */
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
+	}
 #endif
 
 #if defined (HAVE_SELINUX_SELINUX_H)
-	if (is_selinux_enabled ())
+	if (is_selinux_enabled ()) {
 		if (getpidcon (user.pid, &context) < 0)
 			die ("failed to query SELinux context");
+	}
 #endif
 	if (context) {
-		if (mode)
+		if (mode) {
 			entry ("context", "%s (%s)", context, mode);
-		else
+		} else {
 			entry ("context", "%s", context);
-	} else
+		}
+	} else {
 		entry ("context", "%s", UNKNOWN_STR);
+	}
 
 	if (context)
 		free (context);
-
-	if (mode)
-		free (mode);
 }
 
 void
