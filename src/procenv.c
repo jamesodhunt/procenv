@@ -3912,7 +3912,7 @@ save_locale (void)
 
 	assert (! saved_locale);
 
-	value = setlocale (LC_ALL, NULL);
+	value = setlocale (LC_ALL, "");
 	if (! value) {
 		/* Can't determine locale, so ignore */
 		return;

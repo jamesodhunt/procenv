@@ -38,6 +38,7 @@ die ()
 {
 	local str="$*"
 	echo "ERROR: $str" >&2
+	[ -n "$cmd" ] && echo "ERROR: (cmd='$cmd')" >&2
 	exit 1
 }
 
@@ -56,19 +57,43 @@ debug ()
 msg ()
 {
 	local str="$*"
-	echo "INFO: $str"
+	echo "INFO:LANG=$LANG: $str"
 }
 
 run_command()
 {
-	local cmdline="$1"
+	_run_command success "$1"
+}
+
+run_command_expect_fail()
+{
+	_run_command failure "$1"
+}
+
+_run_command()
+{
+	local expected_outcome="$1"
+	local cmdline="$2"
+
+	local failed=0
 
 	[ -z "$cmdline" ] && die "need command"
 
 	debug "Running: '$cmdline'"
 
 	{ eval "$cmdline"; ret=$?; } || :
-	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
+
+	if [ "$expected_outcome" = success ]
+	then
+		[ "$ret" -ne 0 ] && failed=1
+	else 
+		[ "$ret" -eq 0 ] && failed=1
+	fi
+
+	[ "$failed" -eq 1 ] && \
+		die "Command '$cmdline' returned $ret but expected $expected_outcome"
+
+	return 0
 }
 
 init()
@@ -124,7 +149,8 @@ run_tests()
 	out=$(mktemp "$template")
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --file="$out" 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --file=\"$out\" 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 	
 	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
@@ -138,7 +164,9 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=stdout 1>"$stdout" 2>"$stderr"
+
+	cmd="$procenv --output=stdout 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
@@ -153,7 +181,8 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=stderr 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --output=stderr 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 	
 	[ -s "$stderr" ] || die "Expected stderr output in file $stderr"
 	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
@@ -166,8 +195,9 @@ run_tests()
 	out=$(mktemp "$template")
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=file --file="$out" \
-		--exec echo "$str" 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --output=file --file=\"$out\" \
+		--exec echo \"$str\" 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 
 	[ -s "$out" ] || die "Expected $procenv output in file $out"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
@@ -187,8 +217,10 @@ run_tests()
 
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=file --file="$out" \
-		--exec -- $procenv --file="$out2" 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --output=file --file=\"$out\" \
+		--exec -- $procenv --file=\"$out2\" \
+		1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 
 	[ -s "$out" ] || die "Expected $procenv output in file $out"
 	[ -s "$out2" ] || die "Expected $procenv output in file $out2"
@@ -203,7 +235,8 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv $arg 1>"$stdout" 2>"$stderr"
+	cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -216,13 +249,43 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv $arg 1>"$stdout" 2>"$stderr"
+	cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 	
 	rm -f "$stdout" "$stderr"
 	
+	#---------------------------------------------------------------------
+	arg='--crumb-separator'
+	
+	procenv_version=$($procenv --version|grep "version: [0-9]"|awk '{print $2}')
+	[ -n "$procenv_version" ] || die "failed to query procenv version"
+
+	# choose a few common ones, and a few utf ones.
+	for sep in "." ";" "→" "❤"
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv --format=crumb \"$opt\" \
+			--separator=\"$sep\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^version${sep}version${sep}${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+	
+		rm -f "$stdout" "$stderr"
+	done
+
 	#---------------------------------------------------------------------
 	
 	if [ "$xml_tests" -eq 1 ]
@@ -236,7 +299,8 @@ run_tests()
 			
 			stdout=$(mktemp "$template")
 			stderr=$(mktemp "$template")
-			$procenv $arg 1>"$stdout" 2>"$stderr"
+			cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+			run_command "$cmd"
 			
 			[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 			[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -256,7 +320,8 @@ run_tests()
 		
 		stdout=$(mktemp "$template")
 		stderr=$(mktemp "$template")
-		$procenv $arg 1>"$stdout" 2>"$stderr"
+		cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd"
 		
 		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -395,9 +460,8 @@ run_tests()
 
 		stdout=$(mktemp "$template")
 		stderr=$(mktemp "$template")
-		cmdline="$procenv --meta $arg 1>'$stdout' 2>'$stderr'"
-		{ eval "$cmdline"; ret=$?; } || :
-		[ "$ret" -eq 0 ] && die "Command '$cmdline' returned $ret but expected command to fail"
+		cmd="$procenv --meta $arg 1>'$stdout' 2>'$stderr'"
+		run_command_expect_fail "$cmd"
 
 		[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
 		[ -s "$stderr" ] || die "Expected stderr output in file $stdout"
@@ -417,7 +481,11 @@ run_tests()
 	rm -f "$remaining_file"
 
 	msg "Ensure an empty environment is tolerated"
-	command -v env >/dev/null 2>&1 && env -i $procenv --environment >/dev/null 2>&1
+	if command -v env >/dev/null 2>&1
+	then
+		cmd="env -i $procenv --environment >/dev/null 2>&1"
+		run_command "$cmd"
+	fi
 }
 
 #---------------------------------------------------------------------
