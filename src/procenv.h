@@ -531,7 +531,7 @@ int cap_get_bound (cap_value_t cap);
 #define assert_not_reached() \
 	do { \
 		die ("%s:%d: Not reached assertion failed in %s", \
-			   __FILE__, __LINE__, __FUNCTION__); \
+			   __FILE__, __LINE__, __func__); \
 	} while (0)
 
 #define type_hex_width(type) \
