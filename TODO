@@ -6,11 +6,6 @@
 	  _POSIX_PATH_MAX: 256 (absolute)
 	  PATH_MAX: 4096 (relative)
 	  MAXPATHLEN: 4096
-
-- allow following to be UTF-8:
-  --crumb-separator=<str>
-  --indent-char=<c>
-  --separator=<str>
 - LSM
   - add details for SMACK and TOMOYO (available in Centos 7).
   - move into a new --security section?
@@ -29,9 +24,6 @@
   - check man page options vs. 'procenv --help' to look for
     inconsistencies.
   - --indent=
-  - --indent-char=
-  - --crumb-separator=
-  - --separator=
 - XXX: run show_compiler_details *before* build to help diagnose
   failures.
 - Add YAML output format?
