@@ -468,7 +468,7 @@ int cap_get_bound (cap_value_t cap);
 #define DF_BLOCK_SIZE 1024
 
 /* Default character to use for indent */
-#define DEFAULT_INDENT_CHAR ' '
+#define DEFAULT_INDENT_CHAR " "
 
 /* If an indent is required, use this many INDENT_CHARs by default */
 #define DEFAULT_INDENT_AMOUNT 2
@@ -861,6 +861,8 @@ void wmappendn (pstring **dest, const char *src, size_t len);
 void wmappendf (pstring **dest, const char *fmt, ...);
 void wmappendva (pstring **dest, const char *fmt, va_list ap);
 
+void pappend (pstring **dest, const pstring *src);
+
 int get_indent (void);
 void inc_indent (void);
 void dec_indent (void);
@@ -880,6 +882,7 @@ void chomp (pstring *str);
 void show_version (void);
 void save_locale (void);
 void restore_locale (void);
+void handle_indent_char (void);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);

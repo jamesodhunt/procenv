@@ -123,6 +123,9 @@ init()
 
 run_tests()
 {
+	procenv_version=$($procenv --version|grep "version: [0-9]"|awk '{print $2}')
+	[ -n "$procenv_version" ] || die "failed to query procenv version"
+
 	#---------------------------------------------------------------------
 	msg "Running tests for language '$LANG'"
 	#---------------------------------------------------------------------
@@ -258,11 +261,57 @@ run_tests()
 	rm -f "$stdout" "$stderr"
 	
 	#---------------------------------------------------------------------
+	arg='--indent-char'
+
+	for sep in "." ";" "→" "❤"
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^${sep}${sep}version: ${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+
+		rm -f "$stdout" "$stderr"
+	done
+
+	#---------------------------------------------------------------------
+	arg='--separator'
+	
+	# choose a few common ones, and a few utf ones.
+	for sep in "." ";" "→" "❤"
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^  version${sep}${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+	
+		rm -f "$stdout" "$stderr"
+	done
+
+	#---------------------------------------------------------------------
 	arg='--crumb-separator'
 	
-	procenv_version=$($procenv --version|grep "version: [0-9]"|awk '{print $2}')
-	[ -n "$procenv_version" ] || die "failed to query procenv version"
-
 	# choose a few common ones, and a few utf ones.
 	for sep in "." ";" "→" "❤"
 	do
