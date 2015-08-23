@@ -12,6 +12,7 @@
 	    - '--indent-char'.
 	    - '--separator'.
 	    - '--crumb-separator'.
+	  - Check default locale is valid before attempting to use it.
 
 2015-08-22  James Hunt  <james.hunt@ubuntu.com>
 

@@ -110,10 +110,10 @@ init()
     
 	env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
-	# Always test the default locale
-	lang_list=C
+	# Always test the default locales
+	lang_list="C C.UTF-8 POSIX"
 
-	if [ -n "$LANG" ] && [ "$LANG" != "C" ]
+	if [ -n "$LANG" ] && [ "$LANG" != "C" ] && [ "$LANG" != "C.UTF-8" ]
 	then
 		lang_list="$lang_list $LANG"
 	fi
@@ -567,6 +567,10 @@ saved_lang=LANG
 
 for lang in $lang_list
 do
+	if ! locale -a|grep -q "^${lang}$"
+	then
+		msg "Not testing with locale language $lang"
+	fi
 	export LANG="$lang"
 	run_tests
 done
