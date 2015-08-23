@@ -3,6 +3,10 @@
 	* src/procenv.c: Coverity fixes:
 	  - get_mtu(): Drop useless goto and explicit zero return on error.
 	  - get_canonical(): safer string termination.
+	  - Allow '--indent-char' to be UTF-8.
+	* src/tests/check_all_args.in: New tests for:
+	  - '--indent-char'.
+	  - '--separator'.
 
 2015-08-22  James Hunt  <james.hunt@ubuntu.com>
 
