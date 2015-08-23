@@ -284,11 +284,32 @@ run_tests()
 		rm -f "$stdout" "$stderr"
 	done
 
+	# --indent-char *must* be a single character, so ensure multi-char
+	# values are flagged as incorrect.
+	for sep in "12" "123" "1234" "→❤" "→❤→" "❤→❤❤"
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command_expect_fail "$cmd"
+	
+		[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+		[ -s "$stderr" ] || die "Expected stderr output in file $stdout"
+
+		rm -f "$stdout" "$stderr"
+	done
+
 	#---------------------------------------------------------------------
 	arg='--separator'
 	
-	# choose a few common ones, and a few utf ones.
-	for sep in "." ";" "→" "❤"
+	# Choose a few common ones, a few UTF-8 ones and a few
+	# multi-character ones.
+	for sep in "." ";" "→" "❤" "12" "123" "1234" "→❤" "→❤→" "❤→❤❤"
 	do
 		opt="${arg}=${sep}"
 		msg "Ensure '$opt' works"
@@ -312,8 +333,9 @@ run_tests()
 	#---------------------------------------------------------------------
 	arg='--crumb-separator'
 	
-	# choose a few common ones, and a few utf ones.
-	for sep in "." ";" "→" "❤"
+	# Choose a few common ones, a few UTF-8 ones and a few
+	# multi-character ones.
+	for sep in "." ";" "→" "❤" "12" "123" "1234" "→❤" "→❤→" "❤→❤❤"
 	do
 		opt="${arg}=${sep}"
 		msg "Ensure '$opt' works"

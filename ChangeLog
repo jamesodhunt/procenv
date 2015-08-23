@@ -4,9 +4,14 @@
 	  - get_mtu(): Drop useless goto and explicit zero return on error.
 	  - get_canonical(): safer string termination.
 	  - Allow '--indent-char' to be UTF-8.
-	* src/tests/check_all_args.in: New tests for:
-	  - '--indent-char'.
-	  - '--separator'.
+	* src/tests/check_all_args.in:
+	  - New single-character tests for:
+	    - '--indent-char'.
+	    - '--separator'.
+	  - New multi-character tests for:
+	    - '--indent-char'.
+	    - '--separator'.
+	    - '--crumb-separator'.
 
 2015-08-22  James Hunt  <james.hunt@ubuntu.com>
 
