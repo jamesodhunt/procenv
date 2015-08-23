@@ -1,3 +1,15 @@
+0.37	2015-08-23
+
+	* Improved error handling.
+	* Added CAP_AUDIT_READ capability.
+	* Improved build-time tests.
+	* Tolerate a completely empty environment.
+	* Fixed bug where fsid in '--mounts' output was displaying truncated
+	  output on Linux.
+	* Fix crasher bug triggered by specifying a UTF-8 character to
+	  '--separator' or '--crumb-separator'.
+	* Allow '--indent-char' to be UTF-8.
+
 0.36	2014-08-16
 
 	* RHEL/Centos spec file - thanks Dave Love
