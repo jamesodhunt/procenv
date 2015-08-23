@@ -4310,8 +4310,8 @@ get_mtu (const struct ifaddrs *ifaddr)
 	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
 
 	if (ioctl (sock, request, &ifr) < 0)
-		goto out;
-out:
+		ifr.ifr_mtu = 0;
+
 	close (sock);
 
 	return ifr.ifr_mtu;
@@ -7714,7 +7714,7 @@ get_canonical (const char *path, char *canonical, size_t len)
 		sprintf (canonical, UNKNOWN_STR);
 		ret = FALSE;
 	} else {
-		canonical[bytes] = '\0';
+		canonical[bytes <= len ? bytes : len] = '\0';
 	}
 
 	return ret;
