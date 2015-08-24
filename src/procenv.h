@@ -20,7 +20,9 @@
 #define PROCENV_H
 
 /* for dl_iterate_phdr(3) */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
