@@ -596,6 +596,7 @@ do
 	if ! locale -a|grep -q "^${lang}$"
 	then
 		msg "Not testing with locale language $lang"
+		continue
 	fi
 	export LANG="$lang"
 	run_tests
