@@ -22,12 +22,25 @@ json_checker=json_pp
 # the value 1.
 control_chars_in_env=0
 
+# with random values
+non_display_options="
+--crumb-separator=.
+--file=/tmp/foo
+--format=crumb
+--indent=7
+--indent-char=X
+--separator=X
+"
+
 lang_list=
 
 die ()
 {
 	local str="$*"
 	echo "ERROR: $str" >&2
+	[ -n "$cmd" ] && echo "ERROR: (cmd='$cmd')" >&2
+	[ -e "$stdout" ] && echo "ERROR: stdout:\n$(cat $stdout)" >&2
+	[ -e "$stderr" ] && echo "ERROR: stderr:\n$(cat $stderr)" >&2
 	exit 1
 }
 
@@ -46,19 +59,52 @@ debug ()
 msg ()
 {
 	local str="$*"
-	echo "INFO: $str"
+	echo "INFO:LANG=$LANG: $str"
 }
 
 run_command()
 {
-	local cmdline="$1"
+	_run_command success "$1" "$2" "$3"
+}
+
+run_command_expect_fail()
+{
+	_run_command failure "$1" "$2" "$3"
+}
+
+is_utf8()
+{
+	local locale="$1"
+
+	echo "$locale"|grep -qi "utf.*8" && echo yes || echo no
+}
+
+_run_command()
+{
+	local expected_outcome="$1"
+	local cmdline="$2"
+	local stdout="$3"
+	local stderr="$4"
+
+	local failed=0
 
 	[ -z "$cmdline" ] && die "need command"
 
 	debug "Running: '$cmdline'"
 
 	{ eval "$cmdline"; ret=$?; } || :
-	[ "$ret" -eq 0 ] || die "command '$cmdline' failed (ret=$ret)"
+
+	if [ "$expected_outcome" = success ]
+	then
+		[ "$ret" -ne 0 ] && failed=1
+	else 
+		[ "$ret" -eq 0 ] && failed=1
+	fi
+
+	[ "$failed" -eq 1 ] && \
+		die "Command '$cmdline' returned $ret but expected $expected_outcome"
+
+	return 0
 }
 
 init()
@@ -75,10 +121,10 @@ init()
     
 	env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
-	# Always test the default locale
-	lang_list=C
+	# Always test the default locales
+	lang_list="C C.UTF-8 POSIX"
 
-	if [ -n "$LANG" ] && [ "$LANG" != "C" ]
+	if [ -n "$LANG" ] && [ "$LANG" != "C" ] && [ "$LANG" != "C.UTF-8" ]
 	then
 		lang_list="$lang_list $LANG"
 	fi
@@ -88,6 +134,11 @@ init()
 
 run_tests()
 {
+	utf8=$(is_utf8 "$LANG")
+
+	procenv_version=$($procenv --version|grep "version: [0-9]"|awk '{print $2}')
+	[ -n "$procenv_version" ] || die "failed to query procenv version"
+
 	#---------------------------------------------------------------------
 	msg "Running tests for language '$LANG'"
 	#---------------------------------------------------------------------
@@ -114,7 +165,8 @@ run_tests()
 	out=$(mktemp "$template")
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --file="$out" 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --file=\"$out\" 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 	
 	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
@@ -128,7 +180,9 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=stdout 1>"$stdout" 2>"$stderr"
+
+	cmd="$procenv --output=stdout 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
@@ -143,7 +197,8 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=stderr 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --output=stderr 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 	
 	[ -s "$stderr" ] || die "Expected stderr output in file $stderr"
 	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
@@ -156,8 +211,9 @@ run_tests()
 	out=$(mktemp "$template")
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv --output=file --file="$out" \
-		--exec echo "$str" 1>"$stdout" 2>"$stderr"
+	cmd="$procenv --output=file --file=\"$out\" \
+		--exec echo \"$str\" 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 
 	[ -s "$out" ] || die "Expected $procenv output in file $out"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
@@ -170,12 +226,33 @@ run_tests()
 	rm -f "$stdout" "$stderr" "$out"
 	
 	#---------------------------------------------------------------------
+	msg "Ensure --exec can exec $procenv"
+	
+	out=$(mktemp "$template")
+	out2=$(mktemp "$template")
+
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	cmd="$procenv --output=file --file=\"$out\" \
+		--exec -- $procenv --file=\"$out2\" \
+		1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
+
+	[ -s "$out" ] || die "Expected $procenv output in file $out"
+	[ -s "$out2" ] || die "Expected $procenv output in file $out2"
+	[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+	
+	rm -f "$stdout" "$stderr" "$out" "$out2"
+	
+	#---------------------------------------------------------------------
 	arg='--format=text'
 	msg "Ensure '$arg' works"
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv $arg 1>"$stdout" 2>"$stderr"
+	cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -188,13 +265,123 @@ run_tests()
 	
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
-	$procenv $arg 1>"$stdout" 2>"$stderr"
+	cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
 	
 	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
 	
 	rm -f "$stdout" "$stderr"
 	
+	#---------------------------------------------------------------------
+	arg='--indent-char'
+
+	seps=". ;"
+	[ "$utf8" = yes ] && seps="$seps → ❤"
+
+	for sep in $seps
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^${sep}${sep}version: ${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+
+		rm -f "$stdout" "$stderr"
+	done
+
+	# --indent-char *must* be a single character, so ensure multi-char
+	# values are flagged as incorrect.
+	seps="12 123 1234"
+	[ "$utf8" = yes ] && seps="$seps →❤ →❤→ ❤→❤❤"
+
+	for sep in $seps
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command_expect_fail "$cmd"
+	
+		[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+		[ -s "$stderr" ] || die "Expected stderr output in file $stdout"
+
+		rm -f "$stdout" "$stderr"
+	done
+
+	#---------------------------------------------------------------------
+	arg='--separator'
+	
+	# Choose a few common ones, a few UTF-8 ones and a few
+	# multi-character ones.
+	seps=". ; 12 123 1234"
+	[ "$utf8" = yes ] && sep="$seps → ❤ →❤ →❤→ ❤→❤❤"
+
+	for sep in $seps
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv \"$opt\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^  version${sep}${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+	
+		rm -f "$stdout" "$stderr"
+	done
+
+	#---------------------------------------------------------------------
+	arg='--crumb-separator'
+	
+	# Choose a few common ones, a few UTF-8 ones and a few
+	# multi-character ones.
+	seps=". ; 12 123 1234"
+	[ "$utf8" = yes ] && seps="$seps → ❤ →❤ →❤→ ❤→❤❤"
+
+	for sep in $seps
+	do
+		opt="${arg}=${sep}"
+		msg "Ensure '$opt' works"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+
+		cmd="$procenv --format=crumb \"$opt\" \
+			--separator=\"$sep\" \
+			--version 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
+	
+		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
+
+		grep -q "^version${sep}version${sep}${procenv_version}$" "$stdout" ||\
+			die "Did not find expected output for arg '$arg'"
+	
+		rm -f "$stdout" "$stderr"
+	done
+
 	#---------------------------------------------------------------------
 	
 	if [ "$xml_tests" -eq 1 ]
@@ -208,7 +395,8 @@ run_tests()
 			
 			stdout=$(mktemp "$template")
 			stderr=$(mktemp "$template")
-			$procenv $arg 1>"$stdout" 2>"$stderr"
+			cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+			run_command "$cmd" "$stdout" "$stderr"
 			
 			[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 			[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -228,7 +416,8 @@ run_tests()
 		
 		stdout=$(mktemp "$template")
 		stderr=$(mktemp "$template")
-		$procenv $arg 1>"$stdout" 2>"$stderr"
+		cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
 		
 		[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
 		[ -s "$stderr" ] && die "Unexpected stderr output in file $stdout"
@@ -248,9 +437,9 @@ run_tests()
 		stderr=$(mktemp "$template")
 
 		# No format option
-		cmd="$procenv $arg"
+		cmd="$procenv $arg 1>\"$stdout\" 2>\"$stderr\""
 		msg "Running '$cmd'"
-		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
 
 		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
@@ -279,25 +468,58 @@ run_tests()
 		rm -f "$stdout" "$stderr"
 
 		# Text format
-		cmd="$procenv --format=text $arg"
+		cmd="$procenv --format=text $arg 1>\"$stdout\" 2>\"$stderr\""
 		msg "Running '$cmd'"
-		run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+		run_command "$cmd" "$stdout" "$stderr"
 
 		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+
+		if [ "$section" = "capabilities:" ]
+		then
+			tmp=$(grep 'CAP_LAST_CAP+1' "$stdout"|cut -d: -f2|tr -d ' ' || :)
+			# take care to only perform this test on
+			# platforms the _have_ capabilities :)
+			if [ -n "$tmp" ]
+			then
+				last=$(expr "$tmp" - 1)
+			
+				[ -n "$last" ] || die "unable to establish last capability"
+				{ grep -q "number: $last" "$stdout"; ret=$?; } || :
+				if [ $ret -ne 0 ]
+				then
+					warn ""
+					warn ""
+					warn "Found extra capability procenv is not aware of (number $last)"
+					warn ""
+					warn "Note that this warning will appear if procenv is built on a"
+					warn "system which is running a newer kernel than the"
+					warn "development environment assumes (for example if built in a"
+					warn "chroot for a back-level release of ubuntu)"
+					warn ""
+					warn "Please check for a newer version of procenv "
+					warn "or raise a bug at:"
+					warn ""
+					warn "    https://bugs.launchpad.net/procenv/+filebug"
+					warn ""
+					warn ""
+				fi
+			fi
+		fi
+
 		rm -f "$stdout" "$stderr"
 
 		# JSON format
 		if [ "$json_tests" -eq 1 ]
 		then
-			cmd="$procenv --format=json $arg"
+			cmd="$procenv --format=json $arg 1>\"$stdout\" 2>\"$stderr\""
 			msg "Running '$cmd'"
-			run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+			run_command "$cmd" "$stdout" "$stderr"
 
 			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 
-			run_command "$json_checker < \"$stdout\" >/dev/null"
+			run_command "$json_checker < \"$stdout\" >/dev/null" "" ""
 
 			rm -f "$stdout" "$stderr"
 		fi
@@ -311,7 +533,8 @@ run_tests()
 				warn "Skipping '$cmd' as control characters found in environment"
 			else
 				msg "Running '$cmd'"
-				run_command "$cmd 1>\"$stdout\" 2>\"$stderr\""
+				cmd="$cmd 1>\"$stdout\" 2>\"$stderr\""
+				run_command "$cmd" "$stdout" "$stderr"
 				[ -z "$stdout" ] && die "No stdout output running '$cmd'"
 				[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 				[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
@@ -320,6 +543,27 @@ run_tests()
 
 			rm -f "$stdout" "$stderr"
 		fi
+	done
+
+	for arg in $non_display_options
+	do
+		# XXX: specifying a non-display option _after_
+		# specifing a display option used to be a NOP, but
+		# is now disallowed as it is non-sensical and
+		# the result could be surprising to the user. 
+		#
+		# We select '--meta' as a random display option.
+		msg "Ensure non-display option ('$arg') disallowed after display option ('--meta')"
+
+		stdout=$(mktemp "$template")
+		stderr=$(mktemp "$template")
+		cmd="$procenv --meta $arg 1>'$stdout' 2>'$stderr'"
+		run_command_expect_fail "$cmd"
+
+		[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+		[ -s "$stderr" ] || die "Expected stderr output in file $stdout"
+
+		rm -f "$stdout" "$stderr"
 	done
 
 	# If there are any remaining sections that were produced by default
@@ -332,6 +576,13 @@ run_tests()
 		die "No command-line option found for the following section(s): '$remaining'"
 
 	rm -f "$remaining_file"
+
+	msg "Ensure an empty environment is tolerated"
+	if command -v env >/dev/null 2>&1
+	then
+		cmd="env -i $procenv --environment >/dev/null 2>&1"
+		run_command "$cmd" "" ""
+	fi
 }
 
 #---------------------------------------------------------------------
@@ -342,9 +593,15 @@ saved_lang=LANG
 
 for lang in $lang_list
 do
+	if ! locale -a|grep -q "^${lang}$"
+	then
+		msg "Not testing with locale language $lang"
+		continue
+	fi
 	export LANG="$lang"
 	run_tests
 done
 
 [ -n "$saved_lang" ] && export LANG="$saved_lang"
+
 #---------------------------------------------------------------------

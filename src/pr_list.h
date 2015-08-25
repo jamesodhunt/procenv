@@ -28,6 +28,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Double-linked list structure with no terminal node - a list of a
+ * single item has next and prev pointers pointing "back round" to
+ * itself.
+ */
 typedef struct list {
 	void         *data;
 	struct list  *next;

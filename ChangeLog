@@ -1,3 +1,84 @@
+2015-08-24  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/tests/check_all_args.in: Actually disable tests if non-existent
+	  locale found.
+
+2015-08-23  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: Coverity fixes:
+	  - get_mtu(): Drop useless goto and explicit zero return on error.
+	  - get_canonical(): safer string termination.
+	  - Allow '--indent-char' to be UTF-8.
+	* src/tests/check_all_args.in:
+	  - New single-character tests for:
+	    - '--indent-char'.
+	    - '--separator'.
+	  - New multi-character tests for:
+	    - '--indent-char'.
+	    - '--separator'.
+	    - '--crumb-separator'.
+	  - Check default locale is valid before attempting to use it.
+
+2015-08-22  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.h: Use __func__ rather than __FUNCTION__ to appease gcc 5.2.
+
+2015-08-21  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: save_locale(): Specify 2nd arg to setlocale()
+	  as "" since the original NULL was not only incorrect, it caused
+	  a UTF-8 '--separator' or '--crumb-separator' to cause a crash.
+	* src/tests/check_all_args.in:
+	  - New tests for UTF-8 '--separator' and '--crumb-separator'.
+	  - Show language test being run with.
+	  - Ensure full command-line shown on failure.
+
+2015-07-11  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_security_module_context_linux():
+	  Don't free @mode returned by aa_gettaskcon(2) since it forms
+	  part of the allocation returned in @context.
+
+2015-07-08  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - Update copyright.
+	  - show_mounts_linux(): Don't truncate fsid.
+	  - show_mounts_bsd(): Don't truncate fsid.
+
+2014-09-19  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: show_security_module_linux(): check HAVE_APPARMOR,
+	  not HAVE_SYS_APPARMOR_H to allow building on Ubuntu Lucid (which does
+	  not provide aa_is_enabled()).
+
+2014-09-18  James Hunt  <james.hunt@ubuntu.com>
+
+	* man/procenv.1:
+	  - Bump date.
+	  - Highlight non-display options.
+	* src/procenv.c:
+	  - show_capabilities_linux(): Added CAP_AUDIT_READ.
+	  - main(): Allow '--exec' to come at the end of the command-line
+	    (the only non-display option this is valid for).
+	* src/procenv.h: die(): Output to stderr, not stdout.
+	* src/tests/check_all_args.in:
+	  - New test to ensure procenv can exec itself.
+	  - Enable tests to ensure procenv detects illegal placement of
+	    non-display options after any display option.
+	  - Fixed check on unknown capabilities.
+	  - Test to ensure a non-display option is disallowed after
+	    a display option is now more comprehensive.
+	  - src/tests/check_all_args.in: Ensure an empty environment is tolerated.
+
+2014-08-19  James Hunt  <james.hunt@ubuntu.com>
+
+	* src/procenv.c: Restore Coverity 0.0 defect density:
+	  - translate(): Cleanup on error path.
+	  - pstring_create(): Cleanup on error path.
+	* src/tests/check_all_args.in: Warn if more capabilities found
+	  than procenv is unaware of.
+
 2014-08-14  James Hunt  <james.hunt@ubuntu.com>
 
 	* man/procenv.1: More examples.
