@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,9 @@
 #define PROCENV_H
 
 /* for dl_iterate_phdr(3) */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -468,7 +470,7 @@ int cap_get_bound (cap_value_t cap);
 #define DF_BLOCK_SIZE 1024
 
 /* Default character to use for indent */
-#define DEFAULT_INDENT_CHAR ' '
+#define DEFAULT_INDENT_CHAR " "
 
 /* If an indent is required, use this many INDENT_CHARs by default */
 #define DEFAULT_INDENT_AMOUNT 2
@@ -518,6 +520,7 @@ int cap_get_bound (cap_value_t cap);
 
 #define die(...) \
 { \
+	output = OUTPUT_STDERR; \
 	_message ("ERROR", __VA_ARGS__); \
 	cleanup (); \
 	die_finalise (); \
@@ -530,7 +533,7 @@ int cap_get_bound (cap_value_t cap);
 #define assert_not_reached() \
 	do { \
 		die ("%s:%d: Not reached assertion failed in %s", \
-			   __FILE__, __LINE__, __FUNCTION__); \
+			   __FILE__, __LINE__, __func__); \
 	} while (0)
 
 #define type_hex_width(type) \
@@ -860,6 +863,8 @@ void wmappendn (pstring **dest, const char *src, size_t len);
 void wmappendf (pstring **dest, const char *fmt, ...);
 void wmappendva (pstring **dest, const char *fmt, va_list ap);
 
+void pappend (pstring **dest, const pstring *src);
+
 int get_indent (void);
 void inc_indent (void);
 void dec_indent (void);
@@ -879,6 +884,7 @@ void chomp (pstring *str);
 void show_version (void);
 void save_locale (void);
 void restore_locale (void);
+void handle_indent_char (void);
 void init (void);
 void cleanup (void);
 bool in_chroot (void);

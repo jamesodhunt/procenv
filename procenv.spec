@@ -1,5 +1,5 @@
 Name:           procenv
-Version:        0.36
+Version:        0.39
 Release:        1%{?dist}
 Summary:        Utility to show process environment
 

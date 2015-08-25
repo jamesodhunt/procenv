@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright © 2012-2014 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@ int indent_amount = DEFAULT_INDENT_AMOUNT;
  *
  * Character to use for indenting and wide-char equivalent.
  **/
-int      indent_char = DEFAULT_INDENT_CHAR;
+const char *indent_char = DEFAULT_INDENT_CHAR;
 wchar_t  wide_indent_char;
 
 /**
@@ -1452,7 +1452,7 @@ usage (void)
 	show ("  --indent                : Number of indent characters to use for each indent");
 	show ("                            (default=%d).", DEFAULT_INDENT_AMOUNT);
 	show ("  --indent-char=<c>       : Use character '<c>' for indenting");
-	show ("                            (default='%c').", DEFAULT_INDENT_CHAR);
+	show ("                            (default='%s').", DEFAULT_INDENT_CHAR);
 	show ("  -j, --uname             : Display uname details.");
 	show ("  -k, --clocks            : Display clock details.");
 	show ("  -l, --limits            : Display limits.");
@@ -1646,7 +1646,7 @@ _show (const char *prefix, int indent, const char *fmt, ...)
 	assert (fmt);
 
 	if (indent)
-		appendf (&buffer, "%*c", indent, indent_char);
+		appendf (&buffer, "%*s", indent, indent_char);
 
 	if (prefix && *prefix)
 		appendf (&buffer, "%s: ", prefix);
@@ -1885,21 +1885,26 @@ add_indent (pstring **doc)
 	if (! indent)
 		return;
 
-	if (indent_char == DEFAULT_INDENT_CHAR) {
-		wappendf (doc, L"%*c", indent, indent_char);
+	if (! strcmp (indent_char, DEFAULT_INDENT_CHAR)) {
+		wappendf (doc, L"%*s", indent, indent_char);
 	} else {
-		char *buffer = NULL;
+		pstring *buffer = NULL;
 
-		appendf (&buffer, "%*c", indent, DEFAULT_INDENT_CHAR);
+		// Expand the buffer to the appropriate
+		// length by filling it with spaces and a random
+		// character.
+		wappendf (&buffer, L"%*lc", indent, wide_indent_char);
 
-		/* Replace the default characters with the chosen character.
-		 * Necessary as printf-type functions don't allow the padding
-		 * character to be specified.
+
+		/* Now, replace the spaces and the random character with
+		 * the chosen character. This convoluted approach is
+		 * necessary as printf-type functions don't allow the
+		 * padding character to be specified.
 		 */
-		memset (buffer, indent_char, strlen (buffer));
+		wmemset (buffer->buf, wide_indent_char, wcslen (buffer->buf));
 
-		wmappend (doc, buffer);
-		free (buffer);
+		pappend (doc, buffer);
+		pstring_free (buffer);
 	}
 }
 
@@ -3810,6 +3815,54 @@ wmappendva (pstring **dest, const char *fmt, va_list ap)
 	free (wide_fmt);
 }
 
+/*
+ * Append @src onto the end of @dest.
+ */
+void
+pappend (pstring **dest, const pstring *src)
+{
+	size_t    total;
+	size_t    bytes;
+	wchar_t  *p;
+
+	assert (dest);
+	assert (src);
+
+	if (! src->len)
+		return;
+
+	if (! *dest)
+		*dest = pstring_new ();
+	if (! *dest)
+		die ("failed to allocate space for pstring");
+
+	total = (*dest)->len + src->len;
+
+	/* adjust since we only store _one_ of the string terminators
+	 * from @dest and @src.
+	 */
+	total--;
+
+	/* +1 for terminating nul */
+	bytes = (1 + total) * sizeof (wchar_t);
+
+	p = realloc ((*dest)->buf, bytes);
+
+	/* FIXME: turn into die() [all occurences!] */
+	assert (p);
+
+	(*dest)->buf = p;
+
+	wcsncat ((*dest)->buf + (*dest)->len, src->buf, src->len);
+
+	/* update */
+	(*dest)->len = total;
+	(*dest)->size = bytes;
+
+	/* Used to check for overrun */
+	(*dest)->buf[total] = L'\0';
+}
+
 void
 show_all_groups (void)
 {
@@ -3912,7 +3965,7 @@ save_locale (void)
 
 	assert (! saved_locale);
 
-	value = setlocale (LC_ALL, NULL);
+	value = setlocale (LC_ALL, "");
 	if (! value) {
 		/* Can't determine locale, so ignore */
 		return;
@@ -3940,13 +3993,26 @@ restore_locale (void)
 }
 
 void
+handle_indent_char (void)
+{
+	size_t       len;
+
+	const char *new = indent_char;
+
+	len = mbsrtowcs (NULL, &new, 0, NULL);
+	if (len != 1)
+		die ("invalid indent character");
+
+	if (mbsrtowcs (&wide_indent_char, &new, len, NULL) != len)
+		die ("failed to convert indent character");
+}
+
+void
 init (void)
 {
 	save_locale ();
 
-	wide_indent_char = btowc (indent_char);
-	if (wide_indent_char == WEOF)
-		die ("failed to convert indent char");
+	handle_indent_char ();
 
 	/* required to allow for more graceful handling of prctl(2)
 	 * options that were introduced in kernel version 'x.y'.
@@ -4310,8 +4376,8 @@ get_mtu (const struct ifaddrs *ifaddr)
 	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
 
 	if (ioctl (sock, request, &ifr) < 0)
-		goto out;
-out:
+		ifr.ifr_mtu = 0;
+
 	close (sock);
 
 	return ifr.ifr_mtu;
@@ -4482,8 +4548,19 @@ show_mounts_linux (ShowMountType what)
 			entry ("fsck pass number", "%d", mnt->mnt_passno);
 
 			if (have_stats) {
+				union fsid_u {
+					unsigned long int fsid;
+					unsigned int val[2];
+				} fsid_val;
 
-				entry ("fsid", "%.*x", sizeof (fs.f_fsid), fs.f_fsid);
+				fsid_val.fsid = fs.f_fsid;
+
+				entry ("fsid", "%.*x%.*x", 
+						2 * sizeof (fsid_val.val[0]),
+						fsid_val.val[0],
+						2 * sizeof (fsid_val.val[1]),
+						fsid_val.val[1]);
+
 				entry ("optimal block size", "%lu", fs.f_bsize);
 
 				section_open ("blocks");
@@ -5244,9 +5321,9 @@ show_mounts_bsd (ShowMountType what)
 
 			entry ("fsid", "%.*x%.*x", 
 					/* Always zero on BSD? */
-					sizeof (mnt->f_fsid.val[0]),
+					2 * sizeof (mnt->f_fsid.val[0]),
 					mnt->f_fsid.val[0],
-					sizeof (mnt->f_fsid.val[1]),
+					2 * sizeof (mnt->f_fsid.val[1]),
 					mnt->f_fsid.val[1]);
 
 			entry ("optimal block size", "%" statfs_int_fmt,
@@ -7200,6 +7277,7 @@ show_capabilities_linux (void)
 		show_capability (caps, CAP_MKNOD);
 		show_capability (caps, CAP_LEASE);
 	}
+
 	if (LINUX_KERNEL_MMR (2, 6, 11)) {
 		show_capability (caps, CAP_AUDIT_WRITE);
 		show_capability (caps, CAP_AUDIT_CONTROL);
@@ -7225,6 +7303,12 @@ show_capabilities_linux (void)
 #ifdef CAP_BLOCK_SUSPEND
 	if (LINUX_KERNEL_MM (3, 5))
 		show_capability (caps, CAP_BLOCK_SUSPEND);
+#endif
+
+#ifdef CAP_AUDIT_READ
+	if (LINUX_KERNEL_MM (3, 16)) {
+		show_capability (caps, CAP_AUDIT_READ);
+	}
 #endif
 
 	section_close ();
@@ -7344,7 +7428,7 @@ show_security_module_linux (void)
 {
 	char *lsm = UNKNOWN_STR;
 
-#if defined (HAVE_SYS_APPARMOR_H)
+#if defined (HAVE_APPARMOR)
 	if (aa_is_enabled ())
 		lsm = "AppArmor";
 #endif
@@ -7368,30 +7452,36 @@ show_security_module_context_linux (void)
 	char   *context = NULL;
 	char   *mode = NULL;
 
-#if defined (HAVE_SYS_APPARMOR_H)
-	if (aa_is_enabled ())
+#if defined (HAVE_APPARMOR)
+	if (aa_is_enabled ()) {
+		/* XXX: The mode string is *NOT* be freed since it forms
+		 * part of the allocation returned in context.
+		 *
+		 * See aa_gettaskcon(2) for details.
+		 */
 		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
 			die ("failed to query AppArmor context");
+	}
 #endif
 
 #if defined (HAVE_SELINUX_SELINUX_H)
-	if (is_selinux_enabled ())
+	if (is_selinux_enabled ()) {
 		if (getpidcon (user.pid, &context) < 0)
 			die ("failed to query SELinux context");
+	}
 #endif
 	if (context) {
-		if (mode)
+		if (mode) {
 			entry ("context", "%s (%s)", context, mode);
-		else
+		} else {
 			entry ("context", "%s", context);
-	} else
+		}
+	} else {
 		entry ("context", "%s", UNKNOWN_STR);
+	}
 
 	if (context)
 		free (context);
-
-	if (mode)
-		free (mode);
 }
 
 void
@@ -7690,7 +7780,7 @@ get_canonical (const char *path, char *canonical, size_t len)
 		sprintf (canonical, UNKNOWN_STR);
 		ret = FALSE;
 	} else {
-		canonical[bytes] = '\0';
+		canonical[bytes <= len ? bytes : len] = '\0';
 	}
 
 	return ret;
@@ -7917,9 +8007,9 @@ check_envvars (void)
 	if (e && *e) {
 		/* Special character handling */
 		if (! strcmp (e, "\\t"))
-			indent_char = '\t';
+			indent_char = "\t";
 		else
-			indent_char = *e;
+			indent_char = e;
 	}
 
 	e = getenv (PROCENV_SEPARATOR_ENV);
@@ -8296,6 +8386,10 @@ main (int    argc,
 		switch (option)
 		{
 		case 0:
+			/* The exception is '--exec' */
+			if (done && strcmp ("exec", long_options[long_index].name))
+				die ("Must specify non-display options before display options");
+
 			if (! strcmp ("output", long_options[long_index].name)) {
 				output = get_output_value (optarg);
 			} else if (! strcmp ("file", long_options[long_index].name)) {
@@ -8311,22 +8405,29 @@ main (int    argc,
 					die ("cannot specify indent <= 0");
 			} else if (! strcmp ("indent-char", long_options[long_index].name)) {
 				/* Special character handling */
-				if (! strcmp (optarg, "\\t"))
-					indent_char = '\t';
-				else
-					indent_char = *optarg;
+				if (! strcmp (optarg, "\\t")) {
+					indent_char = "\t";
+				} else {
+					indent_char = optarg;
+				}
 				if (! indent_char)
 					die ("cannot use nul indent character");
+
+				/* call again */
+				handle_indent_char ();
+
 			} else if (! strcmp ("separator", long_options[long_index].name)) {
-				if (! strcmp (optarg, "\\t"))
+				if (! strcmp (optarg, "\\t")) {
 					text_separator = "\t";
-				else
+				} else {
 					text_separator = optarg;
+				}
 			} else if (! strcmp ("crumb-separator", long_options[long_index].name)) {
-				if (! strcmp (optarg, "\\t"))
+				if (! strcmp (optarg, "\\t")) {
 					crumb_separator = "\t";
-				else
+				} else {
 					crumb_separator = optarg;
+			}
 			}
 			/* reset */
 			selected_option = 0;
@@ -8808,8 +8909,10 @@ translate (const pstring *pstr)
 	bytes = len * sizeof (wchar_t);
 
 	result->buf = malloc (bytes);
-	if (! result->buf)
+	if (! result->buf) {
+		pstring_free (result);
 		return NULL;
+	}
 
 	/* We're using wcsncat() so we'd better make sure there is a
 	 * nul for it to find!
@@ -9623,7 +9726,7 @@ chomp (pstring *str)
 	if (str->len < 2)
 		return;
 
-	for (p = str->buf+str->len-1; *p == L'\n' || *p == (wchar_t)indent_char;
+	for (p = str->buf+str->len-1; *p == L'\n' || *p == wide_indent_char;
 			p--, removable++)
 		;
 
@@ -10273,8 +10376,10 @@ pstring_create (const wchar_t *str)
 		return NULL;
 
 	pstr->buf = wcsdup (str);
-	if (! pstr->buf)
+	if (! pstr->buf) {
+		pstring_free (pstr);
 		return NULL;
+	}
 
 	/* include the L'\0' terminator */
 	pstr->len = 1 + wcslen (pstr->buf);
