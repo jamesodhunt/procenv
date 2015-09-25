@@ -1427,7 +1427,8 @@ usage (void)
 	show ("");
 	show ("  -a, --meta              : Display meta details.");
 	show ("  -A, --arguments         : Display program arguments.");
-	show ("  -b, --libs              : Display library details.");
+	show ("  -b, --libs              : Display details of linked libraries.");
+	show ("  -B, --libc              : Display standard library details.");
 	show ("  -c, --cgroups           : Display cgroup details (Linux only).");
 	show ("  -C, --cpu               : Display CPU and scheduler details.");
 	show ("  --crumb-separator=<str> : Specify string '<str>' as alternate delimiter");
@@ -4242,6 +4243,7 @@ dump (void)
 #endif
 	show_rlimits ();
 	show_locale ();
+	show_libc ();
 	show_memory ();
 	show_misc ();
 	show_msg_queues ();
@@ -7111,6 +7113,66 @@ show_compiler (void)
 }
 
 void
+show_libc (void)
+{
+	char  *name = NULL;
+	long   version = -1;
+	long   minor = -1;
+
+#if defined (__GLIBC__)
+	name = "GNU libc (glibc)";
+	version = __GLIBC__;
+#ifdef __GLIBC_MINOR__
+	minor = __GLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__UCLIBC__)
+	name = "uClibc";
+#ifdef __UCLIBC_MAJOR__
+	version = __UCLIBC_MAJOR__;
+#endif
+#ifdef __UCLIBC_MINOR__
+	minor = __UCLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__KLIBC__)
+	name = "klibc";
+	version = __KLIBC__;
+#ifdef __KLIBC_MINOR__
+	minor = __KLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__dietlibc__)
+	name = "dietlibc";
+#endif
+
+#if defined (__BIONIC__)
+	name = "bionic";
+#endif
+
+	header ("libc");
+
+	entry ("name", "%s", name ? name : UNKNOWN_STR);
+
+	if (version >= 0) {
+		entry ("version", "%lu", version);
+	} else {
+		entry ("version", "%s", UNKNOWN_STR);
+	}
+
+	if (minor >= 0) {
+		entry ("minor", "%lu", minor);
+	} else {
+		entry ("minor", "%s", UNKNOWN_STR);
+	}
+
+	footer ();
+}
+
+void
 show_time (void)
 {
 	char              formatted_time[CTIME_BUFFER];
@@ -8303,6 +8365,7 @@ main (int    argc,
 		{"meta"            , no_argument, NULL, 'a'},
 		{"arguments"       , no_argument, NULL, 'A'},
 		{"libs"            , no_argument, NULL, 'b'},
+		{"libc"            , no_argument, NULL, 'B'},
 		{"cgroups"         , no_argument, NULL, 'c'},
 		{"cpu"             , no_argument, NULL, 'C'},
 		{"compiler"        , no_argument, NULL, 'd'},
@@ -8367,7 +8430,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
+				"aAbBcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -8447,6 +8510,10 @@ main (int    argc,
 #ifndef PROCENV_ANDROID
 			show_libs ();
 #endif
+			break;
+
+		case 'B':
+			show_libc ();
 			break;
 
 		case 'c':

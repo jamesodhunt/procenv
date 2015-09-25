@@ -1,3 +1,8 @@
+2015-09-25  James Hunt  <jamesodhunt@ubuntu.com>
+
+	* src/procenv.c: show_libc(): New function for new '--libc'/'-B'
+	  option.
+
 2015-08-24  James Hunt  <james.hunt@ubuntu.com>
 
 	* src/tests/check_all_args.in: Actually disable tests if non-existent

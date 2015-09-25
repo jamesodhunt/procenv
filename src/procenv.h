@@ -945,6 +945,7 @@ void show_pathconfs (ShowMountType what, const char *dir);
 void show_sizeof (void);
 void show_ranges (void);
 void show_compiler (void);
+void show_libc (void);
 void get_uname (void);
 void show_uname (void);
 void show_all_groups (void);
