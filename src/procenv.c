@@ -4,7 +4,7 @@
  *
  * Date: 24 October 2012.
  *
- * Author: James Hunt <james.hunt@ubuntu.com>.
+ * Author: James Hunt <jamesodhunt@ubuntu.com>.
  *
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
