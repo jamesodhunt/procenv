@@ -4066,6 +4066,14 @@ is_big_endian (void)
 void
 show_meta (void)
 {
+	const char *build_type;
+
+#if defined (PROCENV_REPRODUCIBLE_BUILD)
+	build_type = BUILD_TYPE_REPRODUCIBLE_STR;
+#else
+	build_type = BUILD_TYPE_STD_STR;
+#endif
+
 	header ("meta");
 
 	entry ("version", "%s", PACKAGE_VERSION);
@@ -4074,6 +4082,8 @@ show_meta (void)
 	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
 			PRIVILEGED_STR);
+
+	entry ("build-type", "%s", build_type);
 
 	entry ("format-type", "%s", get_output_format_name ());
 	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
@@ -6989,13 +6999,26 @@ show_compiler (void)
 
 	entry ("name", "%s", name ? name : UNKNOWN_STR);
 	entry ("version", "%s", version ? version : UNKNOWN_STR);
+
+#if defined (PROCENV_REPRODUCIBLE_BUILD)
+	entry ("compile date (__DATE__)", "%s", SUPPRESSED_STR);
+	entry ("compile time (__TIME__)", "%s", SUPPRESSED_STR);
+
+#ifdef __TIMESTAMP__
+	entry ("timestamp (__TIMESTAMP__)", "%s", SUPPRESSED_STR);
+#endif
+
+#else
 	entry ("compile date (__DATE__)", "%s", __DATE__);
 	entry ("compile time (__TIME__)", "%s", __TIME__);
-	entry ("translation unit (__FILE__)", "%s", __FILE__);
-	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
+
 #ifdef __TIMESTAMP__
 	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
 #endif
+#endif
+
+	entry ("translation unit (__FILE__)", "%s", __FILE__);
+	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
 
 	section_open ("feature test macros");
 

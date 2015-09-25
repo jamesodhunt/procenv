@@ -114,4 +114,13 @@ AC_ARG_ENABLE([debug],
 	       [[CFLAGS=`echo "$CFLAGS -DDEBUG -pg"`
 	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`]])])
 
+AC_ARG_ENABLE([reproducible_build],
+	AS_HELP_STRING([--enable-reproducible-build],
+		[Disable display of build-time values that are guaranteed to differ between builds]),
+		[reproducible_build=yes], [reproducible_build=no])
+
+if test "$reproducible_build" = yes; then
+	AC_DEFINE([PROCENV_REPRODUCIBLE_BUILD], [1], [Generate a reproducible build])
+fi
+
 AC_OUTPUT(Makefile src/Makefile procenv.spec)

@@ -2,6 +2,12 @@
 
 	* src/procenv.c: show_libc(): New function for new '--libc'/'-B'
 	  option.
+	* configure.ac: Add '--enable-reproducible-build' option which
+	  suppresses the display of values that will change between
+	  builds:
+	  - __DATE__
+	  - __TIME__
+	  - __TIMESTAMP__
 
 2015-08-24  James Hunt  <james.hunt@ubuntu.com>
 
