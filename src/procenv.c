@@ -7022,6 +7022,12 @@ show_compiler (void)
 
 	section_open ("feature test macros");
 
+#ifdef __STDC_VERSION__
+	entry ("__STDC_VERSION__", "%lu", __STDC_VERSION__);
+#else
+	entry ("__STDC_VERSION__", "%s", NOT_DEFINED_STR);
+#endif
+
 #ifdef __STRICT_ANSI__
 	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
 #else
@@ -7076,6 +7082,12 @@ show_compiler (void)
 	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#ifdef _LARGEFILE_SOURCE
+	entry ("_LARGEFILE_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_LARGEFILE_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
 #ifdef _LARGEFILE64_SOURCE
 	entry ("_LARGEFILE64_SOURCE", "%s", DEFINED_STR);
 #else
@@ -7128,6 +7140,12 @@ show_compiler (void)
 	entry ("_FORTIFY_SOURCE", "%s", DEFINED_STR);
 #else
 	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _DEFAULT_SOURCE
+	entry ("_DEFAULT_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_DEFAULT_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 	section_close ();

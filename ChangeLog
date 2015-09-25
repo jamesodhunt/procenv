@@ -1,7 +1,12 @@
 2015-09-25  James Hunt  <jamesodhunt@ubuntu.com>
 
-	* src/procenv.c: show_libc(): New function for new '--libc'/'-B'
-	  option.
+	* src/procenv.c:
+	  - show_libc(): New function for new '--libc'/'-B'
+	    option.
+	  - show_compiler(): Added following features:
+	    - _DEFAULT_SOURCE
+	    - _LARGEFILE_SUPPORT
+	    - __STDC_VERSION__
 	* configure.ac: Add '--enable-reproducible-build' option which
 	  suppresses the display of values that will change between
 	  builds:
