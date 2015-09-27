@@ -1,3 +1,9 @@
+2015-09-27  James Hunt  <jamesodhunt@ubuntu.com>
+
+	* src/tests/check_all_args.in:
+	  - Set LC_ALL to the lang value under test.
+	  - Actually save the original LANG value.
+
 2015-09-25  James Hunt  <jamesodhunt@ubuntu.com>
 
 	* src/procenv.c:
