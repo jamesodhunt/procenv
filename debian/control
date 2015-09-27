@@ -1,7 +1,7 @@
 Source: procenv
 Section: utils
 Priority: optional
-Maintainer: James Hunt <james.hunt@ubuntu.com>
+Maintainer: James Hunt <jamesodhunt@ubuntu.com>
 Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, pkg-config,
   libkvm-dev [kfreebsd-any],
   automake (>= 1.12),
