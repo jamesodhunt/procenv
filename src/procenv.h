@@ -481,7 +481,7 @@ int cap_get_bound (cap_value_t cap);
 /* If an indent is required, use this many INDENT_CHARs by default */
 #define DEFAULT_INDENT_AMOUNT 2
 
-#define PROGRAM_AUTHORS "James Hunt <james.hunt@ubuntu.com>"
+#define PROGRAM_AUTHORS "James Hunt <jamesodhunt@ubuntu.com>"
 
 #define show(...) _show ("", indent, __VA_ARGS__)
 
