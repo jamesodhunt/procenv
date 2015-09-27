@@ -604,4 +604,6 @@ done
 
 [ -n "$saved_lang" ] && export LANG="$saved_lang" LC_ALL="$saved_lang"
 
+exit 0
+
 #---------------------------------------------------------------------
