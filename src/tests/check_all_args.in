@@ -59,7 +59,7 @@ debug ()
 msg ()
 {
 	local str="$*"
-	echo "INFO:LANG=$LANG: $str"
+	echo "INFO:LANG=$LANG:LC_ALL=$LC_ALL: $str"
 }
 
 run_command()
@@ -589,7 +589,7 @@ run_tests()
 
 init
 
-saved_lang=LANG
+saved_lang=$LANG
 
 for lang in $lang_list
 do
@@ -598,10 +598,12 @@ do
 		msg "Not testing with locale language $lang"
 		continue
 	fi
-	export LANG="$lang"
+	export LANG="$lang" LC_ALL="$lang"
 	run_tests
 done
 
-[ -n "$saved_lang" ] && export LANG="$saved_lang"
+[ -n "$saved_lang" ] && export LANG="$saved_lang" LC_ALL="$saved_lang"
+
+exit 0
 
 #---------------------------------------------------------------------

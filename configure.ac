@@ -1,10 +1,10 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([procenv_version], 0.39)
+m4_define([procenv_version], 0.40)
 
-AC_INIT(procenv, [procenv_version], [james.hunt@ubuntu.com])
-AC_COPYRIGHT([Copyright (C) 2012-2015 James Hunt <james.hunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
+AC_INIT(procenv, [procenv_version], [jamesodhunt@ubuntu.com])
+AC_COPYRIGHT([Copyright (C) 2012-2015 James Hunt <jamesodhunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -113,5 +113,14 @@ AC_ARG_ENABLE([debug],
 	[AS_IF([test "x$enable_debug" = "xyes"],
 	       [[CFLAGS=`echo "$CFLAGS -DDEBUG -pg"`
 	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`]])])
+
+AC_ARG_ENABLE([reproducible_build],
+	AS_HELP_STRING([--enable-reproducible-build],
+		[Disable display of build-time values that are guaranteed to differ between builds]),
+		[reproducible_build=yes], [reproducible_build=no])
+
+if test "$reproducible_build" = yes; then
+	AC_DEFINE([PROCENV_REPRODUCIBLE_BUILD], [1], [Generate a reproducible build])
+fi
 
 AC_OUTPUT(Makefile src/Makefile procenv.spec)
