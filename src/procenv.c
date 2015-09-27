@@ -3966,6 +3966,9 @@ save_locale (void)
 
 	assert (! saved_locale);
 
+	/* save the existing value, but crucially also load the correct
+	 * locale from the environment to enable UTF-8 functionality.
+	 */
 	value = setlocale (LC_ALL, "");
 	if (! value) {
 		/* Can't determine locale, so ignore */
