@@ -1,9 +1,13 @@
 2015-09-27  James Hunt  <jamesodhunt@ubuntu.com>
 
+	* src/Makefile.am:
+	  - Pass path to man page to tests.
 	* src/tests/check_all_args.in:
 	  - Set LC_ALL to the lang value under test.
 	  - Actually save the original LANG value.
 	  - 'set -e' fix.
+	  - Add test to compare options documented by 'procenv --help' with
+	    those in the man page to ensure no discrepancies.
 
 2015-09-25  James Hunt  <jamesodhunt@ubuntu.com>
 
