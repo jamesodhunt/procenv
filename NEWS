@@ -1,3 +1,12 @@
+0.40	2015-09-27
+
+	* Updated email address.
+	* New --libc'/'-B' option.
+	* --enable-reproducible-build
+	* '--compiler': Added _DEFAULT_SOURCE, _LARGEFILE_SUPPORT and
+	  __STDC_VERSION__.
+	* locale fixes.
+
 0.39	2015-08-25
 
 	* Fixed tests harder :)

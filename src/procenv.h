@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <jamesodhunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,12 +99,13 @@
  *
  * XXX: must be updated for every change.
  *
+ * VERSION 1:
+ *   - Original format (up to procenv 0.27).
  * VERSION 2:
  *   - Added --memory.
  *   - Expanded --cpu.
  *   - Added missing --cpu to default output.
  *   - Moved memory page size from --misc to --memory.
- *
  * VERSION 3:
  *   - --fds: Added Capsicum capabilities for FreeBSD (alas this version
  *     is a NOP for non-BSD platforms).
@@ -123,8 +124,10 @@
  * VERSION 8:
  *   - --memory: Added NUMA API version.
  *   - --shared-memory: Added swap_attempts and swap_successes.
+ * VERSION 9:
+ *   - --meta now includes a 'build-type' field.
  **/
-#define PROCENV_FORMAT_VERSION 8
+#define PROCENV_FORMAT_VERSION 9
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -446,18 +449,21 @@ int cap_get_bound (cap_value_t cap);
 /* FIXME: gettext */
 #define _(str) str
 
-#define YES_STR              _("yes")
-#define NO_STR               _("no")
-#define NON_STR              _("non")
-#define NA_STR               _("n/a")
-#define UNKNOWN_STR          _("unknown")
-#define MAX_STR              _(" (max)")
-#define DEFINED_STR          _("defined")
-#define NOT_DEFINED_STR      _("not defined")
-#define NOT_IMPLEMENTED_STR  _("[not implemented]")
-#define BIG_STR              _("big")
-#define LITTLE_STR           _("little")
-#define PRIVILEGED_STR       _("privileged")
+#define YES_STR                      _("yes")
+#define NO_STR                       _("no")
+#define NON_STR                      _("non")
+#define NA_STR                       _("n/a")
+#define UNKNOWN_STR                  _("unknown")
+#define MAX_STR                      _(" (max)")
+#define DEFINED_STR                  _("defined")
+#define NOT_DEFINED_STR              _("not defined")
+#define NOT_IMPLEMENTED_STR          _("[not implemented]")
+#define BIG_STR                      _("big")
+#define LITTLE_STR                   _("little")
+#define PRIVILEGED_STR               _("privileged")
+#define SUPPRESSED_STR               _("[suppressed]")
+#define BUILD_TYPE_STD_STR           _("standard")
+#define BUILD_TYPE_REPRODUCIBLE_STR  _("reproducible")
 
 #if defined (PROCENV_BSD)
 		/* SIGTHL is hidden by default */
@@ -945,6 +951,7 @@ void show_pathconfs (ShowMountType what, const char *dir);
 void show_sizeof (void);
 void show_ranges (void);
 void show_compiler (void);
+void show_libc (void);
 void get_uname (void);
 void show_uname (void);
 void show_all_groups (void);

@@ -4,7 +4,7 @@
  *
  * Date: 24 October 2012.
  *
- * Author: James Hunt <james.hunt@ubuntu.com>.
+ * Author: James Hunt <jamesodhunt@ubuntu.com>.
  *
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
@@ -1427,7 +1427,8 @@ usage (void)
 	show ("");
 	show ("  -a, --meta              : Display meta details.");
 	show ("  -A, --arguments         : Display program arguments.");
-	show ("  -b, --libs              : Display library details.");
+	show ("  -b, --libs              : Display details of linked libraries.");
+	show ("  -B, --libc              : Display standard library details.");
 	show ("  -c, --cgroups           : Display cgroup details (Linux only).");
 	show ("  -C, --cpu               : Display CPU and scheduler details.");
 	show ("  --crumb-separator=<str> : Specify string '<str>' as alternate delimiter");
@@ -3965,6 +3966,9 @@ save_locale (void)
 
 	assert (! saved_locale);
 
+	/* save the existing value, but crucially also load the correct
+	 * locale from the environment to enable UTF-8 functionality.
+	 */
 	value = setlocale (LC_ALL, "");
 	if (! value) {
 		/* Can't determine locale, so ignore */
@@ -4065,6 +4069,14 @@ is_big_endian (void)
 void
 show_meta (void)
 {
+	const char *build_type;
+
+#if defined (PROCENV_REPRODUCIBLE_BUILD)
+	build_type = BUILD_TYPE_REPRODUCIBLE_STR;
+#else
+	build_type = BUILD_TYPE_STD_STR;
+#endif
+
 	header ("meta");
 
 	entry ("version", "%s", PACKAGE_VERSION);
@@ -4073,6 +4085,8 @@ show_meta (void)
 	entry ("mode", "%s%s",
 			user.euid ? _(NON_STR) "-" : "",
 			PRIVILEGED_STR);
+
+	entry ("build-type", "%s", build_type);
 
 	entry ("format-type", "%s", get_output_format_name ());
 	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
@@ -4242,6 +4256,7 @@ dump (void)
 #endif
 	show_rlimits ();
 	show_locale ();
+	show_libc ();
 	show_memory ();
 	show_misc ();
 	show_msg_queues ();
@@ -6987,15 +7002,34 @@ show_compiler (void)
 
 	entry ("name", "%s", name ? name : UNKNOWN_STR);
 	entry ("version", "%s", version ? version : UNKNOWN_STR);
+
+#if defined (PROCENV_REPRODUCIBLE_BUILD)
+	entry ("compile date (__DATE__)", "%s", SUPPRESSED_STR);
+	entry ("compile time (__TIME__)", "%s", SUPPRESSED_STR);
+
+#ifdef __TIMESTAMP__
+	entry ("timestamp (__TIMESTAMP__)", "%s", SUPPRESSED_STR);
+#endif
+
+#else
 	entry ("compile date (__DATE__)", "%s", __DATE__);
 	entry ("compile time (__TIME__)", "%s", __TIME__);
-	entry ("translation unit (__FILE__)", "%s", __FILE__);
-	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
+
 #ifdef __TIMESTAMP__
 	entry ("timestamp (__TIMESTAMP__)", "%s", __TIMESTAMP__);
 #endif
+#endif
+
+	entry ("translation unit (__FILE__)", "%s", __FILE__);
+	entry ("base file (__BASE_FILE__)", "%s", __BASE_FILE__);
 
 	section_open ("feature test macros");
+
+#ifdef __STDC_VERSION__
+	entry ("__STDC_VERSION__", "%lu", __STDC_VERSION__);
+#else
+	entry ("__STDC_VERSION__", "%s", NOT_DEFINED_STR);
+#endif
 
 #ifdef __STRICT_ANSI__
 	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
@@ -7049,6 +7083,12 @@ show_compiler (void)
 	entry ("_ISOC11_SOURCE", "%s", DEFINED_STR);
 #else
 	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _LARGEFILE_SOURCE
+	entry ("_LARGEFILE_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_LARGEFILE_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _LARGEFILE64_SOURCE
@@ -7105,7 +7145,73 @@ show_compiler (void)
 	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#ifdef _DEFAULT_SOURCE
+	entry ("_DEFAULT_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_DEFAULT_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
 	section_close ();
+
+	footer ();
+}
+
+void
+show_libc (void)
+{
+	char  *name = NULL;
+	long   version = -1;
+	long   minor = -1;
+
+#if defined (__GLIBC__)
+	name = "GNU libc (glibc)";
+	version = __GLIBC__;
+#ifdef __GLIBC_MINOR__
+	minor = __GLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__UCLIBC__)
+	name = "uClibc";
+#ifdef __UCLIBC_MAJOR__
+	version = __UCLIBC_MAJOR__;
+#endif
+#ifdef __UCLIBC_MINOR__
+	minor = __UCLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__KLIBC__)
+	name = "klibc";
+	version = __KLIBC__;
+#ifdef __KLIBC_MINOR__
+	minor = __KLIBC_MINOR__;
+#endif
+#endif
+
+#if defined (__dietlibc__)
+	name = "dietlibc";
+#endif
+
+#if defined (__BIONIC__)
+	name = "bionic";
+#endif
+
+	header ("libc");
+
+	entry ("name", "%s", name ? name : UNKNOWN_STR);
+
+	if (version >= 0) {
+		entry ("version", "%lu", version);
+	} else {
+		entry ("version", "%s", UNKNOWN_STR);
+	}
+
+	if (minor >= 0) {
+		entry ("minor", "%lu", minor);
+	} else {
+		entry ("minor", "%s", UNKNOWN_STR);
+	}
 
 	footer ();
 }
@@ -8303,6 +8409,7 @@ main (int    argc,
 		{"meta"            , no_argument, NULL, 'a'},
 		{"arguments"       , no_argument, NULL, 'A'},
 		{"libs"            , no_argument, NULL, 'b'},
+		{"libc"            , no_argument, NULL, 'B'},
 		{"cgroups"         , no_argument, NULL, 'c'},
 		{"cpu"             , no_argument, NULL, 'C'},
 		{"compiler"        , no_argument, NULL, 'd'},
@@ -8367,7 +8474,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
+				"aAbBcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -8447,6 +8554,10 @@ main (int    argc,
 #ifndef PROCENV_ANDROID
 			show_libs ();
 #endif
+			break;
+
+		case 'B':
+			show_libc ();
 			break;
 
 		case 'c':
