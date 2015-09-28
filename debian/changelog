@@ -1,4 +1,4 @@
-procenv (0.40-1) UNRELEASED; urgency=medium
+procenv (0.40-1) unstable; urgency=medium
 
   * debian/watch: Added pgpsigurlmangle option to verify upstream tarball.
   * New upstream release.
