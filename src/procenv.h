@@ -126,8 +126,11 @@
  *   - --shared-memory: Added swap_attempts and swap_successes.
  * VERSION 9:
  *   - --meta now includes a 'build-type' field.
+ * VERSION 10:
+ *   - Output is now sorted correctly (again - previously show_misc()
+ *     and show_libc() were being called in the wrong order).
  **/
-#define PROCENV_FORMAT_VERSION 9
+#define PROCENV_FORMAT_VERSION 10
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 

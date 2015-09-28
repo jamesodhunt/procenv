@@ -1,3 +1,12 @@
+2015-09-28  James Hunt  <jamesodhunt@ubuntu.com>
+
+	* src/procenv.c:
+	  - Correct output order for 'libc:' and 'misc:'.
+	* src/procenv.h:
+	  - Bump PROCENV_FORMAT_VERSION.
+	* src/tests/check_all_args.in:
+	  - Ensure output sections are sorted and not duplicated.
+
 2015-09-27  James Hunt  <jamesodhunt@ubuntu.com>
 
 	* src/Makefile.am:

@@ -4251,15 +4251,15 @@ dump (void)
 	show_cpu ();
 	show_env ();
 	show_fds ();
+	show_libc ();
 #ifndef PROCENV_ANDROID
 	show_libs ();
 #endif
 	show_rlimits ();
 	show_locale ();
-	show_libc ();
 	show_memory ();
-	show_misc ();
 	show_msg_queues ();
+	show_misc ();
 	show_mounts (SHOW_ALL);
 	show_network ();
 	show_oom ();

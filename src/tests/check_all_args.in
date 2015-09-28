@@ -169,6 +169,25 @@ run_tests()
 	
 	# Save all sections that are displayed by default for later checks
 	sections=$($procenv|grep "^[a-z0-9][a-z0-9 ]*:$")
+
+	msg "Ensuring output is sorted by section"
+
+	main_sections=$(mktemp "$template")
+	sorted_sections=$(mktemp "$template")
+	unique_sections=$(mktemp "$template")
+
+	# ignore meta which always comes first
+	echo "$sections"|grep -v meta:         > "$main_sections"
+	echo "$sections"|grep -v meta:|sort    > "$sorted_sections"
+	echo "$sections"|grep -v meta:|sort -u > "$unique_sections"
+
+	diff=$(diff "$main_sections" "$sorted_sections" || :)
+       	[ -n "$diff" ] && die "sections are not sorted - diff: $diff"
+
+	diff=$(diff "$sorted_sections" "$unique_sections" || :)
+       	[ -n "$diff" ] && die "sections are not unique - diff: $diff"
+
+	rm -f "$main_sections" "$sorted_sections" "$unique_sections"
 	
 	remaining_file=$(mktemp "$template")
 	echo "$sections" > "$remaining_file"
