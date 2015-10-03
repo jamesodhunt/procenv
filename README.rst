@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/jamesodhunt/procenv.svg?branch=master
+   :target: https://travis-ci.org/jamesodhunt/procenv
+
 .. image:: https://scan.coverity.com/projects/348/badge.svg
    :target: https://scan.coverity.com/projects/procenv
    :alt: Coverity Scan Build Status
