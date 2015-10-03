@@ -12,10 +12,21 @@
 procenv
 =======
 
-``procenv`` is a simple utility, licensed under the GPL, that essentially dumps
-every conceivable aspect of a processes environment (*) that it can.
+.. contents::
+.. sectnum::
 
-It unashamedly emulates a number of existing system utilities as it is
+Overview
+--------
+
+``procenv`` is a simple command-line utility, written in C and licensed
+under the GPL, that dumps all attributes of the environment (*) in which
+it runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
+
+It is useful as a test tool, to understand what environment a process
+runs in and for system comparison.
+
+``procenv`` runs on Linux, FreeBSD, kFreeBSD, GNU Hurd and Android. It
+unashamedly emulates a number of existing system utilities as it is
 attempting to be all-encompassing: I wrote it with the aim of being able
 to dump "everything" that a process may care about by simply running a
 single program (by default). Also, the line of demarcation between
