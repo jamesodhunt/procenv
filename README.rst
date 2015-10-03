@@ -38,8 +38,14 @@ For example ``sysconf(3)`` variables could arguably be considered system
 attributes, but procenv shows these too since they are obviously meant
 to be queryable by applications.
 
-(*) - If you find anything missing, please either raise a bug via
-      https://bugs.launchpad.net/procenv/+filebug or send a patch! :-)
+(*) - If you find anything missing, please either raise a bug or send a
+      patch :)
+
+Porting
+-------
+
+Can you help port ``procenv`` to other platforms (AIX, HP-UX, Solaris,
+...)? If so, please get in contact.
 
 References
 ----------
