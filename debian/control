@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, pkg-config,
   libcap-dev [linux-any],
   libselinux1-dev [linux-any], libapparmor-dev [linux-any]
 Standards-Version: 3.9.5
-Homepage: https://code.launchpad.net/procenv
+Homepage: https://github.com/jamesodhunt/procenv
 XS-Testsuite: autopkgtest
 
 Package: procenv
