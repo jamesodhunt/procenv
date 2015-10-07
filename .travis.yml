@@ -5,7 +5,6 @@ language: c
 compiler:
   - gcc
   - clang
-sudo: false
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y autopoint expat libnuma-dev libcap-dev
