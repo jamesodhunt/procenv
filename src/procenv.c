@@ -611,7 +611,7 @@ struct procenv_map sysconf_map[] = {
 #endif
 
 #if defined (_SC_EQUIV_CLASS_MAX)
-	 mk_sysconf_map_entry(_SC_EQUIV_CLASS_MAX),
+	 mk_sysconf_map_entry (_SC_EQUIV_CLASS_MAX),
 #endif
 
 #if defined (_SC_EXPR_NEST_MAX)
@@ -3139,8 +3139,8 @@ show_cpu_affinities (void)
 			/* Bail out at an arbitrary value.  */
 			if (mult > 128) break;
 			mult += 2;
-			cpu_set = CPU_ALLOC(mult * max);
-			size = CPU_ALLOC_SIZE(mult * max);
+			cpu_set = CPU_ALLOC (mult * max);
+			size = CPU_ALLOC_SIZE (mult * max);
 			CPU_ZERO_S (size, cpu_set);
 		}
 	}
@@ -7811,7 +7811,7 @@ unknown_sched_cpu:
 	entry ("number", "%s of %ld", UNKNOWN_STR, max);
 }
 
-#if ! defined(HAVE_SCHED_GETCPU)
+#if ! defined (HAVE_SCHED_GETCPU)
 
 /* Crutch function for RHEL 5 */
 int
@@ -8507,7 +8507,7 @@ main (int    argc,
 			} else if (! strcmp ("format", long_options[long_index].name)) {
 				output_format = get_output_format (optarg);
 			} else if (! strcmp ("indent", long_options[long_index].name)) {
-				indent_amount = atoi(optarg);
+				indent_amount = atoi (optarg);
 				if (indent_amount <= 0)
 					die ("cannot specify indent <= 0");
 			} else if (! strcmp ("indent-char", long_options[long_index].name)) {
@@ -10574,7 +10574,7 @@ error:
 	return NULL;
 }
 
-#if ! defined(HAVE_SCHED_GETCPU)
+#if ! defined (HAVE_SCHED_GETCPU)
 
 /**
  * @string: input,
