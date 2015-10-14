@@ -37,9 +37,13 @@ AC_HEADER_STDBOOL
 AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu])
 
 # BSD process inspection library
-AC_SEARCH_LIBS([kvm_openfiles], [kvm])
+AC_SEARCH_LIBS([kvm_openfiles], [kvm],
+               [HAVE_KVM=yes],
+               [HAVE_KVM=no])
 
-AC_SEARCH_LIBS([numa_available], [numa])
+AC_SEARCH_LIBS([numa_available], [numa],
+               [HAVE_NUMA=yes],
+               [HAVE_NUMA=no])
 AC_CHECK_HEADERS([numa.h])
 
 # FreeBSD 9+ with appropriately configured kernel
@@ -47,14 +51,23 @@ AC_CHECK_HEADERS([numa.h])
 AC_SEARCH_LIBS([cap_getmode], [c])
 AC_CHECK_HEADERS([sys/capability.h])
 
-AC_SEARCH_LIBS([cap_init], [cap])
+AC_SEARCH_LIBS([cap_init], [cap],
+               [HAVE_LIBCAP=yes],
+               [HAVE_LIBCAP=no])
 
-AC_SEARCH_LIBS([pthread_create], [pthread])
-AC_SEARCH_LIBS([getpidcon], [selinux], [HAVE_SELINUX=true])
+AC_SEARCH_LIBS([pthread_create], [pthread],
+               [HAVE_PTHREAD=yes],
+               [HAVE_PTHREAD=no])
+AC_SEARCH_LIBS([getpidcon], [selinux],
+               [HAVE_SELINUX=yes],
+               [HAVE_SELINUX=no])
 AM_CONDITIONAL([HAVE_SELINUX], [test x$HAVE_SELINUX = xtrue])
 AC_CHECK_HEADERS([selinux/selinux.h])
 
-AC_SEARCH_LIBS([aa_gettaskcon], [apparmor], [HAVE_APPARMOR=true])
+AC_SEARCH_LIBS([aa_gettaskcon], [apparmor],
+               [HAVE_APPARMOR=yes],
+               [HAVE_APPARMOR=no])
+
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 AC_CHECK_HEADERS([sys/apparmor.h])
 
@@ -112,7 +125,8 @@ AC_ARG_ENABLE([debug],
 		       [enable developer build]),
 	[AS_IF([test "x$enable_debug" = "xyes"],
 	       [[CFLAGS=`echo "$CFLAGS -DDEBUG -pg"`
-	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`]])])
+	         CXXFLAGS=`echo "$CXXFLAGS -DDEBUG -pg"`
+             DEBUG_BUILD=yes]])], [DEBUG_BUILD=no])
 
 AC_ARG_ENABLE([reproducible_build],
 	AS_HELP_STRING([--enable-reproducible-build],
@@ -140,3 +154,16 @@ AS_IF([$t], [test_result=pass], [test_result=fail])
 AS_BOX([showing result of test '$t': $test_result])
 
 AC_OUTPUT(Makefile src/Makefile procenv.spec)
+AC_MSG_RESULT([
+    Configure settings for $PACKAGE_NAME version $VERSION
+
+    Reproducible build : ${reproducible_build}
+    Debug build        : ${DEBUG_BUILD}
+
+    libapparmor        : ${HAVE_APPARMOR}
+    libselinux         : ${HAVE_SELINUX}
+    libcap             : ${HAVE_LIBCAP}
+    libnuma            : ${HAVE_NUMA}
+    libpthread         : ${HAVE_PTHREAD}
+    libkvm             : ${HAVE_KVM}
+              ])
