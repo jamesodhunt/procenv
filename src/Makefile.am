@@ -31,10 +31,6 @@ check_all_args: tests/check_all_args.in
 	    $< > $@
 	chmod +x $@
 
-# Dump preprocessor/compiler/linker details as debug aid should the
-# subsequent test fail.
-TESTS += tests/show_compiler_details
-
 # Run built binary to ensure we can display all values
 TESTS += procenv
 

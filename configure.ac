@@ -123,4 +123,20 @@ if test "$reproducible_build" = yes; then
 	AC_DEFINE([PROCENV_REPRODUCIBLE_BUILD], [1], [Generate a reproducible build])
 fi
 
+# XXX: Dump details of the preprocess/compiler/linker *NOW* so that if
+# procenv fails to build later, the build logs will show details of the
+# environment that should aid remote debugging.
+#
+# This may be bad form, but trying to do this at the automake stage
+# seems(?) to be impossible.
+t=src/tests/show_compiler_details
+msg=$(cat <<EOT
+checking that test '$t' runs (output an aide to debugging should procenv fail to build)
+
+EOT
+)
+AS_BOX($msg)
+AS_IF([$t], [test_result=pass], [test_result=fail])
+AS_BOX([showing result of test '$t': $test_result])
+
 AC_OUTPUT(Makefile src/Makefile procenv.spec)
