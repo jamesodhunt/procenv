@@ -1,6 +1,14 @@
 # TODO
 
-- Sort *all* output values.
+- add /proc/cmdline?
+  - could create a kernel category?:
+    kernel:
+      version: 
+      headers version: 3.19.8
+      bits: 64
+      cmdline: ...
+
+- XXX: Sort *all* output values.
   - sort network interfaces.
   - Sort output of show_mounts().
   - add tests to ensure they remain sorted.
