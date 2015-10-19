@@ -3190,7 +3190,6 @@ show_cpu_affinities (void)
 					displayed ? "," : "",
 					first, last);
 		}
-		displayed = TRUE;
 	}
 
 out:
@@ -4845,7 +4844,6 @@ show_numa_memory (void)
 					displayed ? "," : "",
 					first, last);
 		}
-				displayed = TRUE;
 	}
 
 	entry ("allowed list", "%s", allowed_list);
