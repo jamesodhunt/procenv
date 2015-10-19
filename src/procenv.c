@@ -7271,7 +7271,7 @@ show_uname (void)
 	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
-	entry ("domainname", "%s", uts.domainname ? uts.domainname : UNKNOWN_STR);
+	entry ("domainname", "%s", uts.domainname[0] ? uts.domainname : UNKNOWN_STR);
 #endif
 
 	footer ();
