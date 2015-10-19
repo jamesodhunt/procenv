@@ -116,10 +116,10 @@ get_procenv_options()
 
 get_man_options()
 {
-	groff -man -Tascii "$man_path" |\
-		col -bx 2>/dev/null |\
-		colcrt - 2>/dev/null |\
-		egrep -- '-[a-zA-Z0-9], --[a-zA-Z0-9]' |\
+	groff -a -man -Tascii "$man_path" |\
+        grep -- '^ *<->[a-zA-Z0-9], <-><->[a-zA-Z0-9][a-zA-Z0-9]' |\
+        tr -d '[<>]' |\
+        sed 's/^ *//g' |\
 		tr ',' '\n' |\
 		tr -d ' ' |\
 		egrep -v -- '(-h|--help)'

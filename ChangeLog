@@ -2,6 +2,8 @@
 
 	* man/procenv.1: Replace hard-coded utf character with unicode
 	  escape equivalent to suppress warning on Fedora.
+	* src/tests/check_all_args.in: Replace heuristics to remove troff
+	  escapes with a safer approach.
 
 2015-09-28  James Hunt  <jamesodhunt@ubuntu.com>
 
