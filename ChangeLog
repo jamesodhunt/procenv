@@ -1,3 +1,8 @@
+2015-10-19  James Hunt  <jamesodhunt@ubuntu.com>
+
+	* man/procenv.1: Replace hard-coded utf character with unicode
+	  escape equivalent to suppress warning on Fedora.
+
 2015-09-28  James Hunt  <jamesodhunt@ubuntu.com>
 
 	* src/procenv.c:
