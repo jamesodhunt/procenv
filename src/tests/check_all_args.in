@@ -533,10 +533,10 @@ run_tests()
 					warn "development environment assumes (for example if built in a"
 					warn "chroot for a back-level release of ubuntu)"
 					warn ""
-					warn "Please check for a newer version of procenv "
-					warn "or raise a bug at:"
+					warn "Please check for a newer version of procenv, "
+					warn "build on a newer system, or raise a bug at:"
 					warn ""
-					warn "    https://bugs.launchpad.net/procenv/+filebug"
+					warn "    https://github.com/jamesodhunt/procenv/issues/new"
 					warn ""
 					warn ""
 				fi
