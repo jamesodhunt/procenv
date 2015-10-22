@@ -15,6 +15,7 @@ AC_SUBST(PROCENV_VERSION, procenv_version)
 AC_GNU_SOURCE
 AC_SYS_LARGEFILE
 
+#---------------------------------------------------------------------
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -22,14 +23,17 @@ AM_PROG_CC_C_O
 
 PKG_PROG_PKG_CONFIG
 
-# Checks for libraries.
+# Look for C unit test framework (http://check.sourceforge.net/).
+PKG_CHECK_MODULES([CHECK], [check], [HAVE_CHECK=yes], [HAVE_CHECK=no])
 
+#---------------------------------------------------------------------
 # Checks for header files.
 # this header is not available on older distributions (such as Ubuntu
 # Lucid)
 AC_CHECK_HEADERS([linux/securebits.h])
 AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
 
+#---------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 
@@ -78,6 +82,7 @@ AC_ARG_ENABLE([tests],
 
 AM_CONDITIONAL([ENABLE_TESTS], test "$enable_tests" = yes)
 
+#---------------------------------------------------------------------
 # Other checks
 
 # automake-1.13 defaults to running tests in parallel. As a consequence,
@@ -137,6 +142,7 @@ if test "$reproducible_build" = yes; then
 	AC_DEFINE([PROCENV_REPRODUCIBLE_BUILD], [1], [Generate a reproducible build])
 fi
 
+#---------------------------------------------------------------------
 # XXX: Dump details of the preprocess/compiler/linker *NOW* so that if
 # procenv fails to build later, the build logs will show details of the
 # environment that should aid remote debugging.
@@ -157,13 +163,14 @@ AC_OUTPUT(Makefile src/Makefile procenv.spec)
 AC_MSG_RESULT([
     Configure settings for $PACKAGE_NAME version $VERSION
 
-    Reproducible build : ${reproducible_build}
-    Debug build        : ${DEBUG_BUILD}
+    Reproducible build          : ${reproducible_build}
+    Debug build                 : ${DEBUG_BUILD}
+    Check Unit Test Framework   : ${HAVE_CHECK}
 
-    libapparmor        : ${HAVE_APPARMOR}
-    libselinux         : ${HAVE_SELINUX}
-    libcap             : ${HAVE_LIBCAP}
-    libnuma            : ${HAVE_NUMA}
-    libpthread         : ${HAVE_PTHREAD}
-    libkvm             : ${HAVE_KVM}
+    libapparmor                 : ${HAVE_APPARMOR}
+    libselinux                  : ${HAVE_SELINUX}
+    libcap                      : ${HAVE_LIBCAP}
+    libnuma                     : ${HAVE_NUMA}
+    libpthread                  : ${HAVE_PTHREAD}
+    libkvm                      : ${HAVE_KVM}
               ])
