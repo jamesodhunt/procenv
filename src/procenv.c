@@ -1439,6 +1439,7 @@ usage (void)
 	show ("  -E, --semaphores        : Display semaphore details.");
 	show ("  --exec                  : Treat non-option arguments as program to execute.");
 	show ("  -f, --fds               : Display file descriptor details.");
+	show ("  -F, --namespaces        : Display namespace details.");
 	show ("  --file=<file>           : Send output to <file> (implies --output=file).");
 	show ("  --format=<format>       : Specify output format. <format> can be one of:");
 	show ("");
@@ -3217,6 +3218,15 @@ show_fds (void)
 }
 
 void
+show_namespaces (void)
+{
+#if defined (PROCENV_LINUX)
+	show_namespaces_linux ();
+#endif
+
+}
+
+void
 show_fds_generic (void)
 {
 	int fd;
@@ -4260,6 +4270,7 @@ dump (void)
 	show_msg_queues ();
 	show_misc ();
 	show_mounts (SHOW_ALL);
+	show_namespaces ();
 	show_network ();
 	show_oom ();
 	show_platform ();
@@ -7726,6 +7737,76 @@ show_fds_linux (void)
 }
 
 void
+show_namespaces_linux (void)
+{
+	DIR            *dir;
+	struct dirent  *ent;
+	char           *prefix_path = "/proc/self/ns";
+	char            path[MAXPATHLEN];
+	char            link[MAXPATHLEN];
+	ssize_t         len;
+	char           *num = NULL;
+	PRList         *list = NULL;
+	int             i;
+
+	container_open ("namespaces");
+
+	dir = opendir (prefix_path);
+	if (! dir)
+		goto end;
+
+	list = pr_list_new (NULL);
+	assert (list);
+
+	while ((ent=readdir (dir)) != NULL) {
+		PRList *entry;
+
+		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
+			continue;
+
+		sprintf (path, "%s/%s", prefix_path, ent->d_name);
+
+		len = readlink (path, link, sizeof (link)-1);
+		if (len < 0)
+			/* ignore errors */
+			continue;
+
+		assert (len);
+		link[len] = '\0';
+
+		entry = pr_list_new (strdup (link));
+		assert (entry);
+
+		assert (pr_list_prepend_str_sorted (list, entry));
+	}
+
+	closedir (dir);
+
+	i = 0;
+	PR_LIST_FOREACH_SAFE (list, iter) {
+		pr_list_remove (iter);
+
+		object_open (FALSE);
+
+		appendf (&num, "%d", i);
+		entry (num, "%s", (char *)iter->data);
+		free (num);
+		num = NULL;
+		object_close (FALSE);
+
+		free ((char *)iter->data);
+		free(iter);
+
+		i++;
+	}
+
+	free_if_set (list);
+
+end:
+	container_close ();
+}
+
+void
 show_oom_linux (void)
 {
 	char    *dir = "/proc/self";
@@ -8415,6 +8496,7 @@ main (int    argc,
 		{"environment"     , no_argument, NULL, 'e'},
 		{"semaphores"      , no_argument, NULL, 'E'},
 		{"fds"             , no_argument, NULL, 'f'},
+		{"namespaces"      , no_argument, NULL, 'F'},
 		{"sizeof"          , no_argument, NULL, 'g'},
 		{"help"            , no_argument, NULL, 'h'},
 		{"misc"            , no_argument, NULL, 'i'},
@@ -8472,7 +8554,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbBcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
+				"aAbBcCdeEfFghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -8580,6 +8662,10 @@ main (int    argc,
 
 		case 'f':
 			show_fds ();
+			break;
+
+		case 'F':
+			show_namespaces ();
 			break;
 
 		case 'g':

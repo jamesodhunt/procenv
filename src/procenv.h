@@ -748,6 +748,9 @@ typedef struct element {
  */
 #define TRANSLATE_MAP_ENTRIES    (5+1)
 
+#define free_if_set(ptr) \
+    if (ptr) free (ptr)
+
 typedef struct translate_table {
 	OutputFormat output_format;
 	TranslateMapEntry map[TRANSLATE_MAP_ENTRIES];
@@ -959,6 +962,7 @@ void get_uname (void);
 void show_uname (void);
 void show_all_groups (void);
 void show_fds (void);
+void show_namespaces (void);
 void show_fds_generic (void);
 
 #if !defined (PROCENV_HURD)
@@ -1006,6 +1010,7 @@ void decode_extended_if_flags (const char *interface, unsigned short *flags);
 int get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);
+void show_namespaces_linux (void);
 void show_cgroups_linux (void);
 void show_oom_linux (void);
 void show_timezone_linux (void);
