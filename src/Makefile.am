@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 AM_CFLAGS = \
 	-pedantic \
 	-std=gnu99 \
@@ -31,10 +33,19 @@ check_all_args: tests/check_all_args.in
 	    $< > $@
 	chmod +x $@
 
+TESTS += check_pr_list
+
 # Run built binary to ensure we can display all values
 TESTS += procenv
 
 TESTS += check_all_args
+
+check_PROGRAMS = check_pr_list
+
+check_pr_list_SOURCES = tests/check_pr_list.c
+
+check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
+check_pr_list_LDADD = @CHECK_LIBS@ pr_list.o
 
 CLEANFILES += check_all_args
 
