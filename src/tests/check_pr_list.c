@@ -29,6 +29,27 @@
 #include <pr_list.h>
 #include <check.h>
 
+/* tolerate old check versions */
+#ifndef ck_assert_ptr_eq
+#define ck_assert_ptr_eq(a, b) \
+    assert ((a) == (b))
+#endif
+
+#ifndef ck_assert_ptr_ne
+#define ck_assert_ptr_ne(a, b) \
+    assert ((a) != (b))
+#endif
+
+#ifndef ck_assert_str_eq
+#define ck_assert_str_eq(a, b) \
+    assert (!strcmp (a, b))
+#endif
+
+#ifndef ck_assert_uint_eq
+#define ck_assert_uint_eq(a, b) \
+    assert ((uint)a == (uint)b)
+#endif
+
 /********************************************************************/
 
 char buffer[8];
