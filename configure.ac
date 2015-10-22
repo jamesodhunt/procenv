@@ -81,6 +81,7 @@ AC_ARG_ENABLE([tests],
 		[enable_tests=no], [enable_tests=yes])
 
 AM_CONDITIONAL([ENABLE_TESTS], test "$enable_tests" = yes)
+AM_CONDITIONAL([HAVE_CHECK], test "$HAVE_CHECK" = yes)
 
 #---------------------------------------------------------------------
 # Other checks
