@@ -1,5 +1,6 @@
 # TODO
 
+- pstring tests.
 - add /proc/cmdline?
   - could create a kernel category?:
     kernel:
@@ -33,8 +34,6 @@
   - change 'number' to 'index' and make it zero-based for consistency
     with affinity list
   - XXX: bump 'format-version' !!
-- XXX: run show_compiler_details *before* build to help diagnose
-  failures.
 - Add YAML output format?
 - Introduce "value()" that can take a bare value. This will allow for
   example mount options to be displayed in an output container.
@@ -70,7 +69,6 @@
 - Uptime (using utmp)?
 - Text/data/bss/stack details (end(3), sbrk(2))
 - mincore(2)?
-- Add program arguments to show_misc().
 - Add process arguments to show_proc_branch()?
 - Use CPUID instruction to detect XEN environments?
   (http://libcpuid.sourceforge.net/, http://www.etallen.com/cpuid.html)
