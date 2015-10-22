@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  * procenv - generic list handling routines.
  *
- * Copyright 2012-2014 James Hunt.
+ * Copyright © 2012-2015 James Hunt <jamesodhunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,14 @@ pr_list_new (void *data)
 	list->data = data;
 
 	return list;
+}
+
+inline int
+pr_list_empty(PRList *list)
+{
+    assert (list);
+
+    return list->next == list && list->prev == list;
 }
 
 /**
@@ -204,6 +212,97 @@ pr_list_prependn_str (PRList *list, const char *str, size_t len)
 	pr_list_prepend (list, entry);
 
 	return entry;
+}
+
+int
+pr_list_cmp_str(PRList *la, PRList *lb)
+{
+    const char *a, *b;
+
+    assert (la);
+    assert (lb);
+
+    a = (const char *)la->data;
+    b = (const char *)lb->data;
+
+    if (!a && !b) {
+        return 0;
+    } else if (!a && b) {
+        return -1;
+    } else if (a && !b) {
+        return 1;
+    } else {
+        int ret = strcmp(a, b);
+        return ret;
+    }
+}
+
+#define pr_list_next(list, direction) \
+    direction > 0 ? (list)->next : (list)->prev
+
+static PRList *
+pr_list_add_sorted_internal(PRList *list,
+            PRList *entry,
+            PRListCmp cmp,
+            int prepend)
+{
+	PRList *p;
+    PRList *start;
+    int direction;
+
+    assert (list);
+    assert (entry);
+    assert (cmp);
+
+    PRList *(*handler)(PRList *list, PRList *entry);
+
+    handler = prepend ? pr_list_prepend : pr_list_append; 
+
+    /* 1 being forwards, -1 backwards */
+    direction = prepend ? 1 : -1;
+
+    if (direction > 0) {
+        p = start = list->next;
+    } else {
+        p = start = list->prev;
+    }
+
+    for (p = start; p != list; p = pr_list_next(p, direction)) {
+        if (cmp (entry, p) < 0)
+            return handler(p, entry);
+    }
+
+    return handler(list, entry);
+}
+
+PRList *
+pr_list_prepend_sorted(PRList *list,
+            PRList *entry,
+            PRListCmp cmp)
+{
+    return pr_list_add_sorted_internal (list, entry, cmp, 1);
+}
+
+PRList *
+pr_list_append_sorted(PRList *list,
+            PRList *entry,
+            PRListCmp cmp)
+{
+    return pr_list_add_sorted_internal (list, entry, cmp, 0);
+}
+
+PRList *
+pr_list_prepend_str_sorted(PRList *list,
+            PRList *entry)
+{
+    return pr_list_prepend_sorted(list, entry, pr_list_cmp_str);
+}
+
+PRList *
+pr_list_append_str_sorted(PRList *list,
+            PRList *entry)
+{
+    return pr_list_append_sorted(list, entry, pr_list_cmp_str);
 }
 
 /**
