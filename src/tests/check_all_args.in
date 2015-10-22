@@ -536,7 +536,7 @@ run_tests()
 					warn "Please check for a newer version of procenv, "
 					warn "build on a newer system, or raise a bug at:"
 					warn ""
-					warn "    https://github.com/jamesodhunt/procenv/issues/new"
+					warn "    @package_url@"
 					warn ""
 					warn ""
 				fi

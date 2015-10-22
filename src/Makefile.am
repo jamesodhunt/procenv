@@ -30,6 +30,7 @@ CLEANFILES =
 check_all_args: tests/check_all_args.in
 	sed -e 's|[@]builddir[@]|$(top_builddir)/$(subdir)|g' \
 	    -e 's|[@]man_path[@]|$(top_srcdir)/man/procenv.1|g' \
+	    -e 's|[@]package_url[@]|$(PACKAGE_URL)|g' \
 	    $< > $@
 	chmod +x $@
 
