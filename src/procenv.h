@@ -129,8 +129,10 @@
  * VERSION 10:
  *   - Output is now sorted correctly (again - previously show_misc()
  *     and show_libc() were being called in the wrong order).
+ * VERSION 11:
+ *   - Added --namespaces.
  **/
-#define PROCENV_FORMAT_VERSION 10
+#define PROCENV_FORMAT_VERSION 11
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
