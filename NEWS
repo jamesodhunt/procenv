@@ -1,3 +1,12 @@
+0.41	2015-10-23
+    
+	* Further test improvements.
+	* Correct output order (libc before misc).
+	* Run compiler test before building procenv to aide remote debugging
+	  should the build fail.
+	* Code tidy-ups and Coverity tweaks.
+	* Added '--namespaces'/'-F' option.
+
 0.40	2015-09-27
 
 	* Updated email address.
