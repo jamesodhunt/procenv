@@ -59,10 +59,17 @@ Travis-CI
 Open Build Service (OBS)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Provides binary packages and build logs for RHEL, Fedora, Centos, SLES,
-and Arch Linux.
-
 * https://build.opensuse.org/package/show/home:jamesodhunt:procenv/procenv
+
+If you distro does not yet provide a ``procenv`` package, binary
+packages for RHEL, Fedora, Centos, SLES, and Arch Linux are available
+from here:
+
+* https://software.opensuse.org/download.html?project=home%3Ajamesodhunt%3Aprocenv&package=procenv
+
+Click on your icon for your distro and follow the instructions.
+
+Note that these packages are "bleeding edge" (generated directly from the github repository).
 
 Ubuntu
 ~~~~~~
