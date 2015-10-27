@@ -78,7 +78,7 @@ build environment
 .................
 
 Click the "twisty" triangle to the left of the release number under a
-release name, then click one of the build links (like "``amd64``":
+release name, then click one of the build links (like "``amd64``)":
 
 * https://launchpad.net/ubuntu/+source/procenv
 
