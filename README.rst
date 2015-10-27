@@ -56,6 +56,14 @@ Travis-CI
 
 * https://travis-ci.org/jamesodhunt/procenv
 
+Open Build Service (OBS)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Provides binary packages and build logs for RHEL, Fedora, Centos, SLES,
+and Arch Linux.
+
+* https://build.opensuse.org/package/show/home:jamesodhunt:procenv/procenv
+
 Ubuntu
 ~~~~~~
 
