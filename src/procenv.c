@@ -6556,7 +6556,9 @@ get_os (void)
 	return "z/OS (MVS)";
 #endif
 
+#ifndef __COVERITY__
 	return UNKNOWN_STR;
+#endif
 }
 
 /**
@@ -7595,8 +7597,7 @@ show_security_module_context_linux (void)
 		entry ("context", "%s", UNKNOWN_STR);
 	}
 
-	if (context)
-		free (context);
+    free (context);
 }
 
 void
