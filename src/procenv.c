@@ -7746,7 +7746,6 @@ show_namespaces_linux (void)
 	char            path[MAXPATHLEN];
 	char            link[MAXPATHLEN];
 	ssize_t         len;
-	char           *num = NULL;
 	PRList         *list = NULL;
 	int             i;
 
@@ -7785,16 +7784,31 @@ show_namespaces_linux (void)
 
 	i = 0;
 	PR_LIST_FOREACH_SAFE (list, iter) {
+		char *tmp;
+		char *name;
+		char *value;
+
 		pr_list_remove (iter);
 
-		object_open (FALSE);
+		tmp = iter->data;
 
-		appendf (&num, "%d", i);
-		entry (num, "%s", (char *)iter->data);
-		free (num);
-		num = NULL;
+		name = strsep (&tmp, ":");
+		if (! name)
+			goto give_up;
+
+		value = strsep (&tmp, "]");
+		if (! value)
+			goto give_up;
+
+		if (*value == '[' && value+1 && *(value+1)) {
+			value++;
+		}
+
+		object_open (FALSE);
+		entry (name, "%s", value);
 		object_close (FALSE);
 
+give_up:
 		free ((char *)iter->data);
 		free(iter);
 
@@ -8446,7 +8460,7 @@ void
 show_data_model (void)
 {
 	int	 ilp[3];
-	char     data_model[8];
+	char     data_model[16];
 	size_t   pointer_size;
 
 	ilp[0] = sizeof (int);
