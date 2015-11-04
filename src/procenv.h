@@ -131,8 +131,10 @@
  *     and show_libc() were being called in the wrong order).
  * VERSION 11:
  *   - Added --namespaces.
+ * VERSION 12:
+ *   - Change format of --namespaces output.
  **/
-#define PROCENV_FORMAT_VERSION 11
+#define PROCENV_FORMAT_VERSION 12
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
