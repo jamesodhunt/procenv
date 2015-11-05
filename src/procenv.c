@@ -7747,7 +7747,6 @@ show_namespaces_linux (void)
 	char            link[MAXPATHLEN];
 	ssize_t         len;
 	PRList         *list = NULL;
-	int             i;
 
 	container_open ("namespaces");
 
@@ -7782,7 +7781,6 @@ show_namespaces_linux (void)
 
 	closedir (dir);
 
-	i = 0;
 	PR_LIST_FOREACH_SAFE (list, iter) {
 		char *tmp;
 		char *name;
@@ -7811,8 +7809,6 @@ show_namespaces_linux (void)
 give_up:
 		free ((char *)iter->data);
 		free(iter);
-
-		i++;
 	}
 
 	free_if_set (list);
