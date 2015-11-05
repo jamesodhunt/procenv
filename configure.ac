@@ -151,7 +151,7 @@ fi
 #
 # This may be bad form, but trying to do this at the automake stage
 # seems(?) to be impossible.
-t=src/tests/show_compiler_details
+t=${srcdir}/src/tests/show_compiler_details
 msg=$(cat <<EOT
 checking that test '$t' runs (output an aide to debugging should procenv fail to build)
 
