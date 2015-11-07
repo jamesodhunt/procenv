@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright © 2012-2015 James Hunt <james.hunt@ubuntu.com>.
+ * Copyright © 2012-2015 James Hunt <jamesodhunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -611,7 +611,7 @@ struct procenv_map sysconf_map[] = {
 #endif
 
 #if defined (_SC_EQUIV_CLASS_MAX)
-	 mk_sysconf_map_entry(_SC_EQUIV_CLASS_MAX),
+	 mk_sysconf_map_entry (_SC_EQUIV_CLASS_MAX),
 #endif
 
 #if defined (_SC_EXPR_NEST_MAX)
@@ -1439,6 +1439,7 @@ usage (void)
 	show ("  -E, --semaphores        : Display semaphore details.");
 	show ("  --exec                  : Treat non-option arguments as program to execute.");
 	show ("  -f, --fds               : Display file descriptor details.");
+	show ("  -F, --namespaces        : Display namespace details.");
 	show ("  --file=<file>           : Send output to <file> (implies --output=file).");
 	show ("  --format=<format>       : Specify output format. <format> can be one of:");
 	show ("");
@@ -3139,8 +3140,8 @@ show_cpu_affinities (void)
 			/* Bail out at an arbitrary value.  */
 			if (mult > 128) break;
 			mult += 2;
-			cpu_set = CPU_ALLOC(mult * max);
-			size = CPU_ALLOC_SIZE(mult * max);
+			cpu_set = CPU_ALLOC (mult * max);
+			size = CPU_ALLOC_SIZE (mult * max);
 			CPU_ZERO_S (size, cpu_set);
 		}
 	}
@@ -3190,7 +3191,6 @@ show_cpu_affinities (void)
 					displayed ? "," : "",
 					first, last);
 		}
-		displayed = TRUE;
 	}
 
 out:
@@ -3213,6 +3213,15 @@ show_fds (void)
 	show_fds_linux ();
 #else
 	show_fds_generic ();
+#endif
+
+}
+
+void
+show_namespaces (void)
+{
+#if defined (PROCENV_LINUX)
+	show_namespaces_linux ();
 #endif
 
 }
@@ -4251,16 +4260,17 @@ dump (void)
 	show_cpu ();
 	show_env ();
 	show_fds ();
+	show_libc ();
 #ifndef PROCENV_ANDROID
 	show_libs ();
 #endif
 	show_rlimits ();
 	show_locale ();
-	show_libc ();
 	show_memory ();
-	show_misc ();
 	show_msg_queues ();
+	show_misc ();
 	show_mounts (SHOW_ALL);
+	show_namespaces ();
 	show_network ();
 	show_oom ();
 	show_platform ();
@@ -4845,7 +4855,6 @@ show_numa_memory (void)
 					displayed ? "," : "",
 					first, last);
 		}
-				displayed = TRUE;
 	}
 
 	entry ("allowed list", "%s", allowed_list);
@@ -6547,7 +6556,9 @@ get_os (void)
 	return "z/OS (MVS)";
 #endif
 
+#ifndef __COVERITY__
 	return UNKNOWN_STR;
+#endif
 }
 
 /**
@@ -7273,7 +7284,7 @@ show_uname (void)
 	entry ("machine", "%s", uts.machine);
 
 #if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
-	entry ("domainname", "%s", uts.domainname ? uts.domainname : UNKNOWN_STR);
+	entry ("domainname", "%s", uts.domainname[0] ? uts.domainname : UNKNOWN_STR);
 #endif
 
 	footer ();
@@ -7586,8 +7597,7 @@ show_security_module_context_linux (void)
 		entry ("context", "%s", UNKNOWN_STR);
 	}
 
-	if (context)
-		free (context);
+    free (context);
 }
 
 void
@@ -7728,6 +7738,86 @@ show_fds_linux (void)
 }
 
 void
+show_namespaces_linux (void)
+{
+	DIR            *dir;
+	struct dirent  *ent;
+	char           *prefix_path = "/proc/self/ns";
+	char            path[MAXPATHLEN];
+	char            link[MAXPATHLEN];
+	ssize_t         len;
+	PRList         *list = NULL;
+
+	container_open ("namespaces");
+
+	dir = opendir (prefix_path);
+	if (! dir)
+		goto end;
+
+	list = pr_list_new (NULL);
+	assert (list);
+
+	while ((ent=readdir (dir)) != NULL) {
+		PRList *entry;
+
+		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
+			continue;
+
+		sprintf (path, "%s/%s", prefix_path, ent->d_name);
+
+		len = readlink (path, link, sizeof (link)-1);
+		if (len < 0)
+			/* ignore errors */
+			continue;
+
+		assert (len);
+		link[len] = '\0';
+
+		entry = pr_list_new (strdup (link));
+		assert (entry);
+
+		assert (pr_list_prepend_str_sorted (list, entry));
+	}
+
+	closedir (dir);
+
+	PR_LIST_FOREACH_SAFE (list, iter) {
+		char *tmp;
+		char *name;
+		char *value;
+
+		pr_list_remove (iter);
+
+		tmp = iter->data;
+
+		name = strsep (&tmp, ":");
+		if (! name)
+			goto give_up;
+
+		value = strsep (&tmp, "]");
+		if (! value)
+			goto give_up;
+
+		if (*value == '[' && value+1 && *(value+1)) {
+			value++;
+		}
+
+		object_open (FALSE);
+		entry (name, "%s", value);
+		object_close (FALSE);
+
+give_up:
+		free ((char *)iter->data);
+		free(iter);
+	}
+
+	free_if_set (list);
+
+end:
+	container_close ();
+}
+
+void
 show_oom_linux (void)
 {
 	char    *dir = "/proc/self";
@@ -7811,7 +7901,7 @@ unknown_sched_cpu:
 	entry ("number", "%s of %ld", UNKNOWN_STR, max);
 }
 
-#if ! defined(HAVE_SCHED_GETCPU)
+#if ! defined (HAVE_SCHED_GETCPU)
 
 /* Crutch function for RHEL 5 */
 int
@@ -8366,7 +8456,7 @@ void
 show_data_model (void)
 {
 	int	 ilp[3];
-	char     data_model[8];
+	char     data_model[16];
 	size_t   pointer_size;
 
 	ilp[0] = sizeof (int);
@@ -8417,6 +8507,7 @@ main (int    argc,
 		{"environment"     , no_argument, NULL, 'e'},
 		{"semaphores"      , no_argument, NULL, 'E'},
 		{"fds"             , no_argument, NULL, 'f'},
+		{"namespaces"      , no_argument, NULL, 'F'},
 		{"sizeof"          , no_argument, NULL, 'g'},
 		{"help"            , no_argument, NULL, 'h'},
 		{"misc"            , no_argument, NULL, 'i'},
@@ -8474,7 +8565,7 @@ main (int    argc,
 
 	while (TRUE) {
 		option = getopt_long (argc, argv,
-				"aAbBcCdeEfghijklLmMnNopPqrsStTuUvwxyYz",
+				"aAbBcCdeEfFghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
 		if (option == -1)
 			break;
@@ -8507,7 +8598,7 @@ main (int    argc,
 			} else if (! strcmp ("format", long_options[long_index].name)) {
 				output_format = get_output_format (optarg);
 			} else if (! strcmp ("indent", long_options[long_index].name)) {
-				indent_amount = atoi(optarg);
+				indent_amount = atoi (optarg);
 				if (indent_amount <= 0)
 					die ("cannot specify indent <= 0");
 			} else if (! strcmp ("indent-char", long_options[long_index].name)) {
@@ -8582,6 +8673,10 @@ main (int    argc,
 
 		case 'f':
 			show_fds ();
+			break;
+
+		case 'F':
+			show_namespaces ();
 			break;
 
 		case 'g':
@@ -10574,7 +10669,7 @@ error:
 	return NULL;
 }
 
-#if ! defined(HAVE_SCHED_GETCPU)
+#if ! defined (HAVE_SCHED_GETCPU)
 
 /**
  * @string: input,

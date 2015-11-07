@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  * procenv - generic list handling header.
  *
- * Copyright 2012-2014 James Hunt.
+ * Copyright 2012-2015 James Hunt <jamesodhunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,8 @@ typedef struct list {
 
 typedef void (*PRListVisitor) (PRList *entry);
 
+typedef int (*PRListCmp) (PRList *a, PRList *b);
+
 PRList *pr_list_new (void *data);
 
 PRList *pr_list_append (PRList *list, PRList *entry);
@@ -50,6 +52,12 @@ PRList *pr_list_prepend (PRList *list, PRList *entry);
 PRList *pr_list_prepend_str (PRList *list, const char *str);
 PRList *pr_list_prependn_str (PRList *list, const char *str, size_t len);
 
+PRList *pr_list_prepend_str_sorted(PRList *list, PRList *entry);
+PRList *pr_list_prepend_sorted(PRList *list, PRList *entry, PRListCmp cmp);
+
+PRList *pr_list_append_str_sorted(PRList *list, PRList *entry);
+PRList *pr_list_append_sorted(PRList *list, PRList *entry, PRListCmp cmp);
+
 PRList *pr_list_remove (PRList *entry);
 
 void pr_list_foreach_visit (PRList *list, PRListVisitor visitor);
@@ -59,6 +67,11 @@ void pr_list_visitor_str (PRList *entry);
 
 #define PR_LIST_FOREACH(list, iter) \
 	for (PRList *iter = (list)->next; iter != (list); iter = iter->next)
+
+#define PR_LIST_FOREACH_SAFE(list, iter) \
+	for (PRList *iter = (list)->next, *tmp = iter->next; \
+		iter != (list); \
+		iter = tmp, tmp = iter->next)
 
 #define PR_LIST_FOREACH_REV(list, iter) \
 	for (PRList *iter = (list)->prev; iter != (list); iter = iter->prev)

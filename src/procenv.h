@@ -126,8 +126,15 @@
  *   - --shared-memory: Added swap_attempts and swap_successes.
  * VERSION 9:
  *   - --meta now includes a 'build-type' field.
+ * VERSION 10:
+ *   - Output is now sorted correctly (again - previously show_misc()
+ *     and show_libc() were being called in the wrong order).
+ * VERSION 11:
+ *   - Added --namespaces.
+ * VERSION 12:
+ *   - Change format of --namespaces output.
  **/
-#define PROCENV_FORMAT_VERSION 9
+#define PROCENV_FORMAT_VERSION 12
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 
@@ -481,7 +488,7 @@ int cap_get_bound (cap_value_t cap);
 /* If an indent is required, use this many INDENT_CHARs by default */
 #define DEFAULT_INDENT_AMOUNT 2
 
-#define PROGRAM_AUTHORS "James Hunt <james.hunt@ubuntu.com>"
+#define PROGRAM_AUTHORS "James Hunt <jamesodhunt@ubuntu.com>"
 
 #define show(...) _show ("", indent, __VA_ARGS__)
 
@@ -745,6 +752,9 @@ typedef struct element {
  */
 #define TRANSLATE_MAP_ENTRIES    (5+1)
 
+#define free_if_set(ptr) \
+    if (ptr) free (ptr)
+
 typedef struct translate_table {
 	OutputFormat output_format;
 	TranslateMapEntry map[TRANSLATE_MAP_ENTRIES];
@@ -956,6 +966,7 @@ void get_uname (void);
 void show_uname (void);
 void show_all_groups (void);
 void show_fds (void);
+void show_namespaces (void);
 void show_fds_generic (void);
 
 #if !defined (PROCENV_HURD)
@@ -1003,6 +1014,7 @@ void decode_extended_if_flags (const char *interface, unsigned short *flags);
 int get_canonical (const char *path, char *canonical, size_t len);
 void get_tty_locked_status (struct termios *lock_status);
 void show_fds_linux (void);
+void show_namespaces_linux (void);
 void show_cgroups_linux (void);
 void show_oom_linux (void);
 void show_timezone_linux (void);

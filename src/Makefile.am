@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 AM_CFLAGS = \
 	-pedantic \
 	-std=gnu99 \
@@ -27,12 +29,20 @@ CLEANFILES =
 
 check_all_args: tests/check_all_args.in
 	sed -e 's|[@]builddir[@]|$(top_builddir)/$(subdir)|g' \
+	    -e 's|[@]man_path[@]|$(top_srcdir)/man/procenv.1|g' \
+	    -e 's|[@]package_url[@]|$(PACKAGE_URL)|g' \
 	    $< > $@
 	chmod +x $@
 
-# Dump preprocessor/compiler/linker details as debug aid should the
-# subsequent test fail.
-TESTS += tests/show_compiler_details
+if HAVE_CHECK
+TESTS += check_pr_list
+
+check_PROGRAMS = check_pr_list
+check_pr_list_SOURCES = tests/check_pr_list.c
+check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
+check_pr_list_LDADD = @CHECK_LIBS@ pr_list.o
+
+endif
 
 # Run built binary to ensure we can display all values
 TESTS += procenv
@@ -45,4 +55,5 @@ endif
 
 EXTRA_DIST = \
     tests/show_compiler_details \
-    tests/check_all_args.in
+    tests/check_all_args.in \
+	tests/check_pr_list.c

@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2014-09-18" "User Commands"
+.TH PROCENV "1" "2015-10-27" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -101,6 +101,12 @@ See
 .BR cap_rights_is_set (3) "" " (BSD)" "" ", "
 .BR fcntl (2) "" ", "
 .BR isatty (5) "" "."
+.\"
+.TP
+\fB\-F\fR, \fB\-\-namespaces\fR
+Display namespace details (Linux only).
+See
+.BR proc (5) "" .
 .\"
 .TP
 \fB\-\-file=\fR\fIFILE\fR (*)
@@ -284,17 +290,17 @@ See
 .PP
 .\"
 .TP
-\fB\-\-separator=\fR\fIstr\fR (*)
-Specify string
-.I str
-as alternate delimiter for text format output (default=\(aq: \(aq).
-.\"
-.TP
 \fB\-S\fR, \fB\-\-shared\-memory\fR
 Display shared memory details (not queryable on BSD).
 See
 .BR shmctl (2) "" .
 .PP
+.\"
+.TP
+\fB\-\-separator=\fR\fIstr\fR (*)
+Specify string
+.I str
+as alternate delimiter for text format output (default=\(aq: \(aq).
 .\"
 .TP
 \fB\-t\fR, \fB\-\-tty\fR
@@ -488,7 +494,7 @@ the values are queryable, there is no documented method to do so.
 \& procenv \-\-format=crumb \-\-crumb\-separator=\(aq,\(aq \-\-separator=\(aq,\(aq \-\-limits
 \&
 \& # Produce stylised output
-\& procenv \-\-format=crumb \-\-crumb\-separator=\(aq → \(aq \-\-separator=\(aq=\(aq
+\& procenv \-\-format=crumb \-\-crumb\-separator=\(aq \[u2192] \(aq \-\-separator=\(aq=\(aq
 \&
 .Ve
 .Ve

@@ -5,8 +5,8 @@ Summary:        Utility to show process environment
 
 Group:          Applications/System
 License:        GPLv3+
-URL:            https://launchpad.net/procenv
-Source0:        https://launchpad.net/procenv/trunk/%{version}/+download/procenv-%{version}.tar.gz
+URL:            https://github.com/jamesodhunt/procenv
+Source0:        https://github.com/jamesodhunt/procenv/archive/@PROCENV_VERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 # fixme: should be autoconf >= 2.68, but Fedora packages or alien'ed dpkg
@@ -50,7 +50,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_bindir}/procenv
 %{_mandir}/man1/procenv.1.gz
-%doc
+%doc NEWS ChangeLog TODO
 
 %changelog
 * Thu Jun  5 2014 Dave Love <d.love@liverpool.ac.uk> - 0.35-2
@@ -62,7 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Jan 23 2014 James Hunt <james.hunt@ubuntu.com> - 0.30-1
 - Update to 0.30.
 
-* Wed Nov 14 2013 Dave Love <d.love@liverpool.ac.uk> - 0.27-1
+* Thu Nov 14 2013 Dave Love <d.love@liverpool.ac.uk> - 0.27-1
 - Update to 0.27, fix Source0
 
 * Sun Dec  9 2012 Dave Love <fx@gnu.org> - 0.18-1
