@@ -1,9 +1,9 @@
-procenv (0.42-1) UNRELEASED; urgency=medium
+procenv (0.42-1) unstable; urgency=medium
 
   * debian/control: Update Homepage.
   * New upstream release.
 
- -- James Hunt <jamesodhunt@ubuntu.com>  Sat, 07 Nov 2015 10:29:31 +0000
+ -- James Hunt <jamesodhunt@ubuntu.com>  Sat, 07 Nov 2015 10:43:17 +0000
 
 procenv (0.40-2) unstable; urgency=medium
 
