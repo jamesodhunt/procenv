@@ -1,3 +1,9 @@
+procenv (0.42-2) UNRELEASED; urgency=medium
+
+  * debian/control: Build-depend on 'check'.
+
+ -- James Hunt <jamesodhunt@ubuntu.com>  Sun, 08 Nov 2015 13:35:29 +0000
+
 procenv (0.42-1) unstable; urgency=medium
 
   * debian/control: Update Homepage.
