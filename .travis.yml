@@ -8,7 +8,7 @@ compiler:
   - clang
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y autopoint expat libnuma-dev libcap-dev check
+  - sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
 script: ./configure && make -j4 && make check
 notifications:
   email:
