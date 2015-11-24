@@ -1049,6 +1049,7 @@ void show_timezone_stub (void);
 void show_shared_mem_stub (void);
 void show_semaphores_stub ();
 void show_msg_queues_stub (void);
+void show_namespaces_stub (void);
 
 #endif /* PROCENV_LINUX */
 
