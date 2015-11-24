@@ -1,3 +1,7 @@
+0.43	2015-11-24
+
+	* Namespace fix for non-Linux platforms.
+
 0.42	2015-11-05
 
 	* Documentation improvements.
