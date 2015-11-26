@@ -1,3 +1,29 @@
 branches:
   only:
     - master
+language: c
+compiler:
+  - gcc
+  - clang
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
+script: autoreconf -fi && ./configure && make -j4 && make check
+notifications:
+  email:
+    recipients:
+      - jamesodhunt@ubuntu.com
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "ywIKOpIjRkWL+8KTvJwt2AInz1cgUVU56yo6KIyOv+SRTzCneHXlylQ/F7rxnWYLBZHzOF2GdrWRsUekLDYqIIMdMeYZ50gNT+ZjN4JIVqnlK8X2BJrdpzoxBA4jSJS0gx836GuAX7q0oiI7ZrJikAyFkQJr98n8klR6aFKGiE/0kyxambETqqlOmPnq3/sdsnmeA4HFswflGIX/34s+7RUpmB/O2ix1CTgSt+I8WKo3vvAksVxqo1utx4IwVLlmmvfBfqJXTPK5ZkdcdfieqRSGmSl3hyn9ZgyG8NnR8qFQx2KyGIsgdJAyW4MpxC9lpHq+kWCOz19xjeGVGrWGAPJMWSi/qKFATJXajPVbpKxoPFDmDjd+sUi4rQLyiOb0KI4z2GYXZ3d1let06OTyC9cIe1fwdDJ+7tdLsQpX0uMLHwYL/LrA6O6W3YARSxTVHgi34WQqyQ7P2A1NZHcj6wG2krFLpVEyP/+sxuMi6OFKzZLiUH/oPWjlBBCGPxUXkjV4QV3j1+1XYJS5Xai8WczFB6aWbJD8khMz3l1yICQ/WernY+ro4M4Aw0uBC9wL2Tqj1fu4OW4ws9YyjGA/ok8s918BufOTw9kbA7s96Saw6ZezZLlxwV5fI0AJYrNvbn57dXehS0vfDSQEYQCAEsAczCbpuW4ils/gnnd/uS4="
+addons:
+  coverity_scan:
+    project:
+      name: "jamesodhunt/procenv"
+      description: "Build submitted via Travis CI"
+    notification_email: jamesodhunt@gmail.com
+    build_command_prepend: "autoreconf -fi && ./configure; make clean"
+    build_command: "make -j 4"
+    branch_pattern: master

@@ -642,6 +642,13 @@ run_final_tests()
 
 #---------------------------------------------------------------------
 
+# allow this useful function to be called independent of the tests.
+case "$1" in
+    options)
+        get_procenv_options
+        exit 0
+esac
+
 init
 
 saved_lang=$LANG

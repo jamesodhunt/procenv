@@ -3222,6 +3222,8 @@ show_namespaces (void)
 {
 #if defined (PROCENV_LINUX)
 	show_namespaces_linux ();
+#else
+	show_namespaces_stub ();
 #endif
 
 }
@@ -4528,7 +4530,9 @@ show_mounts_linux (ShowMountType what)
 			fsblkcnt_t bavail = 0;
 			fsblkcnt_t used_blocks = 0;
 			fsblkcnt_t used_files = 0;
+#if defined (PROCENV_LINUX)
 			int        ret;
+#endif
 
 			if (statvfs (mnt->mnt_dir, &fs) < 0) {
 				have_stats = FALSE;
@@ -7995,6 +7999,12 @@ get_tty_locked_status (struct termios *lock_status)
 }
 #else
 
+void
+show_namespaces_stub (void)
+{
+	header ("namespaces");
+	footer ();
+}
 void
 show_cgroups_stub (void)
 {
