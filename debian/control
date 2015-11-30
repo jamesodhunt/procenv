@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, pkg-config,
   libkvm-dev [kfreebsd-any],
   automake (>= 1.12),
   perl, expat, check,
-  libnuma-dev [linux-i386 linux-amd64 linux-ia64 linux-mips linux-mipsel linux-powerpc linux-ppc64 linux-ppc64el linux-x32],
+  libnuma-dev [linux-i386 linux-amd64 linux-ia64 linux-mips linux-mipsel linux-mips64 linux-mips64el linux-powerpc linux-ppc64 linux-ppc64el linux-x32],
   libcap-dev [linux-any],
   libselinux1-dev [linux-any], libapparmor-dev [linux-any]
 Standards-Version: 3.9.5
