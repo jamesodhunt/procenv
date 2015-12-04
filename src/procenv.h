@@ -196,6 +196,7 @@
 #include <sys/inotify.h>
 #include <sys/prctl.h>
 #include <sys/personality.h>
+#include <sys/syscall.h>
 
 #include <linux/prctl.h>
 #include <linux/version.h>
@@ -1039,6 +1040,9 @@ const char *get_numa_policy (int policy);
 
 const char *get_personality_name (unsigned int domain);
 char *get_personality_flags (unsigned int flags);
+void get_io_priorities (void);
+const char * get_ioprio_class_name (int ioprio);
+int io_prio_get (int which, int who);
 
 #else /* ! PROCENV_LINUX */
 

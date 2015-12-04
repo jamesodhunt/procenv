@@ -162,6 +162,7 @@ static PRList *crumb_list = NULL;
 struct procenv_user     user;
 struct procenv_misc     misc;
 struct procenv_priority priority;
+struct procenv_priority priority_io;
 
 struct utsname uts;
 
@@ -418,6 +419,35 @@ struct personality_flag_map {
 #if defined (WHOLE_SECONDS)
 	mk_map_entry (WHOLE_SECONDS),
 #endif
+
+	{ 0, NULL }
+};
+
+#define IOPRIO_CLASS_SHIFT (13)
+#define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
+#define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
+#define IOPRIO_PRIO_DATA(mask) ((mask) & IOPRIO_PRIO_MASK)
+
+enum {
+    IOPRIO_WHO_PROCESS = 1,
+    IOPRIO_WHO_PGRP,
+    IOPRIO_WHO_USER,
+};
+
+enum {
+    IOPRIO_CLASS_NONE, /* FIXME: is this valid? */
+	IOPRIO_CLASS_RT,
+	IOPRIO_CLASS_BE,
+	IOPRIO_CLASS_IDLE,
+    IOPRIO_CLASS_NORMAL,
+};
+
+struct procenv_map io_priorities_class_map[] = {
+	mk_map_entry (IOPRIO_CLASS_NONE),
+	mk_map_entry (IOPRIO_CLASS_RT),
+	mk_map_entry (IOPRIO_CLASS_BE),
+	mk_map_entry (IOPRIO_CLASS_IDLE),
+	mk_map_entry (IOPRIO_CLASS_NORMAL),
 
 	{ 0, NULL }
 };
@@ -2924,6 +2954,25 @@ show_priorities (void)
 
 	section_close ();
 
+	section_open ("I/O priority");
+
+	section_open ("process");
+	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.process)));
+	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.process));
+	section_close ();
+
+	section_open ("group");
+	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.pgrp)));
+	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.pgrp));
+	section_close ();
+
+	section_open ("user");
+	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.user)));
+	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.user));
+	section_close ();
+
+	section_close ();
+
 	section_close ();
 }
 
@@ -4037,6 +4086,10 @@ init (void)
 	get_user_info ();
 	get_misc ();
 	get_priorities ();
+
+#if defined (PROCENV_LINUX)
+	get_io_priorities ();
+#endif
 }
 
 void
@@ -4919,6 +4972,19 @@ get_personality_flags (unsigned int flags)
 	}
 
 	return list;
+}
+
+const char *
+get_ioprio_class_name (int ioprio)
+{
+	struct procenv_map *p;
+
+	for (p = io_priorities_class_map; p && p->name; p++) {
+		if (ioprio == p->num)
+			return p->name;
+	}
+
+	return NULL;
 }
 
 #endif /* PROCENV_LINUX */
@@ -6146,6 +6212,20 @@ show_prctl_linux (void)
 #endif
 
 	section_close ();
+}
+
+void
+get_io_priorities (void)
+{
+	priority_io.process = io_prio_get (IOPRIO_WHO_PROCESS, 0);
+	priority_io.pgrp    = io_prio_get (IOPRIO_WHO_PGRP   , 0);
+	priority_io.user    = io_prio_get (IOPRIO_WHO_USER   , 0);
+}
+
+/* No GLib wrapper, so create one */
+int io_prio_get (int which, int who)
+{
+    return syscall(SYS_ioprio_get, which, who);
 }
 
 #endif
