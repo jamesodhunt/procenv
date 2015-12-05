@@ -423,6 +423,7 @@ struct personality_flag_map {
 	{ 0, NULL }
 };
 
+/* lifted from include/linux/ioprio.h since not available in libc */
 #define IOPRIO_CLASS_SHIFT (13)
 #define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
 #define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
