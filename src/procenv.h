@@ -133,8 +133,10 @@
  *   - Added --namespaces.
  * VERSION 12:
  *   - Change format of --namespaces output.
+ * VERSION 13:
+ *   - Added I/O priority to --cpu.
  **/
-#define PROCENV_FORMAT_VERSION 12
+#define PROCENV_FORMAT_VERSION 13
 
 #define PROCENV_DEFAULT_TEXT_SEPARATOR ": "
 

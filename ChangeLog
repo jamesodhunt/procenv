@@ -1,3 +1,7 @@
+2015-12-08  James Hunt  <jamesodhunt@ubuntu.com>
+
+	* src/procenv.h: Bump PROCENV_FORMAT_VERSION for I/O priority.
+
 2015-10-19  James Hunt  <jamesodhunt@ubuntu.com>
 
 	* man/procenv.1: Replace hard-coded utf character with unicode
