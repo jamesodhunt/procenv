@@ -8,6 +8,10 @@ CC=${CC:-cc}
 CPP=${CPP:-cpp}
 LD=${LD:-ld}
 
+# handle strange environments
+command -v gcpp >/dev/null 2>&1 && CPP=gcpp
+command -v gcc >/dev/null 2>&1 && CC=gcc
+
 echo "XXX:--------------------------------------------------"
 echo "XXX: $0: preprocessor ('$CPP') version"
 echo
