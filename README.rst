@@ -90,24 +90,39 @@ https://code.launchpad.net/~jamesodhunt/+recipe/procenv-daily
 Ubuntu Autopkgtest (DEP-8) environment
 ......................................
 
-* https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-procenv/
-* https://jenkins.qa.ubuntu.com/view/Vivid/view/AutoPkgTest/job/vivid-adt-procenv/
-* https://jenkins.qa.ubuntu.com/view/Utopic/view/AutoPkgTest/job/utopic-adt-procenv/
-* https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/job/trusty-adt-procenv/
+* http://autopkgtest.ubuntu.com/packages/p/procenv/
+
+* Old Jenkins system
+
+  * https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-procenv/
+
+  * https://jenkins.qa.ubuntu.com/view/Vivid/view/AutoPkgTest/job/vivid-adt-procenv/
+
+  * https://jenkins.qa.ubuntu.com/view/Utopic/view/AutoPkgTest/job/utopic-adt-procenv/
+
+  * https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/job/trusty-adt-procenv/
 
 The ``sbuild`` tool environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``procenv`` gets run from within sbuild via a DEP-8 test:
 
-* https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-sbuild/
+* http://autopkgtest.ubuntu.com/packages/s/sbuild/
+
+* Old Jenkins system
+
+  * https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-sbuild/
 
 The ``pbuilder`` tool environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``procenv`` gets run from within pbuilder via a DEP-8 test:
 
-* https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-pbuilder/
+* http://autopkgtest.ubuntu.com/packages/p/pbuilder/
+
+* Old Jenkins system
+
+  * https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-pbuilder/
 
 Debian
 ~~~~~~
