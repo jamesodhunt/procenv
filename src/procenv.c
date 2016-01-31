@@ -8924,8 +8924,6 @@ main (int    argc,
 		if (output_format != OUTPUT_FORMAT_XML && output_format != OUTPUT_FORMAT_JSON) {
 			compress (&doc, wide_indent_char);
 		}
-
-		goto finish;
 	}
 
 	if (output == OUTPUT_SYSLOG)
@@ -8942,13 +8940,14 @@ main (int    argc,
 		}
 	}
 
-	dump ();
+	if (! done) {
+		dump ();
 
-	chomp (doc);
+		chomp (doc);
 
-	compress (&doc, wide_indent_char);
+		compress (&doc, wide_indent_char);
+	}
 
-finish:
 	_show_output_pstring (doc);
 	cleanup ();
 
