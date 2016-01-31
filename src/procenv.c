@@ -6804,12 +6804,28 @@ show_clocks (void)
 
 	show_clock_res (CLOCK_REALTIME);
 
+#if defined CLOCK_REALTIME_COARSE
+	show_clock_res (CLOCK_REALTIME_COARSE);
+#endif
+
+#if defined CLOCK_REALTIME_HR
+	show_clock_res (CLOCK_REALTIME_HR);
+#endif
+
 #if defined (__FreeBSD__)
 	show_clock_res (CLOCK_REALTIME_PRECISE);
 	show_clock_res (CLOCK_REALTIME_FAST);
 #endif
 
 	show_clock_res (CLOCK_MONOTONIC);
+
+#if defined CLOCK_MONOTONIC_COARSE
+	show_clock_res (CLOCK_MONOTONIC_COARSE);
+#endif
+
+#if defined CLOCK_MONOTONIC_RAW
+	show_clock_res (CLOCK_MONOTONIC_RAW);
+#endif
 
 #if defined (__FreeBSD__) || defined (PROCENV_GNU_BSD)
 	show_clock_res (CLOCK_MONOTONIC_PRECISE);
@@ -6830,6 +6846,9 @@ show_clocks (void)
 #endif
 	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
+#if defined CLOCK_BOOTTIME
+#endif
+	show_clock_res (CLOCK_BOOTTIME);
 #endif
 
 	footer ();
