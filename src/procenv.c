@@ -6841,14 +6841,16 @@ show_clocks (void)
 #endif
 
 #if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+
 #ifdef CLOCK_MONOTONIC_RAW
 	show_clock_res (CLOCK_MONOTONIC_RAW);
 #endif
 	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
 #if defined CLOCK_BOOTTIME
-#endif
 	show_clock_res (CLOCK_BOOTTIME);
+#endif
+
 #endif
 
 	footer ();
