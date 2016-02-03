@@ -7725,7 +7725,7 @@ show_cgroups_linux (void)
 	while (fgets (buffer, sizeof (buffer), f)) {
 		char  *buf, *b;
 		char  *hierarchy;
-		char  *subsystems;
+		char  *subsystems = NULL;
 		char  *path;
 
 		len = strlen (buffer);
@@ -7740,9 +7740,10 @@ show_cgroups_linux (void)
 		if (! hierarchy)
 			goto next;
 
+		/* don't fail if this returns '\0' to tolerate cgroup2 where the
+		 * subsystem is always empty.
+		 */
 		subsystems = strsep (&b, delim);
-		if (! subsystems)
-			goto next;
 
 		path = strsep (&b, delim);
 		if (! path)
@@ -7754,7 +7755,8 @@ show_cgroups_linux (void)
 		object_open (FALSE);
 
 		/* FIXME: should split this on comma */
-		entry ("subsystems", "%s", subsystems);
+		if (subsystems && *subsystems)
+			entry ("subsystems", "%s", subsystems);
 
 		entry ("path", "%s", path);
 
