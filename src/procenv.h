@@ -212,9 +212,12 @@
 #define PROCENV_NUMA_BITMASK_ISSET(mask, node)	numa_bitmask_isbitset ((mask), (node))
 #else
 #define PROCENV_NUMA_BITMASK_ISSET(mask, node)	nodemask_isset (&(mask), (node))
-int procenv_getcpu (void);
 #endif
 #endif /* HAVE_NUMA_H */
+
+#if ! defined (HAVE_SCHED_GETCPU)
+int procenv_getcpu (void);
+#endif
 
 #if ! defined(HAVE_SCHED_GETCPU)
 size_t split_fields (const char *string, char delimiter, int compress, char ***array);

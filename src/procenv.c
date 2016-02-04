@@ -3393,7 +3393,9 @@ get_user_info (void)
 {
 	struct passwd *pw;
 	void          *p;
+#ifdef _GNU_SOURCE
 	int            ret;
+#endif
 
 	user.pid  = getpid ();
 	user.ppid = getppid ();
@@ -4289,9 +4291,13 @@ get_kernel_bits (void)
 	long value;
 
 	errno = 0;
+#if defined (_SC_LONG_BIT)
 	value = get_sysconf (_SC_LONG_BIT);
 	if (value == -1 && errno != 0)
 		return -1;
+#else
+	value = sizeof (long) * CHAR_BIT;
+#endif
 	return value;
 #endif
 	return -1;
@@ -6433,7 +6439,9 @@ work:
 
 	show_const_tty (tty, c_lflag, ISIG, lock_status);
 #if defined (PROCENV_LINUX)
+#if defined (XCASE)
 	show_const_tty (tty, c_lflag, XCASE, lock_status);
+#endif
 #endif
 	show_const_tty (tty, c_lflag, ICANON, lock_status);
 	show_const_tty (tty, c_lflag, ECHO, lock_status);
@@ -7906,7 +7914,7 @@ show_namespaces_linux (void)
 		if (! value)
 			goto give_up;
 
-		if (*value == '[' && value+1 && *(value+1)) {
+		if (*value == '[' && *(value+1)) {
 			value++;
 		}
 
