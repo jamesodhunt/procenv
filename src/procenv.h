@@ -200,7 +200,10 @@
 #include <sys/personality.h>
 #include <sys/syscall.h>
 
+#ifndef _SYS_PRCTL_H
 #include <linux/prctl.h>
+#endif
+
 #include <linux/version.h>
 
 #if defined (HAVE_NUMA_H)
