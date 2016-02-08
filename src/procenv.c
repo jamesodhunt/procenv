@@ -2957,6 +2957,7 @@ show_priorities (void)
 
 	section_open ("I/O priority");
 
+#if defined (PROCENV_LINUX)
 	section_open ("process");
 	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.process)));
 	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.process));
@@ -2971,6 +2972,7 @@ show_priorities (void)
 	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.user)));
 	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.user));
 	section_close ();
+#endif
 
 	section_close ();
 
