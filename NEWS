@@ -1,3 +1,14 @@
+0.44	2016-02-15
+
+	* --cgroup: Handle cgroup2 (cgroups v2).
+
+	* --clocks: now also includes CLOCK_REALTIME_COURSE, CLOCK_REALTIME_HR,
+	  CLOCK_MONOTONIC_COURSE, CLOCK_MONOTONIC_RAW and CLOCK_BOOTTIME.
+
+	* --cpu: added I/O priority.
+
+	* Fixed crash if non-output argument specified before "--exec".
+
 0.43	2015-11-24
 
 	* Namespace fix for non-Linux platforms.
