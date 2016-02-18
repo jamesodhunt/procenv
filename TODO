@@ -1,6 +1,5 @@
 # TODO
 
-- update to handle cgroup2 when 4.5 kernel released!
 - merge --clocks into --time.
 - call clock_getime() for all clock types and show time in 3 formats for each!
 - debian license file has incorrect email address.

@@ -7,9 +7,13 @@
    :target: https://scan.coverity.com/projects/jamesodhunt-procenv
    :alt: Coverity Scan Build Status
 
-.. image:: https://img.shields.io/badge/donate-flattr-red.svg
+.. image:: https://img.shields.io/badge/donate-flattr-blue.svg
    :alt: Donate via flattr
    :target: https://flattr.com/profile/jamesodhunt
+
+.. image:: https://img.shields.io/badge/paypal-donate-blue.svg
+   :alt: Donate via Paypal
+   :target: https://www.paypal.me/jamesodhunt
 
 =======
 procenv
