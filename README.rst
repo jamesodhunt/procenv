@@ -107,7 +107,7 @@ Ubuntu Autopkgtest (DEP-8) environment
   * https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/job/trusty-adt-procenv/
 
 The ``sbuild`` tool environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...............................
 
 ``procenv`` gets run from within sbuild via a DEP-8 test:
 
@@ -118,7 +118,7 @@ The ``sbuild`` tool environment
   * https://jenkins.qa.ubuntu.com/view/Wily/view/AutoPkgTest/job/wily-adt-sbuild/
 
 The ``pbuilder`` tool environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.................................
 
 ``procenv`` gets run from within pbuilder via a DEP-8 test:
 
