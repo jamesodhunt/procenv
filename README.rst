@@ -141,6 +141,12 @@ Debian autopkgtest (DEP-8) environment
 
 * http://ci.debian.net/#package/procenv
 
+Fedora
+~~~~~~
+
+* https://admin.fedoraproject.org/pkgdb/package/rpms/procenv/
+  (click "Builds status", click a build, then click one of the "build logs" links).
+
 FreeBSD
 ~~~~~~~
 
