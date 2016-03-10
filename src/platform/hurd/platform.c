@@ -77,10 +77,6 @@ struct procenv_ops platform_ops =
 {
     .driver                        = PROCENV_SET_DRIVER (hurd),
 
-    .init                          = NULL,
-    .cleanup                       = NULL,
-
-    .get_proc_name                 = NULL,
     .get_kernel_bits               = get_kernel_bits_generic,
 
     .signal_map                    = signal_map_hurd,
