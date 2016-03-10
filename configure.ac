@@ -43,7 +43,7 @@ AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
 AC_HEADER_STDBOOL
 
 # Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname])
+AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname getresuid getresgid])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm],

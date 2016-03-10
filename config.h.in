@@ -6,6 +6,12 @@
 /* Define to 1 if you have the `getcwd' function. */
 #undef HAVE_GETCWD
 
+/* Define to 1 if you have the `getresgid' function. */
+#undef HAVE_GETRESGID
+
+/* Define to 1 if you have the `getresuid' function. */
+#undef HAVE_GETRESUID
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 

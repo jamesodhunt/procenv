@@ -1258,6 +1258,9 @@ get_misc (void)
 void
 show_proc (void)
 {
+	const char *suid = NULL;
+	const char *sgid = NULL;
+
 	header ("process");
 
 	entry ("process id (pid)", "%d", user.pid);
@@ -1300,9 +1303,12 @@ show_proc (void)
 			user.euid,
 			get_user_name (user.euid));
 
-	entry ("saved set-user-id (suid)", "%d ('%s')",
+	suid = get_user_name (user.suid);
+	entry ("saved set-user-id (suid)", "%d (%s%s%s)",
 			user.suid,
-			get_user_name (user.suid));
+			suid ? "'" : "",
+			suid ? suid : UNKNOWN_STR,
+			suid ? "'" : "");
 
 	section_close ();
 
@@ -1316,9 +1322,12 @@ show_proc (void)
 			user.egid,
 			get_group_name (user.egid));
 
-	entry ("saved set-group-id (sgid)", "%d ('%s')",
+	sgid = get_group_name (user.sgid);
+	entry ("saved set-group-id (sgid)", "%d (%s%s%s)",
 			user.sgid,
-			get_group_name (user.sgid));
+			sgid ? "'" : "",
+			sgid ? sgid : UNKNOWN_STR,
+			sgid ? "'" : "");
 
 	section_close ();
 
@@ -1530,18 +1539,24 @@ get_user_info (void)
 	if (ops->get_proc_name)
 		ops->get_proc_name(&user);
 
-#ifdef _GNU_SOURCE
+#ifdef HAVE_GETRESUID
 	ret = getresuid (&user.uid, &user.euid, &user.suid);
 	assert (! ret);
+#else
+	user.uid  = getuid ();
+	user.euid = geteuid ();
+	/* no saved uid */
+	user.suid = -1;
+#endif
 
+#ifdef HAVE_GETRESGID
 	getresgid (&user.gid, &user.egid, &user.sgid);
 	assert (! ret);
 #else
-	/* NB: no saved uid+gid */
-	user.uid  = getuid ();
-	user.euid = geteuid ();
 	user.gid  = getgid ();
 	user.egid = getegid ();
+	/* no saved gid */
+	user.sgid = -1;
 #endif
 
 	user.sid = getsid ((pid_t)0);

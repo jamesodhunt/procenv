@@ -4972,7 +4972,7 @@ fi
 
 
 # Checks for library functions.
-for ac_func in clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname
+for ac_func in clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname getresuid getresgid
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
