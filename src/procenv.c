@@ -9,7 +9,7 @@
  * Licence: GPLv3. See below...
  *--------------------------------------------------------------------
  *
- * Copyright © 2012-2015 James Hunt <jamesodhunt@ubuntu.com>.
+ * Copyright © 2012-2016 James Hunt <jamesodhunt@ubuntu.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,55 +36,11 @@
 pstring *doc = NULL;
 
 /**
- * output:
- *
- * Where to send output.
- **/
-Output output = OUTPUT_STDOUT;
-
-/**
- * output_format:
- *
- * Format output will be displayed in.
- **/
-OutputFormat output_format = OUTPUT_FORMAT_TEXT;
-
-/**
- * output_file:
- *
- * Name or output file to send output to if not NULL.
- **/
-const char *output_file = NULL;
-
-/**
- * text_separator:
- *
- * Separator used for text output format to separate a name from a
- * value.
- **/
-const char *text_separator = PROCENV_DEFAULT_TEXT_SEPARATOR;
-
-/**
- * crumb_separator:
- *
- * Separator used for text output format to separate a name from a
- * value.
- **/
-const char *crumb_separator = PROCENV_DEFAULT_CRUMB_SEPARATOR;
-
-/**
- * output_fd:
- *
- * File descriptor associated with output_file.
- **/
-int output_fd = -1;
-
-/**
  * reexec:
  *
- * TRUE if we should re-exec at the end.
+ * true if we should re-exec at the end.
  **/
-int reexec = FALSE;
+int reexec = false;
 
 /**
  * selected_option:
@@ -95,27 +51,6 @@ int reexec = FALSE;
  **/
 int selected_option = 0;
 
-/**
- * indent:
- *
- * Current output indent value.
- **/
-int indent = 0;
-
-/**
- * indent_amount:
- *
- * Number of INDENT_CHARs to emit for an indent.
- **/
-int indent_amount = DEFAULT_INDENT_AMOUNT;
-
-/**
- * indent_char, wide_indent_char:
- *
- * Character to use for indenting and wide-char equivalent.
- **/
-const char *indent_char = DEFAULT_INDENT_CHAR;
-wchar_t  wide_indent_char;
 
 /**
  * program_name:
@@ -142,22 +77,12 @@ int argvc = 0;
  **/
 char *saved_locale = NULL;
 
-/**
- * last_element: Type of previous element handled.
- **/
-ElementType last_element = ELEMENT_TYPE_NONE;
+/* Get a handle to the platform-specific routines */
+extern struct procenv_ops platform_ops;
+struct procenv_ops *ops = &platform_ops;
 
-/**
- * current_element: Type of element currently being handled.
- **/
-ElementType current_element = ELEMENT_TYPE_NONE;
-
-/**
- * crumb_list:
- *
- * List used to store breadcrumbs when OUTPUT_FORMAT_CRUMB being used.
- **/
-static PRList *crumb_list = NULL;
+extern wchar_t wide_indent_char;
+extern int indent;
 
 struct procenv_user     user;
 struct procenv_misc     misc;
@@ -165,295 +90,6 @@ struct procenv_priority priority;
 struct procenv_priority priority_io;
 
 struct utsname uts;
-
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-struct mntopt_map {
-	uint64_t   flag;
-	char      *name;
-} mntopt_map[] = {
-
-	{ MNT_ACLS         , "acls" },
-	{ MNT_ASYNC        , "asynchronous" },
-	{ MNT_EXPORTED     , "NFS-exported" },
-	{ MNT_GJOURNAL     , "gjournal" },
-	{ MNT_LOCAL        , "local" },
-	{ MNT_MULTILABEL   , "multilabel" },
-#ifndef PROCENV_GNU_BSD
-	{ MNT_NFS4ACLS     , "nfsv4acls" },
-#endif
-	{ MNT_NOATIME      , "noatime" },
-	{ MNT_NOCLUSTERR   , "noclusterr" },
-	{ MNT_NOCLUSTERW   , "noclusterw" },
-	{ MNT_NOEXEC       , "noexec" },
-	{ MNT_NOSUID       , "nosuid" },
-	{ MNT_NOSYMFOLLOW  , "nosymfollow" },
-	{ MNT_QUOTA        , "with quotas" },
-	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SOFTDEP      , "soft-updates" },
-	{ MNT_SUIDDIR      , "suiddir" },
-#if ! defined (PROCENV_GNU_BSD) && defined (MNT_SUJ)
-	{ MNT_SUJ          , "journaled soft-updates" },
-#endif
-	{ MNT_SYNCHRONOUS  , "synchronous" },
-	{ MNT_UNION        , "union" },
-
-	{ 0, NULL }
-};
-#endif
-
-struct procenv_map output_map[] = {
-	{ OUTPUT_FILE   , "file" },
-	{ OUTPUT_STDERR , "stderr" },
-	{ OUTPUT_STDOUT , "stdout" },
-	{ OUTPUT_SYSLOG , "syslog" },
-	{ OUTPUT_TERM   , "terminal" },
-
-	{ 0, NULL }
-};
-
-struct procenv_map output_format_map[] = {
-	{ OUTPUT_FORMAT_TEXT, "text" },
-	{ OUTPUT_FORMAT_CRUMB, "crumb" },
-	{ OUTPUT_FORMAT_JSON, "json" },
-	{ OUTPUT_FORMAT_XML, "xml" },
-
-	{ 0, NULL }
-};
-
-struct baud_speed baud_speeds[] = {
-    SPEED (B0),
-    SPEED (B50),
-    SPEED (B75),
-    SPEED (B110),
-    SPEED (B134),
-    SPEED (B150),
-    SPEED (B200),
-    SPEED (B300),
-    SPEED (B600),
-    SPEED (B1200),
-    SPEED (B1800),
-    SPEED (B2400),
-    SPEED (B4800),
-    SPEED (B9600),
-    SPEED (B19200),
-    SPEED (B38400),
-    SPEED (B57600),
-    SPEED (B115200),
-    SPEED (B230400),
-
-    /* terminator */
-    { 0, NULL }
-};
-
-struct if_flag_map {
-	unsigned int  flag;
-	char         *name;
-} if_flag_map[] = {
-	mk_map_entry (IFF_UP),
-	mk_map_entry (IFF_BROADCAST),
-	mk_map_entry (IFF_DEBUG),
-	mk_map_entry (IFF_LOOPBACK),
-	mk_map_entry (IFF_POINTOPOINT),
-	mk_map_entry (IFF_RUNNING),
-	mk_map_entry (IFF_NOARP),
-	mk_map_entry (IFF_PROMISC),
-
-#if defined (PROCENV_LINUX)
-	mk_map_entry (IFF_NOTRAILERS),
-#endif
-
-	mk_map_entry (IFF_ALLMULTI),
-
-#if defined (PROCENV_LINUX)
-	mk_map_entry (IFF_MASTER),
-	mk_map_entry (IFF_SLAVE),
-#endif
-
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-	mk_map_entry (IFF_SIMPLEX),
-#endif
-
-	mk_map_entry (IFF_MULTICAST),
-
-#if defined (PROCENV_LINUX)
-	mk_map_entry (IFF_PORTSEL),
-	mk_map_entry (IFF_AUTOMEDIA),
-	mk_map_entry (IFF_DYNAMIC),
-	mk_map_entry (IFF_LOWER_UP),
-	mk_map_entry (IFF_DORMANT),
-#  ifdef IFF_ECHO
-	mk_map_entry (IFF_ECHO),
-#  endif
-#endif
-
-	{ 0, NULL }
-};
-
-/*
- * Note the gross hack to avoid need for flexible arrays.
- */
-TranslateTable translate_table[] = {
-	{
-		OUTPUT_FORMAT_XML,
-		{
-			{ L'\'', L"&apos;" },
-			{ L'"', L"&quot;" },
-			{ L'&', L"&amp;" },
-			{ L'<', L"&lt;" },
-			{ L'>', L"&gt;" },
-
-			/* terminator */
-			{ L'\0', NULL }
-		}
-	},
-	{
-		OUTPUT_FORMAT_JSON,
-		{
-			{ L'"', L"\\\"" },
-			{ L'\\', L"\\\\" },
-
-			/* hack! */
-			{ L'\0', NULL },
-			{ L'\0', NULL },
-			{ L'\0', NULL },
-
-			/* terminator */
-			{ L'\0', NULL }
-		}
-	},
-};
-
-#if defined (PROCENV_LINUX)
-struct if_extended_flag_map {
-	unsigned int  flag;
-	char         *name;
-} if_extended_flag_map[] = {
-#if defined (IFF_802_1Q_VLAN)
-	mk_map_entry (IFF_802_1Q_VLAN),
-#endif
-#if defined (IFF_EBRIDGE)
-	mk_map_entry (IFF_EBRIDGE),
-#endif
-#if defined (IFF_SLAVE_INACTIVE)
-	mk_map_entry (IFF_SLAVE_INACTIVE),
-#endif
-#if defined (IFF_MASTER_8023AD)
-	mk_map_entry (IFF_MASTER_8023AD),
-#endif
-#if defined (IFF_MASTER_ALB)
-	mk_map_entry (IFF_MASTER_ALB),
-#endif
-#if defined (IFF_BONDING)
-	mk_map_entry (IFF_BONDING),
-#endif
-#if defined (IFF_SLAVE_NEEDARP)
-	mk_map_entry (IFF_SLAVE_NEEDARP),
-#endif
-#if defined (IFF_ISATAP)
-	mk_map_entry (IFF_ISATAP),
-#endif
-	{ 0, NULL }
-};
-
-struct personality_map {
-	unsigned int  personality;
-	char         *name;
-} personality_map[] = {
-	mk_map_entry (PER_LINUX),
-	mk_map_entry (PER_LINUX_32BIT),
-	mk_map_entry (PER_SVR4),
-	mk_map_entry (PER_SVR3),
-	mk_map_entry (PER_SCOSVR3),
-	mk_map_entry (PER_OSR5),
-	mk_map_entry (PER_WYSEV386),
-	mk_map_entry (PER_ISCR4),
-	mk_map_entry (PER_BSD),
-	mk_map_entry (PER_SUNOS),
-	mk_map_entry (PER_XENIX),
-#if defined (PER_LINUX32)
-	mk_map_entry (PER_LINUX32),
-#endif
-#if defined (PER_LINUX32_3GB)
-	mk_map_entry (PER_LINUX32_3GB),
-#endif
-	mk_map_entry (PER_IRIX32),
-	mk_map_entry (PER_IRIXN32),
-	mk_map_entry (PER_IRIX64),
-	mk_map_entry (PER_RISCOS),
-	mk_map_entry (PER_SOLARIS),
-	mk_map_entry (PER_UW7),
-	mk_map_entry (PER_OSF4),
-	mk_map_entry (PER_HPUX),
-
-	{ 0, NULL }
-};
-
-struct personality_flag_map {
-	unsigned int  flag;
-	char         *name;
-} personality_flag_map[] = {
-#if defined (ADDR_COMPAT_LAYOUT)
-	mk_map_entry (ADDR_COMPAT_LAYOUT),
-#endif
-#if defined (ADDR_LIMIT_32BIT)
-	mk_map_entry (ADDR_LIMIT_32BIT),
-#endif
-#if defined (ADDR_LIMIT_3GB)
-	mk_map_entry (ADDR_LIMIT_3GB),
-#endif
-#if defined (ADDR_NO_RANDOMIZE)
-	mk_map_entry (ADDR_NO_RANDOMIZE),
-#endif
-#if defined (MMAP_PAGE_ZERO)
-	mk_map_entry (MMAP_PAGE_ZERO),
-#endif
-#if defined (READ_IMPLIES_EXEC)
-	mk_map_entry (READ_IMPLIES_EXEC),
-#endif
-#if defined (SHORT_INODE)
-	mk_map_entry (SHORT_INODE),
-#endif
-#if defined (STICKY_TIMEOUTS)
-	mk_map_entry (STICKY_TIMEOUTS),
-#endif
-#if defined (WHOLE_SECONDS)
-	mk_map_entry (WHOLE_SECONDS),
-#endif
-
-	{ 0, NULL }
-};
-
-/* lifted from include/linux/ioprio.h since not available in libc */
-#define IOPRIO_CLASS_SHIFT (13)
-#define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
-#define IOPRIO_PRIO_CLASS(mask) ((mask) >> IOPRIO_CLASS_SHIFT)
-#define IOPRIO_PRIO_DATA(mask) ((mask) & IOPRIO_PRIO_MASK)
-
-enum {
-    IOPRIO_WHO_PROCESS = 1,
-    IOPRIO_WHO_PGRP,
-    IOPRIO_WHO_USER,
-};
-
-enum {
-    IOPRIO_CLASS_NONE, /* FIXME: is this valid? */
-	IOPRIO_CLASS_RT,
-	IOPRIO_CLASS_BE,
-	IOPRIO_CLASS_IDLE,
-    IOPRIO_CLASS_NORMAL,
-};
-
-struct procenv_map io_priorities_class_map[] = {
-	mk_map_entry (IOPRIO_CLASS_NONE),
-	mk_map_entry (IOPRIO_CLASS_RT),
-	mk_map_entry (IOPRIO_CLASS_BE),
-	mk_map_entry (IOPRIO_CLASS_IDLE),
-	mk_map_entry (IOPRIO_CLASS_NORMAL),
-
-	{ 0, NULL }
-};
-
-#endif
 
 /* Really, every single sysconf variable should be ifdef'ed since it
  * may not exist on a particular system, but that makes the code look
@@ -642,11 +278,11 @@ struct procenv_map sysconf_map[] = {
 #endif
 
 #if defined (_SC_EQUIV_CLASS_MAX)
-	 mk_sysconf_map_entry (_SC_EQUIV_CLASS_MAX),
+	mk_sysconf_map_entry (_SC_EQUIV_CLASS_MAX),
 #endif
 
 #if defined (_SC_EXPR_NEST_MAX)
-	 mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
+	mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
 #endif
 
 #if defined (_SC_FD_MGMT)
@@ -813,7 +449,7 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_MQ_PRIO_MAX),
 #endif
 
-#ifdef _SC_MULTI_PROCESS
+#if defined (_SC_MULTI_PROCESS)
 	mk_sysconf_map_entry (_SC_MULTI_PROCESS),
 #endif
 
@@ -1312,83 +948,9 @@ struct procenv_map sysconf_map[] = {
 	{ 0, NULL }
 };
 
-/* Signal numbers are different per architecture.
- *
- * This lookup table allows use to ignore the numbers and display nice
- * symbolic names and also to order by signal number (which values
- * change on different architectures).
- */
-struct procenv_map signal_map[] = {
-
-	mk_map_entry (SIGABRT),
-	mk_map_entry (SIGALRM),
-	mk_map_entry (SIGBUS),
-
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
-
-	mk_map_entry (SIGCONT),
-	mk_map_entry (SIGFPE),
-	mk_map_entry (SIGHUP),
-	mk_map_entry (SIGILL),
-	mk_map_entry (SIGINT),
-	mk_map_entry (SIGKILL),
-	mk_map_entry (SIGPIPE),
-	mk_map_entry (SIGQUIT),
-	mk_map_entry (SIGSEGV),
-	mk_map_entry (SIGSTOP),
-	mk_map_entry (SIGTERM),
-	mk_map_entry (SIGTRAP),
-	mk_map_entry (SIGTSTP),
-	mk_map_entry (SIGTTIN),
-	mk_map_entry (SIGTTOU),
-	mk_map_entry (SIGUSR1),
-	mk_map_entry (SIGUSR2),
-	mk_map_entry (SIGIO),
-#if defined (PROCENV_LINUX)
-	mk_map_entry (SIGIOT),
-#endif
-
-#if defined (PROCENV_LINUX)
-	{SIGPOLL, "SIGPOLL|SIGIO" },
-#endif
-
-	mk_map_entry (SIGPROF),
-
-#if defined (PROCENV_LINUX)
-	mk_map_entry (SIGPWR),
-#ifdef SIGSTKFLT
-	mk_map_entry (SIGSTKFLT),
-#endif
-#endif
-
-	mk_map_entry (SIGSYS),
-
-#if defined (PROCENV_LINUX)
-#ifdef SIGUNUSED
-	mk_map_entry (SIGUNUSED),
-#endif
-#endif
-	mk_map_entry (SIGURG),
-	mk_map_entry (SIGVTALRM),
-	mk_map_entry (SIGWINCH),
-	mk_map_entry (SIGXCPU),
-	mk_map_entry (SIGXFSZ),
-
-#if defined (PROCENV_BSD) || defined (PROCENV_HURD)
-	mk_map_entry (SIGEMT),
-	mk_map_entry (SIGINFO),
-#endif
-
-#if defined (PROCENV_HURD)
-	mk_map_entry (SIGLOST),
-#endif
-
-	{ 0, NULL },
-};
-
 struct procenv_map locale_map[] = {
 
-  /* The non-conditional ones are POSIX.  */
+	/* The non-conditional ones are POSIX.  */
 #ifdef LC_ADDRESS
 	mk_map_entry (LC_ADDRESS),
 #endif
@@ -1417,35 +979,19 @@ struct procenv_map locale_map[] = {
 	{ 0, NULL }
 };
 
-struct procenv_map scheduler_map[] = {
-
-	mk_map_entry (SCHED_OTHER),
-	mk_map_entry (SCHED_FIFO),
-	mk_map_entry (SCHED_RR),
-#if defined (PROCENV_LINUX) && ! defined (PROCENV_ANDROID)
-	mk_map_entry (SCHED_BATCH),
-#ifdef SCHED_IDLE
-	mk_map_entry (SCHED_IDLE),
-#endif
-#endif
-
-	{ 0, NULL }
-};
-
 struct procenv_map thread_sched_policy_map[] = {
 	mk_map_entry (SCHED_OTHER),
 	mk_map_entry (SCHED_FIFO),
 	mk_map_entry (SCHED_RR)
 };
 
-#if defined (PROCENV_LINUX) && defined (HAVE_NUMA_H)
-struct procenv_map numa_mempolicy_map[] = {
-	mk_map_entry (MPOL_DEFAULT),
-	mk_map_entry (MPOL_PREFERRED),
-	mk_map_entry (MPOL_BIND),
-	mk_map_entry (MPOL_INTERLEAVE),
+struct network_map {
+	struct ifaddrs   ifaddr;
+	char            *mac_address;
+
+	struct network_map *next;
+	struct network_map *prev;
 };
-#endif
 
 void
 usage (void)
@@ -1464,7 +1010,7 @@ usage (void)
 	show ("  -C, --cpu               : Display CPU and scheduler details.");
 	show ("  --crumb-separator=<str> : Specify string '<str>' as alternate delimiter");
 	show ("                            for crumb format output (default='%s').",
-			PROCENV_DEFAULT_CRUMB_SEPARATOR);
+			get_crumb_separator ());
 	show ("  -d, --compiler          : Display compiler details.");
 	show ("  -e, --environment       : Display environment variables.");
 	show ("  -E, --semaphores        : Display semaphore details.");
@@ -1483,9 +1029,9 @@ usage (void)
 	show ("  -h, --help              : This help text.");
 	show ("  -i, --misc              : Display miscellaneous details.");
 	show ("  --indent                : Number of indent characters to use for each indent");
-	show ("                            (default=%d).", DEFAULT_INDENT_AMOUNT);
+	show ("                            (default=%d).", get_indent_amount ());
 	show ("  --indent-char=<c>       : Use character '<c>' for indenting");
-	show ("                            (default='%s').", DEFAULT_INDENT_CHAR);
+	show ("                            (default='%s').", get_indent_char ());
 	show ("  -j, --uname             : Display uname details.");
 	show ("  -k, --clocks            : Display clock details.");
 	show ("  -l, --limits            : Display limits.");
@@ -1510,7 +1056,7 @@ usage (void)
 	show ("  -r, --ranges            : Display range of data types.");
 	show ("  --separator=<str>       : Specify string '<str>' as alternate delimiter");
 	show ("                            for text format output (default='%s').",
-			PROCENV_DEFAULT_TEXT_SEPARATOR);
+			get_text_separator ());
 	show ("  -s, --signals           : Display signal details.");
 	show ("  -S, --shared-memory     : Display shared memory details.");
 	show ("  -t, --tty               : Display terminal details.");
@@ -1527,7 +1073,7 @@ usage (void)
 	show ("Notes:");
 	show ("");
 	show ("  - Options are considered in order, so '--output' should");
-       	show ("    precede any other option.");
+	show ("    precede any other option.");
 	show ("  - If no display option is specified, all details are displayed.");
 	show ("  - Only one display option may be specified.");
 	show ("  - All values for '--indent-char' are literal except '\\t' which can be");
@@ -1541,786 +1087,6 @@ usage (void)
 	show ("    preceded by all appropriate headings which are separated by the");
 	show ("    current separator.");
 	show ("");
-}
-
-void
-show_pathconfs (ShowMountType what,
-		const char *dir)
-{
-	assert (dir);
-
-	if (what == SHOW_PATHCONF) {
-		header (dir);
-	} else {
-		header ("pathconf");
-	}
-
-
-#if defined (_PC_ALLOC_SIZE_MIN)
-	show_pathconf (what, dir, _PC_ALLOC_SIZE_MIN);
-#endif
-
-#if defined (_PC_ASYNC_IO)
-	show_pathconf (what, dir, _PC_ASYNC_IO);
-#endif
-
-#if defined (_PC_CHOWN_RESTRICTED)
-	show_pathconf (what, dir, _PC_CHOWN_RESTRICTED);
-#endif
-
-#if defined (_PC_FILESIZEBITS)
-	show_pathconf (what, dir, _PC_FILESIZEBITS);
-#endif
-
-#if defined (_PC_LINK_MAX)
-	show_pathconf (what, dir, _PC_LINK_MAX);
-#endif
-
-#if defined (_PC_MAX_CANON)
-	show_pathconf (what, dir, _PC_MAX_CANON);
-#endif
-
-#if defined (_PC_MAX_INPUT)
-	show_pathconf (what, dir, _PC_MAX_INPUT);
-#endif
-
-#if defined (_PC_NAME_MAX)
-	show_pathconf (what, dir, _PC_NAME_MAX);
-#endif
-
-#if defined (_PC_NO_TRUNC)
-	show_pathconf (what, dir, _PC_NO_TRUNC);
-#endif
-
-#if defined (_PC_PATH_MAX)
-	show_pathconf (what, dir, _PC_PATH_MAX);
-#endif
-
-#if defined (_PC_PIPE_BUF)
-	show_pathconf (what, dir, _PC_PIPE_BUF);
-#endif
-
-#if defined (_PC_PRIO_IO)
-	show_pathconf (what, dir, _PC_PRIO_IO);
-#endif
-
-#if defined (_PC_REC_INCR_XFER_SIZE)
-	show_pathconf (what, dir, _PC_REC_INCR_XFER_SIZE);
-#endif
-
-#if defined (_PC_REC_MAX_XFER_SIZE)
-	show_pathconf (what, dir, _PC_REC_MAX_XFER_SIZE);
-#endif
-
-#if defined (_PC_REC_MIN_XFER_SIZE)
-	show_pathconf (what, dir, _PC_REC_MIN_XFER_SIZE);
-#endif
-
-#if defined (_PC_REC_XFER_ALIGN)
-	show_pathconf (what, dir, _PC_REC_XFER_ALIGN);
-#endif
-
-#if defined (_PC_SOCK_MAXBUF)
-	show_pathconf (what, dir, _PC_SOCK_MAXBUF);
-#endif
-
-#if defined (_PC_SYMLINK_MAX)
-	show_pathconf (what, dir, _PC_SYMLINK_MAX);
-#endif
-
-#if defined (_PC_2_SYMLINKS)
-	show_pathconf (what, dir, _PC_2_SYMLINKS);
-#endif
-
-#if defined (_PC_SYNC_IO)
-	show_pathconf (what, dir, _PC_SYNC_IO);
-#endif
-
-#if defined (_PC_VDISABLE)
-	show_pathconf (what, dir, _PC_VDISABLE);
-#endif
-
-	footer ();
-}
-
-const char *
-get_speed (speed_t speed)
-{
-    struct baud_speed *s;
-
-    for (s = baud_speeds; s && s->name; s++) {
-        if (speed == s->speed)
-            return s->name;
-    }
-
-    return NULL;
-}
-
-/**
- * _show:
- *
- * @prefix: string prefix to write,
- * @indent: number of spaces to indent output to,
- * @fmt: printf-style format with associated arguments that comprises
- *  the value part.
- *
- * Write output to @string, indented by @indent spaces. A trailing newline
- * will be added.
- *
- * Note that error scenarios cannot call die() as by definition output
- * may not be possible.
- **/
-void
-_show (const char *prefix, int indent, const char *fmt, ...)
-{
-	va_list   ap;
-	char     *buffer = NULL;
-
-	assert (fmt);
-
-	if (indent)
-		appendf (&buffer, "%*s", indent, indent_char);
-
-	if (prefix && *prefix)
-		appendf (&buffer, "%s: ", prefix);
-
-	va_start (ap, fmt);
-	appendva (&buffer, fmt, ap);
-	va_end (ap);
-
-	append (&buffer, "\n");
-
-	_show_output (buffer);
-
-	free (buffer);
-}
-
-/**
- * entry:
- *
- * @name: name of thing to display,
- * @fmt: printf-style format with associated arguments that comprises
- *  the value part.
- *
- * Add name/value pair represented by @name and value comprising
- * printf-format string to the @doc global. The value added will be
- * indented appropriately.
- **/
-void
-entry (const char *name, const char *fmt, ...)
-{
-	va_list   ap;
-	pstring  *encoded_name = NULL;
-	pstring  *encoded_value = NULL;
-
-	assert (name);
-	assert (fmt);
-
-	common_assert ();
-
-	change_element (ELEMENT_TYPE_ENTRY);
-
-	encoded_name = char_to_pstring (name);
-	if (! encoded_name)
-		die ("failed to encode name");
-
-	/* annoyingly, we must encode here; we cannot simply call
-	 * encode_string() once just prior to showing the output
-	 * document since if the output format is XML, we'd end
-	 * up encoding the XML tags themselves, not just the values
-	 * within!
-	 */
-	if (encode_string (&encoded_name) < 0)
-		die ("failed to encode name");
-
-	/* expand format */
-	va_start (ap, fmt);
-	wmappendva (&encoded_value, fmt, ap);
-	va_end (ap);
-
-	if (encode_string (&encoded_value) < 0)
-		die ("failed to encode value");
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB:
-		assert (crumb_list);
-
-		/* Add the bread crumbs */
-		PR_LIST_FOREACH (crumb_list, iter) {
-			char *crumb = (char *)iter->data;
-			wappendf (&doc,
-				L"%s%s",
-				crumb,
-				crumb_separator);
-		}
-
-		wappendf (&doc,
-			L"%ls%s%ls\n",
-			encoded_name->buf,
-			text_separator,
-			encoded_value->buf);
-		break;
-
-	case OUTPUT_FORMAT_TEXT:
-		wappendf (&doc,
-			L"%ls%s%ls",
-			encoded_name->buf,
-			text_separator,
-			encoded_value->buf);
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappendf (&doc,
-			L"\"%ls\" : \"%ls\"",
-			encoded_name->buf,
-			encoded_value->buf);
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappendf (&doc,
-			L"<entry name=\"%ls\">%ls</entry>",
-			encoded_name->buf,
-			encoded_value->buf);
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-
-	pstring_free (encoded_name);
-	pstring_free (encoded_value);
-}
-
-/**
- * _show_output:
- *
- * @string: String to display.
- *
- * Write output @string to appropriate location based on Output
- * destination.
- **/
-void
-_show_output_pstring (const pstring *pstr)
-{
-	char *str;
-
-	assert (pstr);
-
-	str = pstring_to_char (pstr);
-
-	_show_output (str);
-
-	free (str);
-}
-
-void
-_show_output (const char *str)
-{
-	int ret;
-
-	assert (str);
-
-	switch (output) {
-	case OUTPUT_SYSLOG:
-		syslog (LOG_INFO, "%s", str);
-		ret = 0;
-		break;
-
-	case OUTPUT_STDOUT:
-		ret = fputs (str, stdout);
-		break;
-
-	case OUTPUT_STDERR:
-		ret = fputs (str, stderr);
-		break;
-
-	case OUTPUT_TERM:
-		assert (user.tty_fd != -1);
-		ret = write (user.tty_fd, str, strlen (str));
-		if (ret < 0) {
-			fprintf (stderr, "ERROR: failed to write to terminal\n");
-			exit (EXIT_FAILURE);
-		}
-		break;
-
-	case OUTPUT_FILE:
-		assert (output_file);
-		if (output_fd < 0) {
-			output_fd = open (output_file,
-					(O_WRONLY|O_CREAT),
-					(S_IRWXU|S_IRGRP|S_IROTH));
-			if (output_fd < 0) {
-				fprintf (stderr, "ERROR: failed to open file '%s'\n",
-						output_file);
-				exit (EXIT_FAILURE);
-			}
-		}
-		ret = write (output_fd, str, strlen (str));
-		if (ret < 0) {
-			fprintf (stderr, "ERROR: failed to write to file '%s'\n",
-					output_file);
-			exit (EXIT_FAILURE);
-		}
-		break;
-
-	default:
-		fprintf (stderr, "ERROR: invalid output type: %d\n", output);
-		exit (EXIT_FAILURE);
-		break;
-	}
-
-	if (ret < 0) {
-		fprintf (stderr, "ERROR: failed to output message\n");
-		exit (EXIT_FAILURE);
-	}
-}
-
-/**
- * inc_indent:
- *
- * Increase indent.
- **/
-void
-inc_indent (void)
-{
-	assert (indent >= 0);
-
-	indent += indent_amount;
-}
-
-/**
- * dec_indent:
- *
- * Decrease indent.
- **/
-void
-dec_indent (void)
-{
-	assert (indent >= 0);
-
-	indent -= indent_amount;
-
-	assert (indent >= 0);
-}
-
-/**
- * add_indent:
- *
- * Insert the current indent to the output document.
- **/
-void
-add_indent (pstring **doc)
-{
-	common_assert ();
-
-	if (! indent)
-		return;
-
-	if (! strcmp (indent_char, DEFAULT_INDENT_CHAR)) {
-		wappendf (doc, L"%*s", indent, indent_char);
-	} else {
-		pstring *buffer = NULL;
-
-		// Expand the buffer to the appropriate
-		// length by filling it with spaces and a random
-		// character.
-		wappendf (&buffer, L"%*lc", indent, wide_indent_char);
-
-
-		/* Now, replace the spaces and the random character with
-		 * the chosen character. This convoluted approach is
-		 * necessary as printf-type functions don't allow the
-		 * padding character to be specified.
-		 */
-		wmemset (buffer->buf, wide_indent_char, wcslen (buffer->buf));
-
-		pappend (doc, buffer);
-		pstring_free (buffer);
-	}
-}
-
-/**
- * master_header:
- *
- * @doc: document to write footer to.
- *
- * Main header which is displayed once.
- **/
-void
-master_header (pstring **doc)
-{
-	common_assert ();
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB: /* FALL */
-	case OUTPUT_FORMAT_TEXT:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		object_open (FALSE);
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappend (doc, L"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		wappendf (doc, L"<%s version=\"%s\" package_string=\"%s\" "
-				"mode=\"%s%s\" format_version=\"%d\">\n",
-				PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_STRING,
-				user.euid ? _(NON_STR) "-" : "",
-				PRIVILEGED_STR,
-				PROCENV_FORMAT_VERSION);
-
-		inc_indent ();
-
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * master_footer:
- *
- * @doc: document to write footer to.
- *
- * Main footer which is displayed once.
- **/
-void
-master_footer (pstring **doc)
-{
-    common_assert ();
-
-    switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB: /* FALL */
-        case OUTPUT_FORMAT_TEXT:
-            /* Tweak */
-	    wappend (doc, L"\n");
-            break;
-
-        case OUTPUT_FORMAT_JSON:
-            object_close (FALSE);
-
-            /* Tweak */
-            wappend (doc, L"\n");
-            break;
-
-        case OUTPUT_FORMAT_XML:
-            /* Tweak */
-            wappend (doc, L"\n");
-            dec_indent ();
-            wappendf (doc, L"</%s>\n", PACKAGE_NAME);
-            break;
-
-        default:
-            assert_not_reached ();
-            break;
-    }
-}
-
-/**
- * object_open:
- *
- * @retain: if TRUE, do not disrupt the current element such that the
- * opening of the object will be invisible to the state machine, but
- * will still produce the required output.
- *
- * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
- *
- * Handle opening an object.
- **/
-void
-object_open (int retain)
-{
-	common_assert ();
-
-	if (output_format == OUTPUT_FORMAT_JSON) {
-		if (retain) {
-			format_element ();
-		} else {
-			change_element (ELEMENT_TYPE_OBJECT_OPEN);
-		}
-	} else {
-		/* Objects are only required for handling JSON.  In
-		 * fact, they cause problems for other output formats
-		 * that do not have visible "objects" in that they cause
-		 * the state table to lose track of the previous element
-		 * since it is actually the previous-previous element
-		 * (as the pointless object is the previous element).
-		 * 
-		 * As such, ignore them.
-		 */
-	}
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB: /* FALL */
-	case OUTPUT_FORMAT_TEXT:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappend (&doc, L"{");
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		/* NOP */
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * object_close:
- *
- * @retain: if TRUE, do not disrupt the current element such that the
- * object closure will be invisible to the state machine, but will still
- * produce @retain: if TRUE, do not disrupt the current element.
- *
- * Note: @retain is only meaningful for OUTPUT_FORMAT_JSON.
- *
- * Handle closing an object.
- **/
-void
-object_close (int retain)
-{
-	common_assert ();
-
-	if (output_format == OUTPUT_FORMAT_JSON) {
-		if (retain) {
-			format_element ();
-		} else {
-			change_element (ELEMENT_TYPE_OBJECT_CLOSE);
-		}
-	} else {
-		/* Objects are only required for handling JSON.  In
-		 * fact, they cause problems for other output formats
-		 * that do not have visible "objects" in that they cause
-		 * the state table to lose track of the previous element
-		 * since it is actually the previous-previous element
-		 * (as the pointless object is the previous element).
-		 * 
-		 * As such, ignore them.
-		 */
-	}
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB: /* FALL */
-	case OUTPUT_FORMAT_TEXT:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappend (&doc, L"}");
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		/* NOP */
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * section_open:
- *
- * @name: name of section.
- *
- * Start a new section which will contain >0 entry() calls.
- **/
-void
-section_open (const char *name)
-{
-	assert (name);
-	common_assert ();
-
-	change_element (ELEMENT_TYPE_SECTION_OPEN);
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_TEXT:
-		wappendf (&doc, L"%s:", name);
-		break;
-
-	case OUTPUT_FORMAT_CRUMB:
-		add_breadcrumb (name);
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappendf (&doc, L"\"%s\" : {", name);
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappendf (&doc, L"<section name=\"%s\">", name);
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-void
-section_close (void)
-{
-	common_assert ();
-
-	change_element (ELEMENT_TYPE_SECTION_CLOSE);
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_TEXT:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_CRUMB:
-		remove_breadcrumb ();
-		break;
-		
-	case OUTPUT_FORMAT_JSON:
-		wappend (&doc, L"}");
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappend (&doc, L"</section>");
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * container_open:
- *
- * @name: name of container.
- *
- * Start a new container which will contain >0 entry() calls.
- *
- * This is primarily to handle JSON arrays.
- **/
-void
-container_open (const char *name)
-{
-	assert (name);
-	common_assert ();
-
-	change_element (ELEMENT_TYPE_CONTAINER_OPEN);
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_TEXT:
-		wappendf (&doc, L"%s:", name);
-		break;
-
-	case OUTPUT_FORMAT_CRUMB:
-		add_breadcrumb (name);
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappendf (&doc, L"\"%s\" : [", name);
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappendf (&doc, L"<container name=\"%s\">", name);
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * container_close:
- *
- * Finish with a container.
- **/
-void
-container_close (void)
-{
-	common_assert ();
-
-	change_element (ELEMENT_TYPE_CONTAINER_CLOSE);
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_TEXT:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_CRUMB:
-		remove_breadcrumb ();
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		wappend (&doc, L"]");
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		wappend (&doc, L"</container>");
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-void
-header (const char *name)
-{
-	assert (name);
-	common_assert ();
-
-	section_open (name);
-}
-
-void
-footer (void)
-{
-	common_assert ();
-	section_close ();
-}
-
-/**
- * fd_valid:
- * @fd: file descriptor.
- *
- * Return 1 if @fd is valid, else 0.
- **/
-int
-fd_valid (int fd)
-{
-	int flags = 0;
-
-	if (fd < 0)
-		return 0;
-
-	errno = 0;
-	flags = fcntl (fd, F_GETFL);
-
-	if (flags < 0)
-		return 0;
-
-	/* redundant really */
-	if (errno == EBADF)
-		return 0;
-
-	return 1;
 }
 
 /**
@@ -2351,23 +1117,38 @@ fd_valid (int fd)
 void
 show_signals (void)
 {
-	int               i;
-	int               rc;
-	int               blocked;
-	int               ignored;
-	sigset_t          old_sigset;
-	struct sigaction  act;
+	int                        i;
+	int                        rc;
+	int                        blocked;
+	int                        ignored;
+	sigset_t                   old_sigset;
+	struct sigaction           act;
+	const struct procenv_map  *p;
+	int                        max;
 
 	container_open ("signals");
 
 	/* Query blocked signals.
 	 *
-	 * How should be 0, but valgrind complains.
+	 * arg 1 ('how') should be 0, but valgrind complains.
 	 */
 	if (sigprocmask (SIG_BLOCK, NULL, &old_sigset) < 0)
 		die ("failed to query signal mask");
 
-	for (i = 1; i <= NUM_SIGNALS; i++) {
+	/* first, count the number of entries in the platform-specific
+	 * signal map.
+	 */
+	for (p = ops->signal_map, max = 1;
+			p && p->name;
+			p++, max++) {
+		; /* NOP */
+	}
+
+	/* Note that we don't interate the signal map directly in case the
+	 * entries are out of order. Instead, present the signals in numeric
+	 * order.
+	 */
+	for (i = 1; i < max; i++) {
 		const char *signal_name;
 		const char *signal_desc;
 
@@ -2396,7 +1177,7 @@ show_signals (void)
 
 		signal_desc = strsignal (i);
 
-		object_open (FALSE);
+		object_open (false);
 
 		section_open (signal_name);
 
@@ -2408,73 +1189,12 @@ show_signals (void)
 
 		section_close ();
 
-		object_close (FALSE);
+		object_close (false);
 	}
 
-    container_close ();
+	container_close ();
 }
 
-void
-show_rlimits (void)
-{
-	header ("limits");
-
-	show_limit (RLIMIT_AS);
-	show_limit (RLIMIT_CORE);
-	show_limit (RLIMIT_CPU);
-	show_limit (RLIMIT_DATA);
-	show_limit (RLIMIT_FSIZE);
-
-#if defined (PROCENV_LINUX)
-
-	if (LINUX_KERNEL_MMR (2, 6, 25)) {
-#if defined (RLIMIT_RTTIME)
-		show_limit (RLIMIT_RTTIME);
-#endif
-	}
-	show_limit (RLIMIT_LOCKS);
-#endif
-
-	show_limit (RLIMIT_MEMLOCK);
-
-#if defined (PROCENV_LINUX)
-
-	if (LINUX_KERNEL_MMR (2, 6, 8)) {
-#if defined (RLIMIT_MSGQUEUE)
-		show_limit (RLIMIT_MSGQUEUE);
-#endif
-	}
-
-	if (LINUX_KERNEL_MMR (2, 6, 12)) {
-#if defined RLIMIT_NICE
-		show_limit (RLIMIT_NICE);
-#endif
-	}
-
-#endif
-
-	show_limit (RLIMIT_NOFILE);
-	show_limit (RLIMIT_NPROC);
-	show_limit (RLIMIT_RSS);
-
-#if defined (PROCENV_LINUX)
-	show_limit (RLIMIT_RTPRIO);
-#endif
-
-#if defined (PROCENV_LINUX)
-
-	if (LINUX_KERNEL_MMR (2, 6, 8)) {
-#if defined (RLIMIT_SIGPENDING)
-	show_limit (RLIMIT_SIGPENDING);
-#endif
-	}
-
-#endif
-
-	show_limit (RLIMIT_STACK);
-
-	footer ();
-}
 
 void
 show_rusage (void)
@@ -2501,304 +1221,28 @@ show_rusage (void)
 	show_usage (usage, ru_nvcsw);
 	show_usage (usage, ru_nivcsw);
 
-    footer ();
+	footer ();
 }
 
 void
 show_sysconf (void)
 {
-	struct procenv_map *p;
-	long                value;
+	struct procenv_map  *p;
+	long                 value;
 
 	header ("sysconf");
 
 	for (p = sysconf_map; p && p->name; p++) {
 		value = get_sysconf (p->num);
-		if (value == -1)
+		if (value == -1) {
 			entry (p->name, "%s", NA_STR);
-		else
+		} else {
 			entry (p->name, "%ld", value);
+		}
 	}
-
-    footer ();
-}
-
-#ifndef PROCENV_ANDROID
-
-void
-show_confstrs (void)
-{
-	header ("confstr");
-
-#if defined (_CS_GNU_LIBC_VERSION)
-	show_confstr (_CS_GNU_LIBC_VERSION);
-#endif
-
-#if defined (_CS_GNU_LIBPTHREAD_VERSION)
-	show_confstr (_CS_GNU_LIBPTHREAD_VERSION);
-#endif
-
-#if defined (_CS_LFS64_CFLAGS)
-	show_confstr (_CS_LFS64_CFLAGS);
-#endif
-
-#if defined (_CS_LFS64_LDFLAGS)
-	show_confstr (_CS_LFS64_LDFLAGS);
-#endif
-
-#if defined (_CS_LFS64_LIBS)
-	show_confstr (_CS_LFS64_LIBS);
-#endif
-
-#if defined (_CS_LFS64_LINTFLAGS)
-	show_confstr (_CS_LFS64_LINTFLAGS);
-#endif
-
-#if defined (_CS_LFS_CFLAGS)
-	show_confstr (_CS_LFS_CFLAGS);
-#endif
-
-#if defined (_CS_LFS_LDFLAGS)
-	show_confstr (_CS_LFS_LDFLAGS);
-#endif
-
-#if defined (_CS_LFS_LIBS)
-	show_confstr (_CS_LFS_LIBS);
-#endif
-
-#if defined (_CS_LFS_LINTFLAGS)
-	show_confstr (_CS_LFS_LINTFLAGS);
-#endif
-
-#if defined (_CS_PATH)
-	show_confstr (_CS_PATH);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFF32)
-	show_confstr (_CS_POSIX_V6_ILP32_OFF32);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFF32_CFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFF32_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFF32_LIBS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFF32_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LIBS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LP64_OFF64_CFLAGS)
-	show_confstr (_CS_POSIX_V6_LP64_OFF64_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LP64_OFF64_LDFLAGS)
-	show_confstr (_CS_POSIX_V6_LP64_OFF64_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LP64_OFF64_LIBS)
-	show_confstr (_CS_POSIX_V6_LP64_OFF64_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS)
-	show_confstr (_CS_POSIX_V6_LP64_OFF64_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFF32_CFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFF32_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFF32_LIBS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFF32_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LIBS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LP64_OFF64_CFLAGS)
-	show_confstr (_CS_POSIX_V7_LP64_OFF64_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LP64_OFF64_LDFLAGS)
-	show_confstr (_CS_POSIX_V7_LP64_OFF64_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LP64_OFF64_LIBS)
-	show_confstr (_CS_POSIX_V7_LP64_OFF64_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS)
-	show_confstr (_CS_POSIX_V7_LP64_OFF64_LINTFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS)
-	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS)
-	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS)
-	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
-	show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS);
-#endif
-
-#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
-	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "_XBS5_WIDTH_RESTRICTED_ENVS");
-#endif
-
-#if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
-	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "XBS5_WIDTH_RESTRICTED_ENVS");
-#endif
-
-#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
-	show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS);
-#endif
-
-#if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
-	_show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS, "POSIX_V6_WIDTH_RESTRICTED_ENVS,_POSIX_V6_WIDTH_RESTRICTED_ENVS");
-#endif
-
-#if defined (_CS_V7_WIDTH_RESTRICTED_ENVS)
-	show_confstr (_CS_V7_WIDTH_RESTRICTED_ENVS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_CFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LDFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LIBS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LIBS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFF32_LINTFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFF32_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_CFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LDFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LIBS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_XBS5_ILP32_OFFBIG_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_CFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LDFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LIBS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LIBS);
-#endif
-
-#if defined (_CS_XBS5_LP64_OFF64_LINTFLAGS)
-	show_confstr (_CS_XBS5_LP64_OFF64_LINTFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_CFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_CFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LDFLAGS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LIBS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LIBS);
-#endif
-
-#if defined (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS)
-	show_confstr (_CS_XBS5_LPBIG_OFFBIG_LINTFLAGS);
-#endif
-
 
 	footer ();
 }
-
-#endif
 
 void
 get_misc (void)
@@ -2807,39 +1251,9 @@ get_misc (void)
 	(void)umask (misc.umask_value);
 	assert (getcwd (misc.cwd, sizeof (misc.cwd)));
 
-#if defined (PROCENV_LINUX)
-	get_canonical (ROOT_PATH, misc.root, sizeof (misc.root));
-#endif
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-	get_misc_bsd ();
-#endif
+	if (ops->get_user_misc)
+		ops->get_user_misc (&user, &misc);
 }
-
-#if !defined (PROCENV_HURD)
-/**
- * is_console:
- * @fd: open file descriptor.
- *
- * Check if specified file descriptor is attached to a _console_
- * device (physical or virtual).
- *
- * Notes:
- *   - ptys are NOT consoles :)
- *   - running inside screen/tmux will report not running on console.
- *
- * Returns: TRUE if @fd is attached to a console, else FALSE.
- **/
-int
-is_console (int fd)
-{
-	struct vt_mode  vt;
-	int             ret;
-
-	ret = ioctl (fd, VT_GETMODE, &vt);
-
-	return !ret;
-}
-#endif
 
 void
 show_proc (void)
@@ -2855,12 +1269,12 @@ show_proc (void)
 
 	entry ("name", "'%s'", user.proc_name);
 
-	show_proc_branch ();
+	handle_proc_branch ();
 
 	entry ("process group id", "%d (leader=%s)",
 			user.pgroup,
 			is_process_group_leader () ? YES_STR : NO_STR);
-	
+
 	entry ("foreground process group", "%d", user.fg_pgroup);
 
 	entry ("terminal", "'%s'", user.ctrl_terminal);
@@ -2868,7 +1282,8 @@ show_proc (void)
 	entry ("has controlling terminal", "%s",
 			has_ctty () ? YES_STR : NO_STR);
 
-#if defined (PROCENV_HURD)
+	// FIXME: Is it possible to detect if on console on Hurd?
+#if defined (PROCENV_PLATFORM_HURD)
 	entry ("on console", "%s", UNKNOWN_STR);
 #else
 	entry ("on console", "%s",
@@ -2913,7 +1328,7 @@ show_proc (void)
 
 	entry ("name", "'%s'", user.passwd.pw_name);
 
-#if ! defined (PROCENV_ANDROID)
+#if ! defined (PROCENV_PLATFORM_ANDROID)
 	/* No gecos on Android. In fact it doesn't actually use the
 	 * passwd database, but meh.
 	 */
@@ -2933,19 +1348,10 @@ show_proc (void)
 void
 show_priorities (void)
 {
-#if defined (PROCENV_LINUX)
-	int sched;
-
-	sched = sched_getscheduler (0);
-#endif
-
 	section_open ("scheduler");
 
-#if defined (PROCENV_LINUX)
-	entry ("type", "%s",
-			sched < 0 ? UNKNOWN_STR :
-			get_scheduler_name (sched));
-#endif
+	if (ops->handle_scheduler_type)
+		ops->handle_scheduler_type ();
 
 	section_open ("priority");
 
@@ -2955,104 +1361,19 @@ show_priorities (void)
 
 	section_close ();
 
-	section_open ("I/O priority");
-
-#if defined (PROCENV_LINUX)
-	section_open ("process");
-	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.process)));
-	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.process));
-	section_close ();
-
-	section_open ("group");
-	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.pgrp)));
-	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.pgrp));
-	section_close ();
-
-	section_open ("user");
-	entry ("class", "%s", get_ioprio_class_name (IOPRIO_PRIO_CLASS (priority_io.user)));
-	entry ("priority", "%d", IOPRIO_PRIO_DATA (priority_io.user));
-	section_close ();
-#endif
+	if (ops->show_io_priorities) {
+		section_open ("I/O priority");
+		ops->show_io_priorities ();
+		section_close ();
+	}
 
 	section_close ();
-
-	section_close ();
-}
-
-void
-show_misc (void)
-{
-#if defined (PROCENV_LINUX)
-	int            domain = 0x0;
-
-	/* magic value - see personality(2) */
-	unsigned int   persona = 0xFFFFFFFF;
-
-	unsigned int   mask = PER_MASK;
-
-	const char    *personality_name = NULL;
-	char          *personality_flags = NULL;
-#endif
-
-	header ("misc");
-
-	entry ("umask", "%4.4o", misc.umask_value);
-	entry ("current directory (cwd)", "'%s'", misc.cwd);
-#if defined (PROCENV_LINUX)
-	entry ("root", "%s%s%s",
-			strcmp (misc.root, UNKNOWN_STR) ? "'" : "",
-			misc.root,
-			strcmp (misc.root, UNKNOWN_STR) ? "'" : "");
-#endif
-	entry ("chroot", "%s", in_chroot () ? YES_STR : NO_STR);
-	entry ("container", "%s", container_type ());
-
-#if defined (PROCENV_LINUX)
-	show_prctl_linux ();
-
-	section_open ("linux security module");
-	show_security_module_linux ();
-	show_security_module_context_linux ();
-	section_close ();
-#endif
-
-#if defined (PROCENV_LINUX)
-#ifdef LINUX_VERSION_CODE
-	entry ("kernel headers version", "%u.%u.%u",
-			(LINUX_VERSION_CODE >> 16),
-			((LINUX_VERSION_CODE >> 8) & 0xFF),
-			(LINUX_VERSION_CODE & 0xFF));
-#endif
-
-	domain = personality (persona);
-
-	personality_name = get_personality_name (domain & mask);
-
-	section_open ("personality");
-
-	entry ("type", "%s", personality_name
-			? personality_name
-		       	: UNKNOWN_STR);
-
-	personality_flags = get_personality_flags (domain & (-1 ^ mask));
-	entry ("flags", "%s",
-			personality_flags
-			? personality_flags
-			: "");
-
-	section_close ();
-
-	if (personality_flags)
-		free (personality_flags);
-#endif
-
-	footer ();
 }
 
 void
 show_platform (void)
 {
-	long kernel_bits;
+	long kernel_bits = -1;
 	long executable_bits;
 
 	header ("platform");
@@ -3060,7 +1381,8 @@ show_platform (void)
 	entry ("operating system", "%s", get_os ());
 	entry ("architecture", "%s", get_arch ());
 
-	kernel_bits = get_kernel_bits ();
+	if (ops->get_kernel_bits)
+		kernel_bits = ops->get_kernel_bits ();
 
 	executable_bits = sizeof (void *) * CHAR_BIT * sizeof (char);
 
@@ -3072,11 +1394,11 @@ show_platform (void)
 	entry ("executable bits", "%lu", executable_bits);
 
 	entry ("code endian", "%s",
-		is_big_endian () ? BIG_STR : LITTLE_STR);
+			is_big_endian () ? BIG_STR : LITTLE_STR);
 
 	show_data_model ();
 
-    footer ();
+	footer ();
 }
 
 void
@@ -3084,14 +1406,11 @@ show_cpu (void)
 {
 	header ("cpu");
 
-#if defined (PROCENV_LINUX)
-	show_cpu_linux ();
-#endif
+	if (ops->show_cpu)
+		ops->show_cpu ();
 
-#if defined (PROCENV_BSD)
-	show_cpu_bsd ();
-#endif
-	show_cpu_affinities ();
+	if (ops->show_cpu_affinities)
+		ops->show_cpu_affinities ();
 
 	show_priorities ();
 
@@ -3105,224 +1424,30 @@ show_memory (void)
 
 	entry ("page size", "%d bytes", getpagesize ());
 
-#if defined (PROCENV_LINUX)
-	show_numa_memory ();
-#endif /* PROCENV_LINUX */
+	if (ops->handle_numa_memory)
+		ops->handle_numa_memory ();
 
 	footer ();
 }
 
-/* Display cpu affinities in the same compressed but reasonably
- * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
- */ 
-void
-show_cpu_affinities (void)
-{
-	int                   ret = 0;
-	long                  max;
-	size_t                size;
-#if defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
-	PROCENV_CPU_SET_TYPE  cpu_set_real;
-#endif
-	PROCENV_CPU_SET_TYPE *cpu_set;
-	long                  cpu;
-	char                 *cpu_list = NULL;
-
-	/* TRUE if any enabled cpus have been displayed yet */
-	int                   displayed = FALSE;
-
-	/* Number of cpu's in *current* range */
-	size_t                count = 0;
-
-	/* Only valid to read these when count is >0 */
-	size_t                last = 0;
-	size_t                first = 0;
-
-	max = get_sysconf (_SC_NPROCESSORS_ONLN);
-	if (max < 0)
-		die ("failed to query cpu count");
-
-#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
-
-#if defined (CPU_ALLOC)
-
-	cpu_set = CPU_ALLOC (max);
-	assert (cpu_set);
-
-	size = CPU_ALLOC_SIZE (max);
-	CPU_ZERO_S (size, cpu_set);
-
-#else /* ! CPU_ALLOC */
-
-	/* RHEL 5 */
-
-	cpu_set = &cpu_set_real;
-
-	size = sizeof (PROCENV_CPU_SET_TYPE);
-
-#endif /* CPU_ALLOC */
-
-#elif defined (PROCENV_BSD) || ! defined (CPU_ALLOC)
-	cpu_set = &cpu_set_real;
-
-	size = sizeof (PROCENV_CPU_SET_TYPE);
-
-#endif /* PROCENV_LINUX || PROCENV_GNU_BSD || PROCENV_HURD */
-
-	/* We could use sched_getaffinity(2) rather than
-	 * sched_getaffinity() on Linux (2.5.8+) but
-	 * pthread_getaffinity_np() provides the same information...
-	 * Except it is missing on kFreeBSD systems (!) so we have to
-	 * use sched_getaffinity() there. :(
-	 */
-#if (defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)) || (defined (PROCENV_LINUX) && ! defined (CPU_ALLOC))
-	ret = sched_getaffinity (0, size, cpu_set);
-#else
-
-#if defined (PROCENV_LINUX) && defined (CPU_ALLOC)
-	/* On a hyperthreaded system, "size" as above may not actually
-	   be big enough, and we get EINVAL.  (hwloc has a similar
-	   workaround.)  */
-
-	{
-		int mult = 0;
-		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
-		       == EINVAL) {
-			CPU_FREE (cpu_set);
-			/* Bail out at an arbitrary value.  */
-			if (mult > 128) break;
-			mult += 2;
-			cpu_set = CPU_ALLOC (mult * max);
-			size = CPU_ALLOC_SIZE (mult * max);
-			CPU_ZERO_S (size, cpu_set);
-		}
-	}
-#endif /* PROCENV_LINUX && CPU_ALLOC */
-
-#endif
-
-	if (ret)
-		goto out;
-
-	for (cpu = 0; cpu < max; cpu++) {
-
-		if (CPU_ISSET (cpu, cpu_set)) {
-
-			/* Record first entry in the range */
-			if (! count)
-				first = cpu;
-
-			last = cpu;
-			count++;
-		} else {
-			if (count) {
-				if (first == last) {
-					appendf (&cpu_list, "%s%d",
-							displayed ? "," : "",
-							first);
-				} else {
-					appendf (&cpu_list, "%s%d-%d",
-							displayed ? "," : "",
-							first, last);
-				}
-				displayed = TRUE;
-			}
-
-			/* Reset */
-			count = 0;
-		}
-	}
-
-	if (count) {
-		if (first == last) {
-			appendf (&cpu_list, "%s%d",
-					displayed ? "," : "",
-					first);
-		} else {
-			appendf (&cpu_list, "%s%d-%d",
-					displayed ? "," : "",
-					first, last);
-		}
-	}
-
-out:
-	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
-
-#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD) || defined (PROCENV_HURD)
-#if defined (CPU_ALLOC)
-	CPU_FREE (cpu_set);
-#endif
-#endif
-
-	free (cpu_list);
-}
-
-
 void
 show_fds (void)
 {
-#if defined (PROCENV_LINUX)
-	show_fds_linux ();
-#else
-	show_fds_generic ();
-#endif
+	container_open ("file descriptors");
 
+	if (ops->show_fds)
+		ops->show_fds ();
+
+	container_close ();
 }
 
 void
 show_namespaces (void)
 {
-#if defined (PROCENV_LINUX)
-	show_namespaces_linux ();
-#else
-	show_namespaces_stub ();
-#endif
+	container_open ("namespaces");
 
-}
-
-void
-show_fds_generic (void)
-{
-	int fd;
-	int max;
-
-	container_open ("file descriptors");
-
-	max = get_sysconf (_SC_OPEN_MAX);
-
-	for (fd = 0; fd < max; fd++) {
-		int    is_tty = isatty (fd);
-		char  *name = NULL;
-		char  *num = NULL;
-
-		if (! fd_valid (fd))
-			continue;
-
-#if ! defined (PROCENV_ANDROID)
-		name = ttyname (fd);
-#endif
-		appendf (&num, "%d", fd);
-
-		object_open (FALSE);
-
-		section_open (num);
-
-		entry ("terminal", "%s", is_tty ? YES_STR : NO_STR);
-		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
-		entry ("device", "%s", name ? name : NA_STR);
-
-		section_open ("capabilities");
-#if defined (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H)
-		show_capabilities_bsd (fd);
-#endif
-		section_close ();
-
-		section_close ();
-
-		object_close (FALSE);
-
-		free (num);
-	}
+	if (ops->show_namespaces)
+		ops->show_namespaces ();
 
 	container_close ();
 }
@@ -3402,12 +1527,8 @@ get_user_info (void)
 	user.pid  = getpid ();
 	user.ppid = getppid ();
 
-#if defined (PROCENV_LINUX)
-	if (LINUX_KERNEL_MMR (2, 6, 11)) {
-		if (prctl (PR_GET_NAME, user.proc_name, 0, 0, 0) < 0)
-			strcpy (user.proc_name, UNKNOWN_STR);
-	}
-#endif
+	if (ops->get_proc_name)
+		ops->get_proc_name(&user);
 
 #ifdef _GNU_SOURCE
 	ret = getresuid (&user.uid, &user.euid, &user.suid);
@@ -3438,7 +1559,7 @@ get_user_info (void)
 	user.login = getlogin ();
 	user.pgroup = getpgrp ();
 
-#if defined (PROCENV_ANDROID)
+#if defined (PROCENV_PLATFORM_ANDROID)
 	sprintf (user.ctrl_terminal, "/dev/tty");
 #else
 	ctermid (user.ctrl_terminal);
@@ -3471,464 +1592,6 @@ get_user_info (void)
 	assert (p == (void *)&user.passwd);
 }
 
-/* append @src to @dest */
-void
-append (char **dest, const char *src)
-{
-	size_t  len;
-
-	assert (dest);
-	assert (src);
-
-	len = strlen (src);
-
-	appendn (dest, src, len);
-}
-
-/* Version of append() that operates on a wide string @dest and @src */
-void
-wappend (pstring **dest, const wchar_t *src)
-{
-	size_t  len;
-
-	assert (dest);
-	assert (src);
-
-	len = wcslen (src);
-
-	wappendn (dest, src, len);
-}
-
-/* Version of append() that operates on a wide string @dest
- * and multi-byte @src.
- */
-void
-wmappend (pstring **dest, const char *src)
-{
-	wchar_t  *wide_src = NULL;
-
-	assert (dest);
-	assert (src);
-
-	wide_src = char_to_wchar (src);
-	if (! wide_src)
-		die ("failed to allocate space for wide string");
-
-	wappend (dest, wide_src);
-
-	free (wide_src);
-}
-
-/**
- * appendn:
- *
- * @dest: [output] string to append to,
- * @src: string to append to @dest,
- * @len: length of @new.
- *
- * Append first @len bytes of @new to @str,
- * ensuring result is nul-terminated.
- **/
-void
-appendn (char **dest, const char *src, size_t len)
-{
-	size_t  total;
-
-	assert (dest);
-	assert (src);
-
-	if (! len)
-		return;
-
-	if (! *dest)
-		*dest = strdup ("");
-	if (! *dest)
-		die ("failed to allocate space for string");
-
-	/* +1 for terminating nul */
-	total = strlen (*dest) + 1;
-
-	total += len;
-
-	*dest = realloc (*dest, total);
-	assert (*dest);
-
-	if (! *dest) {
-		/* string is empty, so initialise the memory to avoid
-		 * surprises with strncat() being unable to find the
-		 * terminator!
-		 */
-		memset (*dest, '\0', total);
-	}
-
-	strncat (*dest, src, len);
-
-	assert ((*dest)[total-1] == '\0');
-}
-
-/* Version of appendn() that operates on a wide string @dest and @src */
-void
-wappendn (pstring **dest, const wchar_t *src, size_t len)
-{
-	wchar_t  *p;
-	size_t    total;
-	size_t    bytes;
-
-	assert (dest);
-	assert (src);
-
-	if (! len)
-		return;
-
-	if (! *dest)
-		*dest = pstring_new ();
-	if (! *dest)
-		die ("failed to allocate space for pstring");
-
-	total = (*dest)->len + len;
-
-	/* +1 for terminating nul */
-	bytes = (1 + total) * sizeof (wchar_t);
-
-	p = realloc ((*dest)->buf, bytes);
-
-	/* FIXME: turn into die() [all occurences!] */
-	assert (p);
-
-	(*dest)->buf = p;
-
-	if (! (*dest)->len) {
-		/* pstring is empty, so initialise the memory to avoid
-		 * surprises with wcsncat() being unable to find the
-		 * terminator!
-		 */
-		memset ((*dest)->buf, 0, bytes);
-	}
-
-	/* Used to check for overrun */
-	(*dest)->buf[total] = L'\0';
-
-	wcsncat ((*dest)->buf + (*dest)->len, src, len);
-
-	/* update */
-	(*dest)->len = total;
-	(*dest)->size = bytes;
-
-	/* check for overrun */
-	assert ((*dest)->buf[total] == L'\0');
-}
-
-
-/* Version of appendn() that operates on a wide string @dest and
- * multi-byte @src.
- */
-void
-wmappendn (pstring **dest, const char *src, size_t len)
-{
-	wchar_t  *wide_src = NULL;
-
-	assert (dest);
-	assert (src);
-
-	if (! len)
-		return;
-
-	wide_src = char_to_wchar (src);
-	if (! wide_src)
-		die ("failed to allocate space for wide string");
-
-	wappendn (dest, wide_src, wcslen (wide_src));
-
-	free (wide_src);
-}
-
-/* append @fmt and args to @dest */
-void
-appendf (char **dest, const char *fmt, ...)
-{
-	va_list   ap;
-
-	assert (dest);
-	assert (fmt);
-
-	va_start (ap, fmt);
-
-	appendva (dest, fmt, ap);
-
-	va_end (ap);
-}
-
-/* Version of appendf() that operates on a wide string @dest
- * and @fmt.
- */
-void
-wappendf (pstring **dest, const wchar_t *fmt, ...)
-{
-	va_list  ap;
-
-	assert (dest);
-	assert (fmt);
-
-	va_start (ap, fmt);
-
-	wappendva (dest, fmt, ap);
-
-	va_end (ap);
-}
-
-/* Version of appendf() that operates on a wide string @dest
- * and multi-byte @fmt.
- */
-void
-wmappendf (pstring **dest, const char *fmt, ...)
-{
-	wchar_t  *wide_fmt = NULL;
-	va_list   ap;
-
-	assert (dest);
-	assert (fmt);
-
-	wide_fmt = char_to_wchar (fmt);
-	if (! wide_fmt)
-		die ("failed to allocate memory for wide format");
-
-	va_start (ap, fmt);
-
-	wappendva (dest, wide_fmt, ap);
-
-	va_end (ap);
-
-	free (wide_fmt);
-}
-
-/* append @fmt and args to @dest */
-void
-appendva (char **dest, const char *fmt, va_list ap)
-{
-	int      ret;
-	char    *new = NULL;
-	char    *p;
-	size_t   bytes;
-
-	/* Start with a guess for how big we think the buffer needs to
-	 * be.
-	 */
-	size_t   len = DEFAULT_ALLOC_GUESS_SIZE;
-
-	assert (dest);
-	assert (fmt);
-
-	bytes = (1 + len) * sizeof (char);
-
-	/* we could use vasprintf(3), but that's GNU-specific and hence
-	 * not available everywhere we need it.
-	 */
-	new = malloc (bytes);
-	if (! new)
-		die ("failed to allocate space for string");
-
-	memset (new, '\0', bytes);
-
-	/* keep on increasing size of buffer until the translation
-	 * succeeds.
-	 */
-	while (TRUE) {
-		va_list  ap_copy;
-
-		va_copy (ap_copy, ap);
-		ret = vsnprintf (new, len, fmt, ap_copy);
-		va_end (ap_copy);
-
-		if (ret < 0)
-			die ("failed to format string");
-
-		if ((size_t)ret < len) {
-			/* now we have sufficient space */
-			break;
-		}
-
-		/* Bump to allow one char to be written */
-		len++;
-
-		/* recalculate number of bytes */
-		bytes = (1 + len) * sizeof (char);
-
-		p = realloc (new, bytes);
-		if (! p)
-			die ("failed to allocate space for string");
-
-		new = p;
-	}
-
-	if (*dest) {
-		append (dest, new);
-		free (new);
-	} else {
-		*dest = new;
-	}
-}
-
-/* Version of appendva() that operates on a wide string @dest
- * and @fmt.
- */
-void
-wappendva (pstring **dest, const wchar_t *fmt, va_list ap)
-{
-	int       ret;
-	wchar_t  *new = NULL;
-	wchar_t  *p;
-	size_t    bytes;
-	va_list   ap_copy;
-
-	/* Start with a guess for how big we think the buffer needs to
-	 * be.
-	 */
-	size_t    len = DEFAULT_ALLOC_GUESS_SIZE;
-
-	assert (dest);
-	assert (fmt);
-
-	bytes = (1 + len) * sizeof (wchar_t);
-
-	new = malloc (bytes);
-	if (! new)
-		die ("failed to allocate space for wide string");
-
-	memset (new, '\0', bytes);
-
-	/* keep on increasing size of buffer until the translation
-	 * succeeds.
-	 */
-	while (TRUE) {
-		va_copy (ap_copy, ap);
-		ret = vswprintf (new, len, fmt, ap_copy);
-		va_end (ap_copy);
-
-		if ((size_t)ret < len) {
-			/* now we have sufficient space, so update for
-			 * actual number of bytes used (including the
-			 * terminator!)
-			 *
-			 * Note that, conveniently, if the string is
-			 * zero-characters long (ie ""), ret will be -1
-			 * which we correct to 0.
-			 */
-			len = ret + 1;
-
-			break;
-		}
-
-		/* Bump to allow one more wide-char to be written */
-		len++;
-
-		/* recalculate number of bytes */
-		bytes = (1 + len) * sizeof (wchar_t);
-
-		p = realloc (new, bytes);
-		if (! p)
-			die ("failed to allocate space for string");
-
-		new = p;
-
-		memset (new, '\0', bytes);
-	}
-
-	if (*dest) {
-		wappend (dest, new);
-		free (new);
-	} else {
-		wchar_t *n;
-
-		/* recalculate number of bytes */
-		bytes = (1 + len) * sizeof (wchar_t);
-
-		/* compress */
-		n = realloc (new, bytes);
-
-		if (! n)
-			die ("failed to reallocate space");
-
-		new = n;
-
-		(*dest) = pstring_new ();
-		assert (*dest);
-		(*dest)->buf = new;
-		(*dest)->len = len;
-		(*dest)->size = bytes;
-	}
-}
-
-/* Version of appendva() that operates on a wide string @dest
- * and multi-byte @fmt.
- */
-void
-wmappendva (pstring **dest, const char *fmt, va_list ap)
-{
-	wchar_t  *wide_fmt = NULL;
-	va_list   ap_copy;
-
-	assert (dest);
-	assert (fmt);
-
-	wide_fmt = char_to_wchar (fmt);
-	if (! wide_fmt)
-		die ("failed to allocate memory for wide format");
-
-	va_copy (ap_copy, ap);
-	wappendva (dest, wide_fmt, ap_copy);
-	va_end (ap_copy);
-
-	free (wide_fmt);
-}
-
-/*
- * Append @src onto the end of @dest.
- */
-void
-pappend (pstring **dest, const pstring *src)
-{
-	size_t    total;
-	size_t    bytes;
-	wchar_t  *p;
-
-	assert (dest);
-	assert (src);
-
-	if (! src->len)
-		return;
-
-	if (! *dest)
-		*dest = pstring_new ();
-	if (! *dest)
-		die ("failed to allocate space for pstring");
-
-	total = (*dest)->len + src->len;
-
-	/* adjust since we only store _one_ of the string terminators
-	 * from @dest and @src.
-	 */
-	total--;
-
-	/* +1 for terminating nul */
-	bytes = (1 + total) * sizeof (wchar_t);
-
-	p = realloc ((*dest)->buf, bytes);
-
-	/* FIXME: turn into die() [all occurences!] */
-	assert (p);
-
-	(*dest)->buf = p;
-
-	wcsncat ((*dest)->buf + (*dest)->len, src->buf, src->len);
-
-	/* update */
-	(*dest)->len = total;
-	(*dest)->size = bytes;
-
-	/* Used to check for overrun */
-	(*dest)->buf[total] = L'\0';
-}
-
 void
 show_all_groups (void)
 {
@@ -3955,7 +1618,7 @@ show_all_groups (void)
 
 	memset (groups, '\0', bytes);
 
-	while (TRUE) {
+	while (true) {
 		ret = getgroups (size, groups);
 		if (ret >= 0)
 			break;
@@ -3973,7 +1636,7 @@ show_all_groups (void)
 	size = ret;
 
 	if (size == 0) {
-		char *group;
+		const char *group;
 
 		free (groups);
 
@@ -4062,23 +1725,13 @@ restore_locale (void)
 }
 
 void
-handle_indent_char (void)
-{
-	size_t       len;
-
-	const char *new = indent_char;
-
-	len = mbsrtowcs (NULL, &new, 0, NULL);
-	if (len != 1)
-		die ("invalid indent character");
-
-	if (mbsrtowcs (&wide_indent_char, &new, len, NULL) != len)
-		die ("failed to convert indent character");
-}
-
-void
 init (void)
 {
+	assert (ops);
+
+	if (ops->init)
+		ops->init ();
+
 	save_locale ();
 
 	handle_indent_char ();
@@ -4092,9 +1745,8 @@ init (void)
 	get_misc ();
 	get_priorities ();
 
-#if defined (PROCENV_LINUX)
-	get_io_priorities ();
-#endif
+	if (ops->get_io_priorities)
+		ops->get_io_priorities (&priority_io);
 }
 
 void
@@ -4105,34 +1757,12 @@ cleanup (void)
 
 	close (user.tty_fd);
 
-	if (output_fd != -1)
-		close (output_fd);
-
-	if (output == OUTPUT_SYSLOG)
-		closelog ();
-
-	if (output_format == OUTPUT_FORMAT_CRUMB && crumb_list) {
-		clear_breadcrumbs ();
-		free (crumb_list);
-	}
+	output_finalise ();
 
 	pstring_free (doc);
-}
 
-/**
- * is_big_endian:
- *
- * Returns: TRUE if system is big-endian, else FALSE.
- **/
-bool
-is_big_endian (void)
-{
-	int x = 1;
-
-	if (*(char *)&x == 1)
-		return FALSE;
-
-	return TRUE;
+	if (ops->cleanup)
+		ops->cleanup ();
 }
 
 void
@@ -4157,6 +1787,11 @@ show_meta (void)
 
 	entry ("build-type", "%s", build_type);
 
+	section_open ("driver");
+	entry ("name", ops->driver.name);
+	entry ("file", ops->driver.file);
+	section_close ();
+
 	entry ("format-type", "%s", get_output_format_name ());
 	entry ("format-version", "%d", PROCENV_FORMAT_VERSION);
 
@@ -4179,11 +1814,11 @@ show_arguments (void)
 
 		appendf (&buffer, "argv[%d]", i);
 
-		object_open (FALSE);
+		object_open (false);
 
 		entry (buffer, "%s", argvp[i]);
 
-		object_close (FALSE);
+		object_close (false);
 
 		free (buffer);
 	}
@@ -4286,25 +1921,6 @@ show_stat (void)
 	footer ();
 }
 
-long
-get_kernel_bits (void)
-{
-#if defined (PROCENV_LINUX) && ! defined (PROCENV_ANDROID)
-	long value;
-
-	errno = 0;
-#if defined (_SC_LONG_BIT)
-	value = get_sysconf (_SC_LONG_BIT);
-	if (value == -1 && errno != 0)
-		return -1;
-#else
-	value = sizeof (long) * CHAR_BIT;
-#endif
-	return value;
-#endif
-	return -1;
-}
-
 /* Dump out data in alphabetical fashion */
 void
 dump (void)
@@ -4318,14 +1934,12 @@ dump (void)
 	show_cgroups ();
 	show_clocks ();
 	show_compiler ();
-#ifndef PROCENV_ANDROID
 	show_confstrs ();
-#endif
 	show_cpu ();
 	show_env ();
 	show_fds ();
 	show_libc ();
-#ifndef PROCENV_ANDROID
+#ifndef PROCENV_PLATFORM_ANDROID
 	show_libs ();
 #endif
 	show_rlimits ();
@@ -4345,6 +1959,7 @@ dump (void)
 	 * as possible.
 	 */
 	show_rusage ();
+
 	show_semaphores ();
 	show_shared_mem ();
 	show_signals ();
@@ -4396,13 +2011,13 @@ get_network_address (const struct sockaddr *address, int family, char *name)
 void
 decode_if_flags (unsigned int flags)
 {
-	struct if_flag_map *p;
+	const struct procenv_map *p;
 
-	for (p = if_flag_map; p && p->name; p++) {
-		if (flags & p->flag) {
-			object_open (FALSE);
-			entry (p->name, "0x%x", p->flag);
-			object_close (FALSE);
+	for (p = ops->if_flag_map; p && p->name; p++) {
+		if (flags & p->num) {
+			object_open (false);
+			entry (p->name, "0x%x", p->num);
+			object_close (false);
 		}
 	}
 }
@@ -4453,8 +2068,8 @@ get_mtu (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-	/* We need to create a socket to query an interfaces mac
-	 * address. Don't ask me why...
+	/* We need to create a socket to query an interfaces MAC
+	 * address.
 	 */
 	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
@@ -4482,26 +2097,26 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *data = NULL;
 	char          *mac_address = NULL;
 	int            i;
-	int            valid = FALSE;
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+	int            valid = false;
+#if defined (PROCENV_PLATFORM_FREEBSD)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
 	int            sock = -1;
 #endif
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD) || defined (PROCENV_PLATFORM_GENERIC)
 	unsigned long  request = SIOCGIFHWADDR;
 #endif
 
 	assert (ifaddr);
 
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+#if defined (PROCENV_PLATFORM_FREEBSD)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
-	/* We need to create a socket to query an interfaces mac
-	 * address. Don't ask me why...
+	/* We need to create a socket to query an interfaces MAC
+	 * address.
 	 */
 	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
@@ -4515,7 +2130,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+#if defined (PROCENV_PLATFORM_FREEBSD)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -4524,7 +2139,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	if (data) {
 		for (i = 0; i < 6; i++) {
 			if (data[i]) {
-				valid = TRUE;
+				valid = true;
 				break;
 			}
 		}
@@ -4552,7 +2167,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+#if defined (PROCENV_PLATFORM_FREEBSD)
 	/* NOP */
 #else
 	close (sock);
@@ -4561,403 +2176,14 @@ out:
 }
 
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-void
-show_mounts_linux (ShowMountType what)
-{
-	FILE            *mtab;
-	struct mntent   *mnt;
-	struct statvfs   fs;
-	unsigned int     major = 0;
-	unsigned int     minor = 0;
-	int              have_stats;
-#if defined (PROCENV_LINUX)
-	char             canonical[PATH_MAX];
-#endif
-
-	common_assert ();
-
-	mtab = fopen (MOUNTS, "r");
-
-	if (! mtab)
-		return;
-
-	while ((mnt = getmntent (mtab))) {
-		have_stats = TRUE;
-
-		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			unsigned multiplier = 0;
-			fsblkcnt_t blocks = 0;
-			fsblkcnt_t bfree = 0;
-			fsblkcnt_t bavail = 0;
-			fsblkcnt_t used_blocks = 0;
-			fsblkcnt_t used_files = 0;
-#if defined (PROCENV_LINUX)
-			int        ret;
-#endif
-
-			if (statvfs (mnt->mnt_dir, &fs) < 0) {
-				have_stats = FALSE;
-			} else {
-				multiplier = fs.f_bsize / DF_BLOCK_SIZE;
-
-				blocks = fs.f_blocks * multiplier;
-				bfree = fs.f_bfree * multiplier;
-				bavail = fs.f_bavail * multiplier;
-				used_blocks = blocks - bfree;
-				used_files = fs.f_files - fs.f_ffree;
-			}
-
-			(void)get_major_minor (mnt->mnt_dir,
-					&major,
-					&minor);
-
-			assert (mnt->mnt_dir);
-			section_open (mnt->mnt_dir);
-
-			entry ("filesystem", "'%s'", mnt->mnt_fsname);
-
-#if defined (PROCENV_LINUX)
-			ret = get_canonical (mnt->mnt_fsname, canonical, sizeof (canonical));
-			entry ("canonical", "%s%s%s",
-					ret ? "'" : "",
-					canonical,
-					ret ? "'" : "");
-#endif
-
-			entry ("type", "'%s'", mnt->mnt_type);
-			entry ("options", "'%s'", mnt->mnt_opts);
-
-			show_pathconfs (what, mnt->mnt_dir);
-
-			section_open ("device");
-			entry ("major", "%u", major);
-			entry ("minor", "%u", minor);
-			section_close ();
-
-			entry ("dump frequency", "%d", mnt->mnt_freq);
-			entry ("fsck pass number", "%d", mnt->mnt_passno);
-
-			if (have_stats) {
-				union fsid_u {
-					unsigned long int fsid;
-					unsigned int val[2];
-				} fsid_val;
-
-				fsid_val.fsid = fs.f_fsid;
-
-				entry ("fsid", "%.*x%.*x", 
-						2 * sizeof (fsid_val.val[0]),
-						fsid_val.val[0],
-						2 * sizeof (fsid_val.val[1]),
-						fsid_val.val[1]);
-
-				entry ("optimal block size", "%lu", fs.f_bsize);
-
-				section_open ("blocks");
-
-				entry ("size", "%lu bytes", DF_BLOCK_SIZE);
-				entry ("total", "%lu", blocks);
-				entry ("used", "%lu", used_blocks);
-				entry ("free", "%lu", bfree);
-				entry ("available", "%lu", bavail);
-
-				section_close ();
-
-				section_open ("files/inodes");
-
-				entry ("total", "%lu", fs.f_files);
-				entry ("used", "%lu", used_files);
-				entry ("free", "%lu", fs.f_ffree);
-
-				section_close ();
-			} else {
-				entry ("fsid", "%s", UNKNOWN_STR);
-				entry ("optimal block size", "%s", UNKNOWN_STR);
-
-				section_open ("blocks");
-
-				entry ("size", "%lu bytes", DF_BLOCK_SIZE);
-				entry ("total", "%s", UNKNOWN_STR);
-				entry ("used", "%s", UNKNOWN_STR);
-				entry ("free", "%s", UNKNOWN_STR);
-				entry ("available", "%s", UNKNOWN_STR);
-
-				section_close ();
-
-				section_open ("files/inodes");
-
-				entry ("total", "%s", UNKNOWN_STR);
-				entry ("used", "%s", UNKNOWN_STR);
-				entry ("free", "%s", UNKNOWN_STR);
-
-				section_close ();
-			}
-
-			section_close ();
-		} else {
-			show_pathconfs (what, mnt->mnt_dir);
-		}
-	}
-
-	fclose (mtab);
-}
-#endif
-
-#if defined (PROCENV_LINUX)
-void
-decode_extended_if_flags (const char *interface, unsigned short *flags)
-{
-	int                           sock;
-	struct ifreq                  ifr;
-	struct if_extended_flag_map  *p;
-
-	assert (interface);
-	assert (flags);
-
-	/* We need to create a socket to query an interfaces mac
-	 * address. Don't ask me why...
-	 */
-	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
-
-	if (sock < 0)
-		return;
-
-	memset (&ifr, 0, sizeof (struct ifreq));
-	strncpy (ifr.ifr_name, interface, IFNAMSIZ-1);
-
-	if (ioctl (sock, SIOCGIFPFLAGS, &ifr) < 0)
-		goto out;
-
-	*flags = ifr.ifr_flags;
-
-	for (p = if_extended_flag_map; p && p->name; p++) {
-		if (*flags & p->flag) {
-			object_open (FALSE);
-			entry (p->name, "0x%x", p->flag);
-			object_close (FALSE);
-		}
-	}
-out:
-	close (sock);
-}
-
-
-/**
- * linux_kernel_version:
- *
- * @major: major kernel version number,
- * @minor: minor kernel version number,
- * @revision: kernel revision version,
- *
- * @minor and @revision may be -1 to denote that those version
- * elements are not important to the caller. Once a parameter
- * has been specified as -1, subsequent parameters are ignored
- * (treated as -1 too).
- *
- * Returns: TRUE if running Linux kernel is atleast at version
- * specified by (@major, @minor, @revision), else FALSE.
- **/
-bool
-linux_kernel_version (int major, int minor, int revision)
-{
-	int  actual_version    = 0x000000;
-	int  requested_version = 0x000000;
-	int  actual_major      = -1;
-	int  actual_minor      = -1;
-	int  actual_revision   = -1;
-	int  ret;
-
-	assert (uts.release);
-	assert (sizeof (int) >= 4);
-
-	/* We need something to work with */
-	assert (major > 0);
-
-	ret = sscanf (uts.release, "%d.%d.%d",
-			&actual_major, &actual_minor,
-			&actual_revision);
-
-	/* We need something to compare against */
-	assert (ret && actual_major != -1);
-
-	requested_version |= (0xFF0000 & (major << 16)); 
-
-	if (minor != -1) {
-		requested_version |= (0x00FF00 & (minor << 8));
-
-		if (revision != -1)
-			requested_version |= (0x0000FF & revision);
-	}
-
-	if (actual_revision != -1) {
-		actual_version |= (0x0000FF & actual_revision);
-	}
-
-	if (actual_minor != -1)
-		actual_version |= (0x00FF00 & (actual_minor << 8));
-
-	if (actual_major != -1)
-		actual_version |= (0xFF0000 & (actual_major << 16)); 
-
-
-	if (actual_version >= requested_version)
-		return TRUE;
-
-	return FALSE;
-}
-
-void
-show_numa_memory (void)
-{
-#if defined (HAVE_NUMA_H)
-	int              policy;
-	const char      *policy_name;
-	char            *allowed_list = NULL;
-	int              ret;
-	unsigned long    node;
-	unsigned long    allowed_size;
-
-#if defined (HAVE_NUMA_H)
-#if LIBNUMA_API_VERSION == 2
-	struct bitmask  *allowed;
-#else
-	nodemask_t       allowed;
-#endif
-#endif
-
-	/* part of the libnuma public API - stop the library calling
-	 * exit(3) on error.
-	 */
-	numa_exit_on_error = 0;
-
-	/* TRUE if any numa nodes have been displayed yet */
-	int              displayed = FALSE;
-
-	/* Number of numa nodes in *current* range */
-	size_t           count = 0;
-
-	/* Only valid to read these when count is >0 */
-	size_t           last = 0;
-	size_t           first = 0;
-#endif /* HAVE_NUMA_H */
-
-	header ("numa");
-
-#if defined (HAVE_NUMA_H)
-	if (numa_available () < 0)
-		/* NUMA not supported on this system */
-		goto out;
-
-#if LIBNUMA_API_VERSION == 2
-	entry ("api version", "%d", 2);
-#else
-	entry ("api version", "%d", 1);
-#endif
-
-	ret = get_mempolicy (&policy, NULL, 0, 0, 0);
-
-	if (ret < 0) {
-		entry ("policy", "%s", UNKNOWN_STR);
-		goto out;
-	}
-
-	policy_name = get_numa_policy (policy);
-
-	entry ("policy", "%s", policy_name ? policy_name : UNKNOWN_STR);
-
-#if LIBNUMA_API_VERSION == 2
-	entry ("maximum nodes", "%d", numa_num_possible_nodes ());
-	entry ("configured nodes", "%d", numa_num_configured_nodes ());
-
-	allowed = numa_get_mems_allowed ();
-	if (! allowed)
-		die ("failed to query NUMA allowed list");
-
-	allowed_size = allowed->size;
-
-#else
-	entry ("maximum nodes", "%s", UNKNOWN_STR);
-	entry ("configured nodes", "%d", numa_max_node ());
-
-	allowed = numa_get_run_node_mask ();
-	allowed_size = NUMA_NUM_NODES;
-#endif
-
-	for (node = 0; node < allowed_size; node++) {
-		if (PROCENV_NUMA_BITMASK_ISSET (allowed, node)) {
-			/* Record first entry in the range */
-			if (! count)
-				first = node;
-
-			last = node;
-			count++;
-		} else {
-			if (count) {
-				if (first == last) {
-					appendf (&allowed_list, "%s%d",
-							displayed ? "," : "",
-							first);
-				} else {
-					appendf (&allowed_list, "%s%d-%d",
-							displayed ? "," : "",
-							first, last);
-				}
-				displayed = TRUE;
-			}
-
-			/* Reset */
-			count = 0;
-		}
-	}
-
-	if (count) {
-		if (first == last) {
-			appendf (&allowed_list, "%s%d",
-					displayed ? "," : "",
-					first);
-		} else {
-			appendf (&allowed_list, "%s%d-%d",
-					displayed ? "," : "",
-					first, last);
-		}
-	}
-
-	entry ("allowed list", "%s", allowed_list);
-
-#if LIBNUMA_API_VERSION == 2
-	numa_free_nodemask (allowed);
-#endif
-
-	free (allowed_list);
-
-out:
-#endif /* HAVE_NUMA_H */
-	footer ();
-}
-
-#if defined (HAVE_NUMA_H)
-const char *
-get_numa_policy (int policy)
-{
-	struct procenv_map *p;
-
-	for (p = numa_mempolicy_map; p && p->name; p++) {
-		if (p->num == policy)
-			return p->name;
-	}
-
-	return NULL;
-}
-#endif /* HAVE_NUMA_H */
-
+#if defined (PROCENV_PLATFORM_LINUX)
 const char *
 get_personality_name (unsigned int domain)
 {
-	struct personality_map  *m;
-		    
-	for (m = personality_map; m && m->name; m++) {
-		if (m->personality == (domain & PER_MASK))
+	const struct procenv_map *m;
+
+	for (m = ops->personality_map; m && m->name; m++) {
+		if (m->num == (domain & PER_MASK))
 			return m->name;
 	}
 
@@ -4967,36 +2193,23 @@ get_personality_name (unsigned int domain)
 char *
 get_personality_flags (unsigned int flags)
 {
-	struct personality_flag_map  *m;
-	char                          *list = NULL;
-	int                            first = TRUE;
+	const struct procenv_map  *m;
+	char                       *list = NULL;
+	int                        first = true;
 
-	for (m = personality_flag_map; m && m->name; m++) {
-		if (flags & m->flag) {
+	for (m = ops->personality_flag_map; m && m->name; m++) {
+		if (flags & m->num) {
 			appendf (&list, "%s%s",
 					first ? "" : ", ",
 					m->name);
-			first = FALSE;
+			first = false;
 		}
 	}
 
 	return list;
 }
 
-const char *
-get_ioprio_class_name (int ioprio)
-{
-	struct procenv_map *p;
-
-	for (p = io_priorities_class_map; p && p->name; p++) {
-		if (ioprio == p->num)
-			return p->name;
-	}
-
-	return NULL;
-}
-
-#endif /* PROCENV_LINUX */
+#endif /* PROCENV_PLATFORM_LINUX */
 
 void
 show_mounts (ShowMountType what)
@@ -5005,13 +2218,8 @@ show_mounts (ShowMountType what)
 
 	header (what == SHOW_PATHCONF ? "pathconf" : "mounts");
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_mounts_linux (what);
-#endif
-
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-	show_mounts_bsd (what);
-#endif
+	if (ops->show_mounts)
+		ops->show_mounts (what);
 
 	footer ();
 }
@@ -5020,13 +2228,13 @@ const char *
 get_net_family_name (sa_family_t family)
 {
 	switch (family) {
-#if defined (PROCENV_LINUX)
+#if defined (PROCENV_PLATFORM_LINUX)
 	case AF_PACKET:
 		return "AF_PACKET";
 		break;
 #endif
 
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
+#if defined (PROCENV_PLATFORM_FREEBSD)
 	case AF_LINK:
 		return "AF_LINK";
 		break;
@@ -5084,9 +2292,8 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	container_open ("fields");
 
-#if defined (PROCENV_LINUX)
-	decode_extended_if_flags (ifa->ifa_name, &ext_flags);
-#endif
+	if (ops->show_extended_if_flags)
+		ops->show_extended_if_flags (ifa->ifa_name, &ext_flags);
 
 	container_close ();
 
@@ -5096,7 +2303,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	mtu = get_mtu (ifa);
 
-#if defined (PROCENV_HURD)
+#if defined (PROCENV_PLATFORM_HURD)
 	/* No AF_LINK/AF_PACKET on Hurd atm */
 	entry ("mac", "%s", UNKNOWN_STR);
 #else
@@ -5116,7 +2323,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 		get_network_address (ifa->ifa_netmask, family, address);
 	entry ("netmask", "%s", ifa->ifa_netmask ? address : NA_STR);
 
-#if !defined (PROCENV_HURD)
+#if !defined (PROCENV_PLATFORM_HURD)
 	if (family != PROCENV_LINK_LEVEL_FAMILY) {
 		if ((ifa->ifa_flags & IFF_BROADCAST) && ifa->ifa_broadaddr) {
 			get_network_address (ifa->ifa_broadaddr, family, address);
@@ -5126,7 +2333,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	} else {
 #endif
 		entry ("broadcast", "%s", NA_STR);
-#if !defined (PROCENV_HURD)
+#if !defined (PROCENV_PLATFORM_HURD)
 	}
 #endif
 
@@ -5140,469 +2347,6 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	section_close ();
 }
 
-/*
- * BSD returns an additional AF_LINK ifaddrs containing the
- * actual link-layer MAC address for each interface.
- *
- * Linux does the same but with one additional AF_PACKET family / interface.
- *
- * This is somewhat noisome since for BSD we need to cache the MAC addresses
- * such that they can be retrieved when the _next_ ifaddrs structure
- * appears for the *same* interface, but we only want to
- * display the non-AF_LINK elements *unless* they refer
- * to an interface with no associated address.
- *
- * The situation for Linux is similar but we only care
- * about AF_PACKET entries for interfaces that have no
- * associated address since we can extract the MAC
- * address using an ioctl (rather than considering the
- * AF_PACKET element).
- *
- * The strategy therefore is to:
- *
- * 1) Cache all AF_LINK/AF_PACKET elements.
- * 2) Once an element arrives that matches an interface
- *    name found in the cache, use that as necessary (extra
- *    the MAC for BSD, NOP for Linux), then free that cache
- *    element.
- * 3) Having processed all entries, if any entries are
- * left in the cache, they must refer to interfaces that
- * have no address, so display them.
- *
- * XXX: Note the implicit assumption that the AF_LINK/AF_PACKET entries
- * will appear _before_ the corresponding entry containing address
- * details for the interface in the output of getifaddrs(): observations
- * suggests this _seems_ to be the case, but is not documented as being
- * guaranteed.
- */
-#ifdef PROCENV_ANDROID
-
-void
-show_network (void)
-{
-	/* Bionic isn't actually that bionic at all :( */
-	header ("network");
-	footer ();
-}
-
-#else
-
-void
-show_network (void)
-{
-	struct ifaddrs      *if_addrs;
-	struct ifaddrs      *ifa;
-	char                *mac_address = NULL;
-	struct network_map  *head = NULL;
-	struct network_map  *node = NULL;
-	struct network_map  *tmp = NULL;
-
-	common_assert ();
-
-	header ("network");
-
-	/* Query all network interfaces */
-	if (getifaddrs (&if_addrs) < 0)
-		return;
-
-	/* Construct an initial node for the cache */
-	head = calloc (1, sizeof (struct network_map));
-	assert (head);
-
-	/* Iterate over all network interfaces */
-	for (ifa = if_addrs; ifa; ifa = ifa->ifa_next) {
-#if !defined (PROCENV_HURD)
-		int family;
-#endif
-
-		if (! ifa->ifa_addr)
-			continue;
-
-#if !defined (PROCENV_HURD)
-		family = ifa->ifa_addr->sa_family;
-
-		if (family == PROCENV_LINK_LEVEL_FAMILY) {
-
-			/* Add link level interface details to the cache */
-			mac_address = get_mac_address (ifa);
-
-			node = calloc (1, sizeof (struct network_map));
-			assert (node);
-
-			/* Conveniently, an ifaddrs contains a bunch of
-			 * pointers and some flags.
-			 *
-			 * Since all those pointers are valid until we
-			 * call freeifaddrs(), all we need to do is copy
-			 * the flags since the memcpy will copy the
-			 * pointers addresses for us :)
-			 */
-			memcpy (&node->ifaddr, ifa, sizeof (struct ifaddrs));
-			node->ifaddr.ifa_flags = ifa->ifa_flags;
-
-			/* Since we've already formatted the MAC
-			 * address, we'll cache that too.
-			 */
-			node->mac_address = mac_address;
-			mac_address = NULL;
-
-			/* prepend */
-			node->next = head->next;
-			if (head->next)
-				head->next->prev = node;
-			node->prev = head;
-			head->next = node;
-
-			continue;
-		}
-#endif
-
-		/* From now on, we're only looking at interfaces with an
-		 * address.
-		 */
-
-		/* Search for an entry corresponding to the interface in the cache */
-		for (node = head->next; node && node->ifaddr.ifa_name; node = node->next) {
-			if (! strcmp (node->ifaddr.ifa_name, ifa->ifa_name)) {
-
-				/* Save */
-				mac_address = node->mac_address
-					? strdup (node->mac_address)
-					: NULL;
-
-				/* Unlink existing node as it has now served its purpose */
-				node->prev->next = node->next;
-				if (node->next)
-					node->next->prev = node->prev;
-
-				/* Destroy */
-				if (node->mac_address)
-					free (node->mac_address);
-				free (node);
-
-				break;
-			}
-		}
-
-		/* Display the interface (which must have an associated address) */
-		show_network_if (ifa, mac_address);
-		if (mac_address) {
-			free (mac_address);
-			mac_address = NULL;
-		}
-	}
-
-	/* Destroy the cache, displaying any interfaces not previously displayed.
-	 * These by definition cannot have addresses assigned to them.
-	 */
-	for (node = head->next; node && node->ifaddr.ifa_name; node = tmp) {
-
-		tmp = node->next;
-
-		show_network_if (&node->ifaddr, node->mac_address);
-
-		/* Destroy */
-		if (node->mac_address)
-			free (node->mac_address);
-		free (node);
-	}
-
-	free (head);
-	freeifaddrs (if_addrs);
-
-	footer ();
-}
-#endif
-
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-
-char *
-get_mount_opts_bsd (uint64_t flags)
-{
-	struct mntopt_map  *opt;
-	char               *str = NULL;
-	size_t              len = 0;
-	size_t              total = 0;
-	int                 count = 0;
-
-	if (! flags)
-		return strdup ("");
-
-	/* Calculate how much space we need to allocate by iterating
-	 * array for the first time.
-	 */
-	for (opt = mntopt_map; opt && opt->name; opt++) {
-		if (flags & opt->flag) {
-			count++;
-			len += strlen (opt->name);
-		}
-	}
-
-	if (count > 1) {
-		/* we need space for the option value themselves, plus a
-		 * ", " separator between each option (except the first),
-		 * and finally space for the nul terminator */
-		total = len + (count-1) + 1;
-	} else {
-		total = len + 1;
-	}
-
-	str = calloc (total, sizeof (char));
-	if (! str)
-		die ("failed to allocate space for mount options");
-
-	/* Re-iterate to construct the string. This is still going to be
-	 * a lot quicker than calling malloc a stack of times.
-	 */
-	for (opt = mntopt_map; opt && opt->name; opt++) {
-		if (flags & opt->flag) {
-			strcat (str, opt->name);
-			if (count > 1)
-				strcat (str, ",");
-			count--;
-		}
-	}
-
-	return str;
-}
-
-void
-show_mounts_bsd (ShowMountType what)
-{
-	int               count;
-	struct statfs    *mounts;
-	struct statfs    *mnt;
-	unsigned int      major = 0;
-	unsigned int      minor = 0;
-	int               i;
-	unsigned          multiplier = 0;
-	statfs_int_type   blocks;
-	statfs_int_type   bfree;
-	statfs_int_type   bavail;
-	statfs_int_type   used;
-
-	common_assert ();
-
-	/* Note that returned memory cannot be freed (by us) */
-	count = getmntinfo (&mounts, MNT_WAIT);
-
-	if (! count)
-		die ("unable to query mount info");
-
-	mnt = mounts;
-
-	for (i = 0; i < count; i++) {
-		char *opts = NULL;
-
-		opts = get_mount_opts_bsd (mnt->f_flags);
-		if (! opts)
-			die ("cannot determine FS flags for mountpoint '%s'",
-					mnt->f_mntonname);
-
-		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			(void)get_major_minor (mnt->f_mntonname,
-					&major,
-					&minor);
-
-			multiplier = mnt->f_bsize / DF_BLOCK_SIZE;
-			blocks = mnt->f_blocks * multiplier;
-			bfree = mnt->f_bfree * multiplier;
-			bavail = mnt->f_bavail * multiplier;
-			used = blocks - bfree;
-
-			assert (mnt->f_mntfromname);
-			section_open (mnt->f_mntfromname);
-
-			entry ("dir", "'%s'", mnt->f_mntonname);
-			entry ("type", "%s", mnt->f_fstypename);
-			entry ("options", "'%s'", opts);
-
-			section_open ("device");
-			entry ("major", "%u", major);
-			entry ("minor", "%u", minor);
-			section_close ();
-
-			entry ("fsid", "%.*x%.*x", 
-					/* Always zero on BSD? */
-					2 * sizeof (mnt->f_fsid.val[0]),
-					mnt->f_fsid.val[0],
-					2 * sizeof (mnt->f_fsid.val[1]),
-					mnt->f_fsid.val[1]);
-
-			entry ("optimal block size", "%" statfs_int_fmt,
-					mnt->f_bsize);
-
-			section_open ("blocks");
-
-			entry ("size", "%lu bytes", DF_BLOCK_SIZE);
-
-			entry ("total", "%" statfs_int_fmt, blocks);
-			entry ("used", "%"statfs_int_fmt,  used);
-			entry ("free", "%" statfs_int_fmt, bfree);
-			entry ("available", "%" statfs_int_fmt, bavail);
-
-			section_close ();
-
-			section_open ("files/inodes");
-
-			entry ("total", "%" statfs_int_fmt, mnt->f_files);
-			entry ("used", "%" statfs_int_fmt,
-					mnt->f_files - mnt->f_ffree);
-			entry ("free", "%" statfs_int_fmt, mnt->f_ffree);
-
-			section_close ();
-
-			section_close ();
-		}
-
-		if (what == SHOW_ALL || what == SHOW_PATHCONF)
-			show_pathconfs (what, mnt->f_mntonname);
-		mnt++;
-
-		free (opts);
-	}
-}
-
-#endif
-
-#if defined (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H)
-void
-show_capabilities_bsd (int fd)
-{
-	int           ret;
-	u_int         mode;
-	cap_rights_t  rights;
-
-	ret = cap_getmode (&mode);
-	if (ret < 0) {
-		/* No Capsicum support */
-		goto out;
-	}
-
-	ret = cap_rights_get (fd, &rights);
-	if (ret < 0) {
-		/* Cannot query capabilities */
-		goto out;
-	}
-
-	show_capsicum_cap (rights, CAP_ACCEPT);
-	show_capsicum_cap (rights, CAP_ACL_CHECK);
-	show_capsicum_cap (rights, CAP_ACL_DELETE);
-	show_capsicum_cap (rights, CAP_ACL_GET);
-	show_capsicum_cap (rights, CAP_ACL_SET);
-	show_capsicum_cap (rights, CAP_BIND);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_BINDAT);
-	show_capsicum_cap (rights, CAP_CHFLAGSAT);
-#endif
-	show_capsicum_cap (rights, CAP_CONNECT);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_CONNECTAT);
-#endif
-	show_capsicum_cap (rights, CAP_CREATE);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_EVENT);
-#endif
-	show_capsicum_cap (rights, CAP_EXTATTR_DELETE);
-	show_capsicum_cap (rights, CAP_EXTATTR_GET);
-	show_capsicum_cap (rights, CAP_EXTATTR_LIST);
-	show_capsicum_cap (rights, CAP_EXTATTR_SET);
-	show_capsicum_cap (rights, CAP_FCHDIR);
-	show_capsicum_cap (rights, CAP_FCHFLAGS);
-	show_capsicum_cap (rights, CAP_FCHMOD);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_FCHMODAT);
-#endif
-	show_capsicum_cap (rights, CAP_FCHOWN);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_FCHOWNAT);
-#endif
-	show_capsicum_cap (rights, CAP_FCNTL);
-	show_capsicum_cap (rights, CAP_FEXECVE);
-	show_capsicum_cap (rights, CAP_FLOCK);
-	show_capsicum_cap (rights, CAP_FPATHCONF);
-	show_capsicum_cap (rights, CAP_FSCK);
-	show_capsicum_cap (rights, CAP_FSTAT);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_FSTATAT);
-#endif
-	show_capsicum_cap (rights, CAP_FSTATFS);
-	show_capsicum_cap (rights, CAP_FSYNC);
-	show_capsicum_cap (rights, CAP_FTRUNCATE);
-	show_capsicum_cap (rights, CAP_FUTIMES);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_FUTIMESAT);
-#endif
-	show_capsicum_cap (rights, CAP_GETPEERNAME);
-	show_capsicum_cap (rights, CAP_GETSOCKNAME);
-	show_capsicum_cap (rights, CAP_GETSOCKOPT);
-	show_capsicum_cap (rights, CAP_IOCTL);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_KQUEUE);
-	show_capsicum_cap (rights, CAP_KQUEUE_CHANGE);
-	show_capsicum_cap (rights, CAP_KQUEUE_EVENT);
-	show_capsicum_cap (rights, CAP_LINKAT);
-#endif
-	show_capsicum_cap (rights, CAP_LISTEN);
-	show_capsicum_cap (rights, CAP_LOOKUP);
-	show_capsicum_cap (rights, CAP_MAC_GET);
-	show_capsicum_cap (rights, CAP_MAC_SET);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_MKDIRAT);
-	show_capsicum_cap (rights, CAP_MKFIFOAT);
-	show_capsicum_cap (rights, CAP_MKNODAT);
-	show_capsicum_cap (rights, CAP_MMAP);
-	show_capsicum_cap (rights, CAP_MMAP_R);
-	show_capsicum_cap (rights, CAP_MMAP_RW);
-	show_capsicum_cap (rights, CAP_MMAP_RWX);
-	show_capsicum_cap (rights, CAP_MMAP_RX);
-	show_capsicum_cap (rights, CAP_MMAP_W);
-	show_capsicum_cap (rights, CAP_MMAP_WX);
-	show_capsicum_cap (rights, CAP_MMAP_X);
-#endif
-	show_capsicum_cap (rights, CAP_PDGETPID);
-	show_capsicum_cap (rights, CAP_PDKILL);
-	show_capsicum_cap (rights, CAP_PDWAIT);
-	show_capsicum_cap (rights, CAP_PEELOFF);
-	show_capsicum_cap (rights, CAP_POLL_EVENT);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_PREAD);
-	show_capsicum_cap (rights, CAP_PWRITE);
-#endif
-	show_capsicum_cap (rights, CAP_READ);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_RECV);
-	show_capsicum_cap (rights, CAP_RENAMEAT);
-#endif
-	show_capsicum_cap (rights, CAP_SEEK);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_SEEK_TELL);
-#endif
-	show_capsicum_cap (rights, CAP_SEM_GETVALUE);
-	show_capsicum_cap (rights, CAP_SEM_POST);
-	show_capsicum_cap (rights, CAP_SEM_WAIT);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_SEND);
-#endif
-	show_capsicum_cap (rights, CAP_SETSOCKOPT);
-	show_capsicum_cap (rights, CAP_SHUTDOWN);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_SOCK_CLIENT);
-	show_capsicum_cap (rights, CAP_SOCK_SERVER);
-	show_capsicum_cap (rights, CAP_SYMLINKAT);
-#endif
-	show_capsicum_cap (rights, CAP_TTYHOOK);
-#if __FreeBSD__ > 9
-	show_capsicum_cap (rights, CAP_UNLINKAT);
-#endif
-	show_capsicum_cap (rights, CAP_WRITE);
-
-out:
-	/* clang requires this */
-	return;
-}
-#endif /* (PROCENV_BSD) && defined (HAVE_SYS_CAPABILITY_H) */
-
 void
 get_priorities (void)
 {
@@ -5611,699 +2355,14 @@ get_priorities (void)
 	priority.user    = getpriority (PRIO_USER   , 0);
 }
 
-bool
-uid_match (uid_t uid)
-{
-	return uid == getuid ();
-}
-
-
-/**
- * in_container:
- *
- * Determine if running inside a container.
- *
- * Returns: Name of container type, or NO_STR.
- **/
-const char *
-container_type (void)
-{
-	struct stat  statbuf;
-	char         buffer[1024];
-	FILE        *f;
-#if defined (PROCENV_LINUX)
-	dev_t        expected;
-
-	expected = makedev (5, 1);
-#endif
-
-	if (stat ("/dev/console", &statbuf) < 0)
-		goto out;
-
-#if defined (PROCENV_BSD)
-	if (misc.in_jail)
-		return "jail";
-#endif
-	/* LXC's /dev/console is actually a pty */
-#if defined (PROCENV_LINUX)
-	if (major (statbuf.st_rdev) != major (expected)
-			|| (minor (statbuf.st_rdev)) != minor (expected))
-		return "lxc";
-#endif
-
-	if (! stat ("/proc/vz", &statbuf) && stat ("/proc/bc", &statbuf) < 0)
-		return "openvz";
-
-	f = fopen ("/proc/self/status", "r");
-	if (! f)
-		goto out;
-
-	while (fgets (buffer, sizeof (buffer), f)) {
-		size_t len = strlen (buffer);
-		buffer[len-1] = '\0';
-
-		if (strstr (buffer, "VxID") == buffer) {
-			fclose (f);
-			return "vserver";
-		}
-	}
-
-	fclose (f);
-
-out:
-	return NO_STR;
-}
-
-/**
- * in_chroot:
- *
- * Determine if running inside a chroot environment.
- *
- * Failures are fatal.
- *
- * Returns TRUE if within a chroot, else FALSE.
- **/
-bool
-in_chroot (void)
-{
-	struct stat st;
-	int i;
-	int root_inode, self_inode;
-	char root[] = "/";
-	char self[] = "/proc/self/root";
-	char bsd_self[] = "/proc/curproc";
-	char *dir = NULL;
-
-	i = stat (root, &st);
-	if (i != 0) {
-		dir = root;
-		goto error;
-	}
-
-	root_inode = st.st_ino;
-
-	/*
-	 * Inode 2 is the root inode for most filesystems. However, XFS
-	 * uses 128 for root.
-	 */
-	if (root_inode != 2 && root_inode != 128)
-		return TRUE;
-
-	i = stat (bsd_self, &st);
-	if (i == 0) {
-		/* Give up here if running on BSD */
-		return FALSE;
-	}
-
-	i = stat (self, &st);
-	if (i != 0)
-		return FALSE;
-
-	self_inode = st.st_ino;
-
-	if (root_inode == self_inode)
-		return FALSE;
-
-	return TRUE;
-
-error:
-	die ("cannot stat '%s'", dir);
-
-	/* compiler appeasement */
-	return FALSE;
-}
-
-/* detect if setsid(2) has been called */
-bool
-is_session_leader (void)
-{
-	return user.sid == user.pid;
-}
-
-/* detect if setpgrp(2)/setpgid(2) (or setsid(2)) has been called */
-bool
-is_process_group_leader (void)
-{
-	return user.pgroup == user.pid;
-}
-
 void
-show_proc_branch (void)
+handle_proc_branch (void)
 {
 	common_assert ();
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
-	show_proc_branch_linux ();
-#endif
-
-#if defined (PROCENV_HURD)
-	/* FIXME: how can this be queried in Hurd?? */
-#endif
-
-#if defined (PROCENV_BSD)
-	show_proc_branch_bsd ();
-#endif
+	if (ops->handle_proc_branch)
+		ops->handle_proc_branch ();
 }
-
-#if defined (PROCENV_BSD)
-/* Who would have thought handling PIDs was so tricky? */
-void
-show_proc_branch_bsd (void)
-{
-	int                  count = 0;
-	int                  i;
-	char                 errors[_POSIX2_LINE_MAX];
-	kvm_t               *kvm;
-	struct kinfo_proc   *procs;
-	struct kinfo_proc   *p;
-	pid_t                self, current;
-	int                  done = FALSE;
-	char                *str = NULL;
-	pid_t                ultimate_parent = 0;
-
-	common_assert ();
-
-	self = current = getpid ();
-
-	kvm = kvm_openfiles (NULL, _PATH_DEVNULL, NULL, O_RDONLY, errors);
-	if (! kvm)
-		die ("unable to open kvm");
-
-	procs = kvm_getprocs (kvm, KERN_PROC_PROC, 0, &count);
-	if (! procs)
-		die ("failed to get process info");
-
-	/* Calculate the lowest PID number which gives us the ultimate
-	 * parent of all processes.
-	 *
-	 * On BSD sytems, normally PID 0 ('[kernel]') is the ultimate
-	 * parent rather than PID 1 ('init').
-	 *
-	 * However, this doesn't work in a BSD jail since in that
-	 * environment:
-	 *
-	 * - there is no init process visible.
-	 * - there is no kernel thread visible.
-	 * - the ultimate parent PID will either by 1 (the "invisible"
-	 *   init process) or 'n' where 'n' is a PID>1 which is also
-	 *   "invisible" (since it lives outside the jail in the host
-	 *   environment).
-	 *
-	 * Confused yet?
-	 */
-
-	p = &procs[0];
-	ultimate_parent = p->ki_pid;
-
-	for (i = 1; i < count; i++) {
-		p = &procs[i];
-		if (p->ki_pid < ultimate_parent)
-			ultimate_parent = p->ki_pid;
-	}
-
-	while (! done) {
-		for (i = 0; i < count && !done; i++) {
-			p = &procs[i];
-
-			if (p->ki_pid == current) {
-				if (misc.in_jail) {
-					struct kinfo_proc   *p2;
-					int                  ppid_found = FALSE;
-					int                  j;
-
-					/* Determine if the parent PID
-					 * actually exists within the
-					 * jail.
-					 */
-					for (j = 0; j < count; j++) {
-						p2 =  &procs[j];
-
-						if (p2->ki_pid == p->ki_ppid) {
-							ppid_found = TRUE;
-							break;
-						}
-					}
-
-					if (p->ki_ppid == 1 || (p->ki_ppid && ! ppid_found)) {
-						/* Found the "last" PID (whose parent is either
-						 * the "invisible init" or which exists outside the jail)
-						 * so record it and hop out.
-						 */
-						appendf (&str, "%d ('%s') %d (%s)",
-								(int)current, p->ki_comm,
-								p->ki_ppid, UNKNOWN_STR);
-						done = TRUE;
-						break;
-					} else {
-						/* Found a valid parent pid */
-						appendf (&str, "%d ('%s'), ",
-								(int)current, p->ki_comm);
-					}
-
-				} else if (! ultimate_parent && current == ultimate_parent) {
-
-					/* Found the "last" PID so record it and hop out */
-					appendf (&str, "%d ('%s')",
-							(int)current, p->ki_comm);
-					done = TRUE;
-					break;
-
-				} else {
-
-					/* Found a valid parent pid */
-					appendf (&str, "%d ('%s'), ",
-							(int)current, p->ki_comm);
-				}
-
-				/* Move on */
-				current = p->ki_ppid;
-			}
-		}
-	}
-
-	if (kvm_close (kvm) < 0)
-		die ("failed to close kvm");
-
-	entry ("ancestry", "%s", str);
-	free (str);
-}
-#endif
-
-#if defined (PROCENV_LINUX)
-void
-show_prctl_linux (void)
-{
-	int  rc;
-	int  arg2;
-	char name[17] = { 0 };
-
-	common_assert ();
-
-	section_open ("prctl");
-
-#ifdef PR_GET_ENDIAN
-	if (LINUX_KERNEL_MMR (2, 6, 18)) {
-		const char *value;
-
-		rc = prctl (PR_GET_ENDIAN, &arg2, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (arg2) {
-			case PR_ENDIAN_BIG:
-				value = BIG_STR; 
-				break;
-			case PR_ENDIAN_LITTLE:
-				value = LITTLE_STR; 
-				break;
-			case PR_ENDIAN_PPC_LITTLE:
-				value = "PowerPC pseudo little endian";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("process endian", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_DUMPABLE
-	if (LINUX_KERNEL_MMR (2, 3, 20)) {
-		const char *value;
-		rc = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (rc) {
-			case 0:
-				value = NO_STR;
-				break;
-			case 1:
-				value = YES_STR;
-				break;
-			case 2:
-				value = "root-only";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("dumpable", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_FPEMU
-	/* Use the earliest version where this option was introduced
-	 * (for some architectures).
-	 */
-	if (LINUX_KERNEL_MMR (2, 4, 18)) {
-		const char *value;
-
-		rc = prctl (PR_GET_FPEMU, &arg2, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (arg2) {
-			case PR_FPEMU_NOPRINT:
-				value = YES_STR;
-				break;
-			case PR_FPEMU_SIGFPE:
-				value = "send SIGFPE";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("floating point emulation", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_FPEXC
-	/* Use the earliest version where this option was introduced
-	 * (for some architectures).
-	 */
-	if (LINUX_KERNEL_MMR (2, 4, 21)) {
-		const char *value;
-
-		rc = prctl (PR_GET_FPEXC, &arg2, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (arg2) {
-			case PR_FP_EXC_SW_ENABLE:
-				value = "software";
-				break;
-			case PR_FP_EXC_DISABLED:
-				value = "disabled";
-				break;
-			case PR_FP_EXC_NONRECOV:
-				value = "non-recoverable";
-				break;
-			case PR_FP_EXC_ASYNC:
-				value = "asynchronous";
-				break;
-			case PR_FP_EXC_PRECISE:
-				value = "precise";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("floating point exceptions", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_NAME
-	if (LINUX_KERNEL_MMR (2, 6, 11)) {
-		rc = prctl (PR_GET_NAME, name, 0, 0, 0);
-		if (rc < 0)
-			entry ("process name", "%s", UNKNOWN_STR);
-		else
-			entry ("process name", "%s", name);
-	}
-
-#endif
-
-#ifdef PR_GET_PDEATHSIG
-	if (LINUX_KERNEL_MMR (2, 3, 15)) {
-		rc = prctl (PR_GET_PDEATHSIG, &arg2, 0, 0, 0);
-		if (rc < 0)
-			entry ("parent death signal", "%s", UNKNOWN_STR);
-		else if (rc == 0)
-			entry ("parent death signal", "disabled");
-		else
-			entry ("parent death signal", "%d", arg2);
-	}
-#endif
-
-#ifdef PR_GET_SECCOMP
-	if (LINUX_KERNEL_MMR (2, 6, 23)) {
-		const char *value;
-
-		rc = prctl (PR_GET_SECCOMP, 0, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (rc) {
-			case 0:
-				value = "disabled";
-				break;
-			case 1:
-				value = "read/write/exit (mode 1)";
-				break;
-			case 2:
-				value = "BPF (mode 2)";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("secure computing", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_TIMING
-	/* Not 100% accurate - this option was actually
-	 * introduced in 2.6.0-test4
-	 */
-	if (LINUX_KERNEL_MMR (2, 6, 1)) {
-		const char *value;
-		rc = prctl (PR_GET_TIMING, 0, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (rc) {
-			case PR_TIMING_STATISTICAL:
-				value = "statistical";
-				break;
-			case PR_TIMING_TIMESTAMP:
-				value = "time-stamp";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("process timing", "%s", value);
-	}
-#endif
-
-#if defined (PR_GET_TSC) && defined (PROCENV_ARCH_X86)
-	if (LINUX_KERNEL_MMR (2, 6, 26)) {
-		const char *value;
-
-		rc = prctl (PR_GET_TSC, &arg2, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (arg2) {
-			case PR_TSC_ENABLE:
-				value = "enabled";
-				break;
-			case PR_TSC_SIGSEGV:
-				value = "segmentation fault";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("timestamp counter read", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_UNALIGNED
-	if (LINUX_KERNEL_MMR (2, 3, 48)) {
-		const char *value;
-
-		rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (arg2) {
-			case PR_UNALIGN_NOPRINT:
-				value = "fix-up";
-				break;
-			case PR_UNALIGN_SIGBUS:
-				value = "send SIGBUS";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("unaligned access", "%s", value);
-	}
-#endif
-
-#ifdef PR_MCE_KILL_GET
-	if (LINUX_KERNEL_MMR (2, 6, 32)) {
-		const char *value;
-
-		rc = prctl (PR_MCE_KILL_GET, 0, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (rc) {
-			case PR_MCE_KILL_DEFAULT:
-				value = "system default";
-				break;
-			case PR_MCE_KILL_EARLY:
-				value = "early kill";
-				break;
-			case PR_MCE_KILL_LATE:
-				value = "late kill";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("machine-check exception", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_NO_NEW_PRIVS
-	if (LINUX_KERNEL_MM (3, 5)) {
-		const char *value;
-
-		rc = prctl (PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
-		if (rc < 0)
-			value = UNKNOWN_STR;
-		else {
-			switch (rc) {
-			case 0:
-				value = "normal execve";
-				break;
-			case 1:
-				value = "enabled";
-				break;
-			default:
-				value = UNKNOWN_STR;
-				break;
-			}
-		}
-		entry ("no new privileges", "%s", value);
-	}
-#endif
-
-#ifdef PR_GET_TIMERSLACK
-	if (LINUX_KERNEL_MMR (2, 6, 28)) {
-		rc = prctl (PR_GET_TIMERSLACK, 0, 0, 0, 0);
-		if (rc < 0)
-			entry ("timer slack", "%s", UNKNOWN_STR);
-		else
-			entry ("timer slack", "%dns", rc);
-	}
-#endif
-
-#ifdef PR_GET_CHILD_SUBREAPER
-	if (LINUX_KERNEL_MM (3, 4)) {
-		rc = prctl (PR_GET_CHILD_SUBREAPER, &arg2, 0, 0, 0);
-		if (rc < 0)
-			entry ("child subreaper", "%s", UNKNOWN_STR);
-		else
-			entry ("child subreaper", "%s", arg2 ? YES_STR : NO_STR);
-	}
-#endif
-
-#ifdef PR_GET_TID_ADDRESS
-	rc = prctl (PR_GET_TID_ADDRESS, &arg2, 0, 0, 0);
-	if (rc < 0)
-		entry ("clear child tid address", "%s", UNKNOWN_STR);
-	else
-		entry ("clear child tid address", "%p", arg2);
-#endif
-
-	section_close ();
-}
-
-void
-get_io_priorities (void)
-{
-	priority_io.process = io_prio_get (IOPRIO_WHO_PROCESS, 0);
-	priority_io.pgrp    = io_prio_get (IOPRIO_WHO_PGRP   , 0);
-	priority_io.user    = io_prio_get (IOPRIO_WHO_USER   , 0);
-}
-
-/* No GLib wrapper, so create one */
-int io_prio_get (int which, int who)
-{
-    return syscall(SYS_ioprio_get, which, who);
-}
-
-#endif
-
-#if defined (PROCENV_LINUX) || defined (PROCENV_GNU_BSD)
-void
-show_proc_branch_linux (void)
-{
-	char    buffer[1024];
-	char    path[PATH_MAX];
-	char    name[16];
-	char    pid[16];
-	char    ppid[16];
-	size_t  len;
-	char   *p;
-	FILE   *f;
-	char   *str = NULL;
-
-	common_assert ();
-
-	sprintf (pid, "%d", (int)getpid ());
-
-	/* This is one God-awful interface */
-	while (TRUE) {
-		sprintf (path, "/proc/%s/status", pid);
-
-		f = fopen (path, "r");
-		if (! f) {
-			appendf (&str, "%s", UNKNOWN_STR);
-			goto out;
-		}
-
-		while (fgets (buffer, sizeof (buffer), f)) {
-			len = strlen (buffer);
-			buffer[len-1] = '\0';
-
-			if ((p=strstr (buffer, "Name:")) == buffer) {
-				p += 1+strlen ("Name:"); /* jump over tab char */
-				sprintf (name, "%s", p);
-			}
-
-			if ((p=strstr (buffer, "PPid:")) == buffer) {
-				p += 1+strlen ("PPid:"); /* jump over tab char */
-				sprintf (ppid, "%s", p);
-
-				/* got all we need now */
-				break;
-			}
-		}
-
-		fclose (f);
-
-		/* ultimate parent == PID 1 == '/sbin/init' */
-		if (! strcmp (pid, "1")) {
-			appendf (&str, "%s ('%s')", pid, name);
-			break;
-		} else {
-			appendf (&str, "%s ('%s'), ", pid, name);
-		}
-
-		/* parent is now the pid to search for */
-		sprintf (pid, "%s", ppid);
-	}
-out:
-
-	entry ("ancestry", "%s", str);
-	free (str);
-}
-#endif
 
 /* More verbose version of stty(1).
  *
@@ -6348,9 +2407,8 @@ show_tty_attrs (void)
 work:
 	user.tty_fd = fds[i];
 
-#ifdef PROCENV_LINUX
-	get_tty_locked_status (&lock_status);
-#endif
+	if (ops->get_tty_locked_status)
+		ops->get_tty_locked_status (&lock_status);
 
 	/*****************************************/
 	section_open ("c_iflag (input)");
@@ -6366,14 +2424,16 @@ work:
 	show_const_tty (tty, c_iflag, INLCR, lock_status);
 	show_const_tty (tty, c_iflag, IGNCR, lock_status);
 	show_const_tty (tty, c_iflag, ICRNL, lock_status);
-#if defined (PROCENV_LINUX)
+
+#if defined (IUCLC)
 	show_const_tty (tty, c_iflag, IUCLC, lock_status);
 #endif
 	show_const_tty (tty, c_iflag, IXON, lock_status);
 	show_const_tty (tty, c_iflag, IXANY, lock_status);
 	show_const_tty (tty, c_iflag, IXOFF, lock_status);
 	show_const_tty (tty, c_iflag, IMAXBEL, lock_status);
-#if defined (PROCENV_LINUX)
+
+#if defined (IUTF8)
 	show_const_tty (tty, c_iflag, IUTF8, lock_status);
 #endif
 
@@ -6385,23 +2445,41 @@ work:
 	entry ("c_oflag", "0x%x", tty.c_oflag);
 
 	show_const_tty (tty, c_oflag, OPOST, lock_status);
-#if defined (PROCENV_LINUX)
+
+#if defined (OLCUC)
 	show_const_tty (tty, c_oflag, OLCUC, lock_status);
 #endif
 	show_const_tty (tty, c_oflag, ONLCR, lock_status);
 	show_const_tty (tty, c_oflag, OCRNL, lock_status);
 	show_const_tty (tty, c_oflag, ONOCR, lock_status);
 	show_const_tty (tty, c_oflag, ONLRET, lock_status);
-#if defined (PROCENV_LINUX)
+#if defined (OFILL)
 	show_const_tty (tty, c_oflag, OFILL, lock_status);
+#endif
+
+#if defined (OFDEL)
 	show_const_tty (tty, c_oflag, OFDEL, lock_status);
+#endif
+
+#if defined (NLDLY)
 	show_const_tty (tty, c_oflag, NLDLY, lock_status);
+#endif
+
+#if defined (CRDLY)
 	show_const_tty (tty, c_oflag, CRDLY, lock_status);
 #endif
+
 	show_const_tty (tty, c_oflag, TABDLY, lock_status);
-#if defined (PROCENV_LINUX)
+
+#if defined (BSDLY)
 	show_const_tty (tty, c_oflag, BSDLY, lock_status);
+#endif
+
+#if defined (VTDLY)
 	show_const_tty (tty, c_oflag, VTDLY, lock_status);
+#endif
+
+#if defined (FFDLY)
 	show_const_tty (tty, c_oflag, FFDLY, lock_status);
 #endif
 
@@ -6412,9 +2490,10 @@ work:
 
 	entry ("value", "0x%x", tty.c_cflag);
 
-#if defined (PROCENV_LINUX)
+#if defined (CBAUDEX)
 	show_const_tty (tty, c_cflag, CBAUDEX, lock_status);
 #endif
+
 	show_const_tty (tty, c_cflag, CSIZE, lock_status);
 	show_const_tty (tty, c_cflag, CSTOPB, lock_status);
 	show_const_tty (tty, c_cflag, CREAD, lock_status);
@@ -6422,14 +2501,15 @@ work:
 	show_const_tty (tty, c_cflag, PARODD, lock_status);
 	show_const_tty (tty, c_cflag, HUPCL, lock_status);
 	show_const_tty (tty, c_cflag, CLOCAL, lock_status);
-#if defined (PROCENV_LINUX)
+
 #ifdef CIBAUD
 	show_const_tty (tty, c_cflag, CIBAUD, lock_status);
 #endif
+
 #ifdef CMSPAR
 	show_const_tty (tty, c_cflag, CMSPAR, lock_status);
 #endif
-#endif
+
 	show_const_tty (tty, c_cflag, CRTSCTS, lock_status);
 
 	section_close ();
@@ -6440,11 +2520,11 @@ work:
 	entry ("value", "0x%x", tty.c_lflag);
 
 	show_const_tty (tty, c_lflag, ISIG, lock_status);
-#if defined (PROCENV_LINUX)
+
 #if defined (XCASE)
 	show_const_tty (tty, c_lflag, XCASE, lock_status);
 #endif
-#endif
+
 	show_const_tty (tty, c_lflag, ICANON, lock_status);
 	show_const_tty (tty, c_lflag, ECHO, lock_status);
 	show_const_tty (tty, c_lflag, ECHOE, lock_status);
@@ -6471,9 +2551,11 @@ work:
 	show_cc_tty (tty, VEOF, lock_status);
 	show_cc_tty (tty, VTIME, lock_status);
 	show_cc_tty (tty, VMIN, lock_status);
-#if defined (PROCENV_LINUX)
+
+#if defined (VSWTC)
 	show_cc_tty (tty, VSWTC, lock_status);
 #endif
+
 	show_cc_tty (tty, VSTART, lock_status);
 	show_cc_tty (tty, VSTOP, lock_status);
 	show_cc_tty (tty, VSUSP, lock_status);
@@ -6561,9 +2643,9 @@ get_signal_name (int signum)
 {
 	assert (signum);
 
-	struct procenv_map *p;
+	const struct procenv_map *p;
 
-	for (p = signal_map; p && p->name; p++) {
+	for (p = ops->signal_map; p && p->name; p++) {
 		if (signum == p->num)
 			return p->name;
 	}
@@ -6577,7 +2659,7 @@ get_signal_name (int signum)
  * Returns: static string representing best guess
  * at operating system.
  **/
-char *
+const char *
 get_os (void)
 {
 #ifdef _AIX
@@ -6604,11 +2686,7 @@ get_os (void)
 	return "iSeries (OS/400)";
 #endif
 
-#if defined (PROCENV_GNU_BSD) && defined (__GNUC__)
-	return "GNU/kFreeBSD";
-#endif
-
-#ifdef PROCENV_LINUX
+#ifdef PROCENV_PLATFORM_LINUX
 #ifdef __s390x__
 	return "Linux (zSeries)";
 #endif
@@ -6662,7 +2740,7 @@ get_os (void)
  * Returns: static string representing best guess
  * at architecture.
  **/
-char *
+const char *
 get_arch (void)
 {
 
@@ -6755,8 +2833,8 @@ get_arch (void)
 	return UNKNOWN_STR;
 }
 
-#ifndef PROCENV_ANDROID
-int
+#ifndef PROCENV_PLATFORM_ANDROID
+static int
 libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 {
 	const char *name;
@@ -6780,7 +2858,7 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 		name = path;
 	}
 
-	object_open (FALSE);
+	object_open (false);
 
 	section_open (name);
 
@@ -6789,7 +2867,7 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 
 	section_close ();
 
-	object_close (FALSE);
+	object_close (false);
 
 	return 0;
 }
@@ -6837,7 +2915,7 @@ show_clocks (void)
 	show_clock_res (CLOCK_MONOTONIC_RAW);
 #endif
 
-#if defined (__FreeBSD__) || defined (PROCENV_GNU_BSD)
+#if defined (__FreeBSD__)
 	show_clock_res (CLOCK_MONOTONIC_PRECISE);
 	show_clock_res (CLOCK_MONOTONIC_FAST);
 	show_clock_res (CLOCK_UPTIME);
@@ -6850,7 +2928,7 @@ show_clocks (void)
 	show_clock_res (CLOCK_PROF);
 #endif
 
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
+#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
 #ifdef CLOCK_MONOTONIC_RAW
 	show_clock_res (CLOCK_MONOTONIC_RAW);
@@ -6867,13 +2945,36 @@ show_clocks (void)
 }
 
 void
+show_rlimits (void)
+{
+	header ("limits");
+
+	if (ops->show_rlimits)
+		ops->show_rlimits ();
+
+	footer ();
+} 
+
+void
+show_confstrs (void)
+{
+	header ("confstr");
+
+	if (ops->show_confstrs)
+		ops->show_confstrs();
+
+	footer ();
+}
+
+void
 show_timezone (void)
 {
-#if defined (PROCENV_LINUX)
-	show_timezone_linux ();
-#else
-	show_timezone_stub ();
-#endif
+	header ("timezone");
+
+	if (ops->show_timezone)
+		ops->show_timezone ();
+
+	footer ();
 }
 
 void
@@ -7173,11 +3274,11 @@ show_compiler (void)
 #if defined (_POSIX_RAW_SOCKETS)
 	entry ("_POSIX_RAW_SOCKETS", "%s", DEFINED_STR),
 #else
-	entry ("_POSIX_RAW_SOCKETS", "%s", NOT_DEFINED_STR),
+	      entry ("_POSIX_RAW_SOCKETS", "%s", NOT_DEFINED_STR),
 #endif
 
 #ifdef _POSIX_SOURCE
-	entry ("_POSIX_SOURCE", "%s", DEFINED_STR);
+	      entry ("_POSIX_SOURCE", "%s", DEFINED_STR);
 #else
 	entry ("_POSIX_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
@@ -7399,7 +3500,7 @@ show_uname (void)
 	entry ("version", "%s", uts.version);
 	entry ("machine", "%s", uts.machine);
 
-#if defined (_GNU_SOURCE) && defined (PROCENV_LINUX)
+#if defined (_GNU_SOURCE) && defined (PROCENV_PLATFORM_LINUX)
 	entry ("domainname", "%s", uts.domainname[0] ? uts.domainname : UNKNOWN_STR);
 #endif
 
@@ -7409,888 +3510,34 @@ show_uname (void)
 void
 show_cgroups (void)
 {
-#if defined (PROCENV_LINUX)
-	show_cgroups_linux ();
-#else
-	show_cgroups_stub ();
-#endif
+	header ("cgroups");
+
+	if (ops->show_cgroups)
+		ops->show_cgroups ();
+
+	footer ();
 }
 
 void
 show_oom (void)
 {
-#if defined (PROCENV_LINUX)
-	show_oom_linux ();
-#else
-	show_oom_stub ();
-#endif
+	header ("oom");
+
+	if (ops->show_oom)
+		ops->show_oom ();
+
+	footer ();
 }
 
 void
 show_capabilities (void)
 {
-#if defined (PROCENV_LINUX)
-	show_capabilities_linux ();
-#else
-	show_capabilities_stub ();
-#endif
-}
-
-#if defined (PROCENV_LINUX)
-
-#if defined (HAVE_SYS_CAPABILITY_H)
-int
-get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
-{
-    int               ret;
-    cap_flag_value_t  result;
-
-    assert (cap_p);
-
-    ret = cap_get_flag (cap_p, cap, type, &result);
-
-    return ret < 0 ? ret : result;
-}
-#endif /* HAVE_SYS_CAPABILITY_H */
-
-void
-show_capabilities_linux (void)
-{
-#if defined (HAVE_SYS_CAPABILITY_H)
-	int    last_known;
-	cap_t  caps;
-
-	/* Most recently-added capability that procenv knew about at
-	 * compile time.
-	 */
-	last_known = CAP_LAST_CAP;
-#endif
-
 	header ("capabilities");
 
-#if defined (HAVE_SYS_CAPABILITY_H)
-	caps = cap_get_proc ();
-
-	entry ("count (CAP_LAST_CAP+1)", "%d", CAP_LAST_CAP+1);
-
-	if (! caps)
-		goto out;
-
-	section_open ("known");
-
-	show_capability (caps, CAP_CHOWN);
-	show_capability (caps, CAP_DAC_OVERRIDE);
-	show_capability (caps, CAP_DAC_READ_SEARCH);
-	show_capability (caps, CAP_FOWNER);
-	show_capability (caps, CAP_FSETID);
-	show_capability (caps, CAP_KILL);
-	show_capability (caps, CAP_SETGID);
-	show_capability (caps, CAP_SETUID);
-	show_capability (caps, CAP_SETPCAP);
-	show_capability (caps, CAP_LINUX_IMMUTABLE);
-	show_capability (caps, CAP_NET_BIND_SERVICE);
-	show_capability (caps, CAP_NET_BROADCAST);
-	show_capability (caps, CAP_NET_ADMIN);
-	show_capability (caps, CAP_NET_RAW);
-	show_capability (caps, CAP_IPC_LOCK);
-	show_capability (caps, CAP_IPC_OWNER);
-	show_capability (caps, CAP_SYS_MODULE);
-	show_capability (caps, CAP_SYS_RAWIO);
-	show_capability (caps, CAP_SYS_CHROOT);
-	show_capability (caps, CAP_SYS_PTRACE);
-	show_capability (caps, CAP_SYS_PACCT);
-	show_capability (caps, CAP_SYS_ADMIN);
-	show_capability (caps, CAP_SYS_BOOT);
-	show_capability (caps, CAP_SYS_NICE);
-	show_capability (caps, CAP_SYS_RESOURCE);
-	show_capability (caps, CAP_SYS_TIME);
-	show_capability (caps, CAP_SYS_TTY_CONFIG);
-
-	if (LINUX_KERNEL_MM (2, 4)) {
-		show_capability (caps, CAP_MKNOD);
-		show_capability (caps, CAP_LEASE);
-	}
-
-	if (LINUX_KERNEL_MMR (2, 6, 11)) {
-		show_capability (caps, CAP_AUDIT_WRITE);
-		show_capability (caps, CAP_AUDIT_CONTROL);
-	}
-	if (LINUX_KERNEL_MMR (2, 6, 24))
-		show_capability (caps, CAP_SETFCAP);
-	if (LINUX_KERNEL_MMR (2, 6, 25)) {
-		show_capability (caps, CAP_MAC_OVERRIDE);
-		show_capability (caps, CAP_MAC_ADMIN);
-	}
-
-#ifdef CAP_SYSLOG
-	if (LINUX_KERNEL_MMR (2, 6, 37))
-		show_capability (caps, CAP_SYSLOG);
-
-#endif
-
-#ifdef CAP_WAKE_ALARM
-	if (LINUX_KERNEL_MM (3, 0))
-		show_capability (caps, CAP_WAKE_ALARM);
-#endif
-
-#ifdef CAP_BLOCK_SUSPEND
-	if (LINUX_KERNEL_MM (3, 5))
-		show_capability (caps, CAP_BLOCK_SUSPEND);
-#endif
-
-#ifdef CAP_AUDIT_READ
-	if (LINUX_KERNEL_MM (3, 16)) {
-		show_capability (caps, CAP_AUDIT_READ);
-	}
-#endif
-
-	section_close ();
-
-	/* It's possible that procenv is running on a system which has
-	 * more capabilities that the system it was built on (for
-	 * example, it might be running in a chroot with a newer kernel
-	 * than the chroot environment). So display any unknown
-	 * capabilities. We don't have their names, but it's useful to
-	 * see that there are additional capabilities in available in
-	 * the environment.
-	 */
-	section_open ("unknown");
-
-#if defined (PR_CAPBSET_READ)
-	for (int i = 1+last_known; ; i++) {
-		int   ret;
-		char *name = NULL;
-
-		ret = cap_get_bound (i);
-		if (ret < 0)
-			break;
-
-		/* Found an "unknown" */
-
-		appendf (&name, "CAP_LAST_CAP+%d", i);
-
-		_show_capability (caps, i, name);
-
-		free (name);
-	}
-#endif
-
-	cap_free (caps);
-
-	section_close ();
-
-#ifdef PR_GET_KEEPCAPS
-	if (LINUX_KERNEL_MMR (2, 2, 18)) {
-		int   ret;
-		ret = prctl (PR_GET_KEEPCAPS, 0, 0, 0, 0);
-		if (ret < 0)
-			entry ("keep", "%s", UNKNOWN_STR);
-		else
-			entry ("keep", "%s", ret ? YES_STR : NO_STR);
-	}
-#endif
-
-
-#if defined (PR_GET_SECUREBITS) && defined (HAVE_LINUX_SECUREBITS_H)
-	if (LINUX_KERNEL_MMR (2, 6, 26)) {
-		int ret;
-
-		ret = prctl (PR_GET_SECUREBITS, 0, 0, 0, 0);
-		if (ret < 0)
-			entry ("securebits", "%s", UNKNOWN_STR);
-		else {
-			struct securebits_t {
-				unsigned int securebits;
-			} flags;
-			flags.securebits = (unsigned int)ret;
-
-			section_open ("securebits");
-
-			entry ("value", "0x%x", flags.securebits);
-
-			container_open ("fields");
-
-			show_const (flags, securebits, SECBIT_KEEP_CAPS);
-			show_const (flags, securebits, SECBIT_NO_SETUID_FIXUP);
-			show_const (flags, securebits, SECBIT_NOROOT);
-
-			container_close ();
-
-			section_close ();
-		}
-	}
-#endif
-
-out:
-#endif /* HAVE_SYS_CAPABILITY_H */
-	footer ();
-}
-
-#if defined (HAVE_SYS_CAPABILITY_H)
-#ifdef PROCENV_NEED_LOCAL_CAP_GET_BOUND
-
-int cap_get_bound (cap_value_t cap)
-{
-#if defined (PR_CAPBSET_READ)
-	return prctl (PR_CAPBSET_READ, cap);
-#else
-	return -1;
-#endif
-}
-
-#endif /* PROCENV_NEED_LOCAL_CAP_GET_BOUND */
-#endif /* HAVE_SYS_CAPABILITY_H */
-
-void
-show_timezone_linux (void)
-{
-	tzset ();
-
-	header ("timezone");
-
-	entry ("tzname[0]", "'%s'", tzname[0]);
-	entry ("tzname[1]", "'%s'", tzname[1]);
-	entry ("timezone", "%ld", timezone);
-	entry ("daylight", "%d", daylight);
+	if (ops->show_capabilities)
+		ops->show_capabilities();
 
 	footer ();
-}	
-
-void
-show_security_module_linux (void)
-{
-	char *lsm = UNKNOWN_STR;
-
-#if defined (HAVE_APPARMOR)
-	if (aa_is_enabled ())
-		lsm = "AppArmor";
-#endif
-
-#if defined (HAVE_SELINUX_SELINUX_H)
-	if (is_selinux_enabled () == 1) {
-
-		if (is_selinux_mls_enabled () == 1)
-			lsm = "SELinux (MLS)";
-		else
-			lsm = "SELinux";
-	}
-#endif
-
-	entry ("name", "%s", lsm);
-}
-
-void
-show_security_module_context_linux (void)
-{
-	char   *context = NULL;
-	char   *mode = NULL;
-
-#if defined (HAVE_APPARMOR)
-	if (aa_is_enabled ()) {
-		/* XXX: The mode string is *NOT* be freed since it forms
-		 * part of the allocation returned in context.
-		 *
-		 * See aa_gettaskcon(2) for details.
-		 */
-		if (aa_gettaskcon (user.pid, &context, &mode) < 0)
-			die ("failed to query AppArmor context");
-	}
-#endif
-
-#if defined (HAVE_SELINUX_SELINUX_H)
-	if (is_selinux_enabled ()) {
-		if (getpidcon (user.pid, &context) < 0)
-			die ("failed to query SELinux context");
-	}
-#endif
-	if (context) {
-		if (mode) {
-			entry ("context", "%s (%s)", context, mode);
-		} else {
-			entry ("context", "%s", context);
-		}
-	} else {
-		entry ("context", "%s", UNKNOWN_STR);
-	}
-
-    free (context);
-}
-
-void
-show_cgroups_linux (void)
-{
-	const  char  *delim = ":";
-	char         *file = "/proc/self/cgroup";
-	FILE         *f;
-	char          buffer[1024];
-	size_t        len;
-
-	header ("cgroups");
-
-	f = fopen (file, "r");
-
-	if (! f)
-		goto out;
-
-	while (fgets (buffer, sizeof (buffer), f)) {
-		char  *buf, *b;
-		char  *hierarchy;
-		char  *subsystems = NULL;
-		char  *path;
-
-		len = strlen (buffer);
-		/* Remove NL */
-		buffer[len-1] = '\0';
-
-		buf = b = strdup (buffer);
-		if (! buf)
-			die ("failed to alloate storage");
-
-		hierarchy = strsep (&b, delim);
-		if (! hierarchy)
-			goto next;
-
-		/* don't fail if this returns '\0' to tolerate cgroup2 where the
-		 * subsystem is always empty.
-		 */
-		subsystems = strsep (&b, delim);
-
-		path = strsep (&b, delim);
-		if (! path)
-			goto next;
-
-		/* FIXME: should sort by hierarchy */
-		container_open (hierarchy);
-
-		object_open (FALSE);
-
-		/* FIXME: should split this on comma */
-		if (subsystems && *subsystems)
-			entry ("subsystems", "%s", subsystems);
-
-		entry ("path", "%s", path);
-
-		object_close (FALSE);
-
-		container_close ();
-
-next:
-		free (buf);
-	}
-
-	fclose (f);
-
-out:
-
-	footer ();
-}
-
-void
-show_fds_linux (void)
-{
-	DIR            *dir;
-	struct dirent  *ent;
-	char           *prefix_path = "/proc/self/fd";
-	struct stat     st;
-	char            path[MAXPATHLEN];
-	char            link[MAXPATHLEN];
-	ssize_t         len;
-
-	container_open ("file descriptors");
-
-	dir = opendir (prefix_path);
-	if (! dir)
-		return;
-
-	while ((ent=readdir (dir)) != NULL) {
-		int    fd;
-		char  *num = NULL;
-
-		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
-			continue;
-
-		sprintf (path, "%s/%s", prefix_path, ent->d_name);
-		fd = atoi (ent->d_name);
-
-		len = readlink (path, link, sizeof (link)-1);
-		if (len < 0)
-			/* ignore errors */
-			continue;
-
-		appendf (&num, "%d", fd);
-
-		assert (len);
-		link[len] = '\0';
-
-		if (link[0] == '/') {
-
-			if (stat (link, &st) < 0) {
-				free (num);
-				continue;
-			}
-
-			/* Ignore the last (invalid) entry */
-			if (S_ISDIR (st.st_mode)) {
-				free (num);
-				continue;
-			}
-		}
-
-		object_open (FALSE);
-
-		section_open (num);
-		free (num);
-
-		entry ("terminal", "%s", isatty (fd) ? YES_STR : NO_STR);
-		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
-		entry ("device", "%s", link);
-
-		section_close ();
-
-		object_close (FALSE);
-	}
-
-	closedir (dir);
-
-	container_close ();
-}
-
-void
-show_namespaces_linux (void)
-{
-	DIR            *dir;
-	struct dirent  *ent;
-	char           *prefix_path = "/proc/self/ns";
-	char            path[MAXPATHLEN];
-	char            link[MAXPATHLEN];
-	ssize_t         len;
-	PRList         *list = NULL;
-
-	container_open ("namespaces");
-
-	dir = opendir (prefix_path);
-	if (! dir)
-		goto end;
-
-	list = pr_list_new (NULL);
-	assert (list);
-
-	while ((ent=readdir (dir)) != NULL) {
-		PRList *entry;
-
-		if (! strcmp (ent->d_name, ".") || ! strcmp (ent->d_name, ".."))
-			continue;
-
-		sprintf (path, "%s/%s", prefix_path, ent->d_name);
-
-		len = readlink (path, link, sizeof (link)-1);
-		if (len < 0)
-			/* ignore errors */
-			continue;
-
-		assert (len);
-		link[len] = '\0';
-
-		entry = pr_list_new (strdup (link));
-		assert (entry);
-
-		assert (pr_list_prepend_str_sorted (list, entry));
-	}
-
-	closedir (dir);
-
-	PR_LIST_FOREACH_SAFE (list, iter) {
-		char *tmp;
-		char *name;
-		char *value;
-
-		pr_list_remove (iter);
-
-		tmp = iter->data;
-
-		name = strsep (&tmp, ":");
-		if (! name)
-			goto give_up;
-
-		value = strsep (&tmp, "]");
-		if (! value)
-			goto give_up;
-
-		if (*value == '[' && *(value+1)) {
-			value++;
-		}
-
-		object_open (FALSE);
-		entry (name, "%s", value);
-		object_close (FALSE);
-
-give_up:
-		free ((char *)iter->data);
-		free(iter);
-	}
-
-	free_if_set (list);
-
-end:
-	container_close ();
-}
-
-void
-show_oom_linux (void)
-{
-	char    *dir = "/proc/self";
-	char    *files[] = { "oom_score", "oom_adj", "oom_score_adj", NULL };
-	char    **file;
-	FILE    *f;
-	char     buffer[PROCENV_BUFFER];
-	char     path[PATH_MAX];
-	size_t   len;
-	int      ret;
-	int      seen = FALSE;
-
-	header ("oom");
-
-	for (file = files; file && *file; file++) {
-		ret = sprintf (path, "%s/%s", dir, *file);
-		if (ret < 0)
-			continue;
-
-		f = fopen (path, "r");
-		if (! f)
-			continue;
-
-		seen = TRUE;
-
-		while (fgets (buffer, sizeof (buffer), f)) {
-			len = strlen (buffer);
-			buffer[len-1] = '\0';
-			entry (*file, "%s", buffer);
-		}
-
-		fclose (f);
-	}
-
-	if (! seen)
-		entry ("%s", UNKNOWN_STR);
-
-	footer ();
-}
-
-char *
-get_scheduler_name (int sched)
-{
-	struct procenv_map *p;
-
-	for (p = scheduler_map; p && p->name; p++) {
-		if (p->num == sched)
-			return p->name;
-	}
-
-	return NULL;
-}
-
-void
-show_cpu_linux (void)
-{
-	int cpu = -1;
-	long max;
-
-	max = get_sysconf (_SC_NPROCESSORS_ONLN);
-
-#if HAVE_SCHED_GETCPU
-	cpu = sched_getcpu ();
-	if (cpu < 0)
-		goto unknown_sched_cpu;
-
-#else
-	cpu = procenv_getcpu ();
-	if (cpu < 0)
-		goto unknown_sched_cpu;
-#endif
-
-	/* adjust to make 1-based */
-	cpu++;
-
-	entry ("number", "%u of %ld", cpu, max);
-	return;
-
-unknown_sched_cpu:
-
-	entry ("number", "%s of %ld", UNKNOWN_STR, max);
-}
-
-#if ! defined (HAVE_SCHED_GETCPU)
-
-/* Crutch function for RHEL 5 */
-int
-procenv_getcpu (void)
-{
-	int          cpu = -1;
-	FILE        *f;
-	char       **fields;
-	const char  *field;
-	char         buffer[1024];
-	size_t       len;
-	size_t       count;
-
-	f = fopen ("/proc/self/stat", "r");
-	if (! f)
-		goto out;
-
-	if (! fgets (buffer, sizeof (buffer), f))
-		goto out;
-
-	fclose (f);
-
-	len = strlen (buffer);
-	buffer[len-1] = '\0';
-
-	count = split_fields (buffer, ' ', TRUE, &fields);
-
-	if (! count)
-		return -1;
-
-	if (count != 42)
-		goto cleanup;
-
-	field = fields[41];
-	assert (field);
-	
-	cpu = atoi (field);
-
-cleanup:
-
-	for (len = 0; len < count; len++)
-		free (fields[len]);
-	free (fields);
-
-out:
-	return cpu;
-}
-#endif
-
-/**
- * get_canonical:
- *
- * @path: path to convert to canonical form,
- * @canonical [out]: canonical version of @path,
- * @len: Size of @canonical (should be atleast PATH_MAX).
- *
- * FIXME: this should fully resolve not just sym links but replace all
- * occurences of '../' by the appropriate direcotry!
- **/
-int
-get_canonical (const char *path, char *canonical, size_t len)
-{
-	ssize_t  bytes;
-	int      ret = TRUE;
-
-	assert (path);
-	assert (canonical);
-	assert (len);
-
-	bytes = readlink (path, canonical, len);
-	if (bytes < 0) {
-		sprintf (canonical, UNKNOWN_STR);
-		ret = FALSE;
-	} else {
-		canonical[bytes <= len ? bytes : len] = '\0';
-	}
-
-	return ret;
-}
-
-void
-get_tty_locked_status (struct termios *lock_status)
-{
-	assert (lock_status);
-	assert (user.tty_fd != -1);
-
-	if (ioctl (user.tty_fd, TIOCGLCKTRMIOS, lock_status) < 0) {
-		/* Set to unlocked */
-		memset (lock_status, '\0', sizeof (struct termios));
-	}
-}
-#else
-
-void
-show_namespaces_stub (void)
-{
-	header ("namespaces");
-	footer ();
-}
-void
-show_cgroups_stub (void)
-{
-	header ("cgroups");
-	footer ();
-}
-
-void
-show_oom_stub (void)
-{
-	header ("oom");
-	footer ();
-}
-
-void
-show_timezone_stub (void)
-{
-	header ("timezone");
-	footer ();
-}
-
-void
-show_capabilities_stub (void)
-{
-	header ("capabilities");
-	footer ();
-}
-
-void
-show_shared_mem_stub (void)
-{
-	header ("shared memory");
-	footer ();
-}
-
-void
-show_semaphores_stub (void)
-{
-	header ("semaphores");
-	footer ();
-}
-
-void
-show_msg_queues_stub (void)
-{
-	header ("message queues");
-	footer ();
-}
-
-#endif /* PROCENV_LINUX */
-
-bool
-has_ctty (void)
-{
-	int fd;
-	fd = open ("/dev/tty", O_RDONLY | O_NOCTTY);
-
-	if (fd < 0)
-		return FALSE;
-
-	close (fd);
-
-	return TRUE;
-}
-
-#if defined (PROCENV_BSD) || defined (PROCENV_GNU_BSD)
-void
-show_cpu_bsd (void)
-{
-	long                max;
-	kvm_t              *kvm;
-	struct kinfo_proc  *proc;
-	int                 ignored;
-	int                 cpu;
-	char                errors[_POSIX2_LINE_MAX];
-
-	assert (user.pid > 0);
-
-	max = get_sysconf (_SC_NPROCESSORS_ONLN);
-
-	kvm = kvm_openfiles (NULL, _PATH_DEVNULL, NULL, O_RDONLY, errors);
-	if (! kvm)
-		die ("unable to open kvm");
-
-	proc = kvm_getprocs (kvm, KERN_PROC_PID, user.pid, &ignored);
-	if (! proc)
-		die ("failed to get process info");
-
-	/* cpu values are zero-based */
-	cpu = 1 + proc->ki_oncpu;
-
-	if (kvm_close (kvm) < 0)
-		die ("failed to close kvm");
-
-	entry ("number", "%u of %lu", cpu, max);
-}
-
-void
-get_misc_bsd (void)
-{
-	char                 errors[_POSIX2_LINE_MAX];
-	kvm_t               *kvm;
-	struct kinfo_proc   *proc;
-	int                  ignored;
-
-	kvm = kvm_openfiles (NULL, _PATH_DEVNULL, NULL, O_RDONLY, errors);
-	if (! kvm)
-		die ("unable to open kvm");
-
-	proc = kvm_getprocs (kvm, KERN_PROC_PID, user.pid, &ignored);
-	if (! proc)
-		die ("failed to get process info");
-
-	misc.in_jail = (proc->ki_flag & P_JAILED) ? TRUE : FALSE;
-	strcpy (user.proc_name, proc->ki_comm);
-
-	if (kvm_close (kvm) < 0)
-		die ("failed to close kvm");
-}
-
-#endif
-
-int
-get_output_value (const char *name)
-{
-	struct procenv_map *p;
-
-	assert (name);
-
-	for (p = output_map; p && p->name; p++) {
-		if (! strcmp (name, p->name)) {
-			return p->num;
-		}
-	}
-	die ("invalid output value: '%s'", name);
-
-	/* compiler appeasement */
-	return -1;
-}
-
-int
-get_output_format (const char *name)
-{
-	struct procenv_map *p;
-
-	assert (name);
-
-	for (p = output_format_map; p && p->name; p++) {
-		if (! strcmp (name, p->name)) {
-			return p->num;
-		}
-	}
-	die ("invalid output format value: '%s'", name);
-
-	/* compiler appeasement */
-	return -1;
-}
-
-const char *
-get_output_format_name (void)
-{
-	struct procenv_map *p;
-
-	for (p = output_format_map; p && p->name; p++) {
-		if (output_format == p->num)
-			return p->name;
-	}
-
-	bug ("invalid output format: %d", output_format);
-
-	/* compiler appeasement */
-	return NULL;
 }
 
 void
@@ -8304,45 +3551,51 @@ check_envvars (void)
 
 	e = getenv (PROCENV_OUTPUT_ENV);
 	if (e && *e) {
-		output = get_output_value (e);
+		set_output_value (e);
 	}
 
 	e = getenv (PROCENV_FILE_ENV);
 	if (e && *e) {
-		output_file = e;
-		output = OUTPUT_FILE;
+		set_output_file (e);
+		set_output_value_raw (OUTPUT_FILE);
+	}
+
+	e = getenv (PROCENV_FILE_APPEND_ENV);
+	if (e && *e) {
+		set_output_file_append ();
 	}
 
 	e = getenv (PROCENV_FORMAT_ENV);
 	if (e && *e) {
-		output_format = get_output_format (e);
+		set_output_format (e);
 	}
 
 	e = getenv (PROCENV_INDENT_ENV);
 	if (e && *e) {
-		indent_amount = atoi (e);
+		set_indent_amount (atoi (e));
 	}
 
 	e = getenv (PROCENV_INDENT_CHAR_ENV);
 	if (e && *e) {
 		/* Special character handling */
 		if (! strcmp (e, "\\t"))
-			indent_char = "\t";
+			set_indent_char ("\t");
 		else
-			indent_char = e;
+			set_indent_char (e);
 	}
 
 	e = getenv (PROCENV_SEPARATOR_ENV);
 	if (e && *e) {
-		text_separator = e;
+		set_text_separator (e);
 	}
 
 	e = getenv (PROCENV_CRUMB_SEPARATOR_ENV);
 	if (e && *e) {
-		if (! strcmp (e, "\\t"))
-			crumb_separator = "\t";
-		else
-			crumb_separator = e;
+		if (! strcmp (e, "\\t")) {
+			set_crumb_separator ("\t");
+		} else {
+			set_crumb_separator (e);
+		}
 	}
 
 	e = getenv (PROCENV_EXEC_ENV);
@@ -8400,13 +3653,13 @@ get_major_minor (const char *path, unsigned int *_major, unsigned int *_minor)
 		 * user does not have permission to check.
 		 */
 		*_major = *_minor = 0;
-		return FALSE;
+		return false;
 	}
 
 	*_major = major (st.st_dev);
 	*_minor = minor (st.st_dev);
 
-	return TRUE;
+	return true;
 }
 
 /**
@@ -8509,7 +3762,7 @@ show_threads (void)
 	entry ("stack size", "%lu bytes",
 			(unsigned long int)stack_size);
 
-#if defined (PROCENV_ANDROID)
+#if defined (PROCENV_PLATFORM_ANDROID)
 	ret = 0;
 	scope = pthread_attr_getscope (&attr);
 #else
@@ -8542,7 +3795,7 @@ show_threads (void)
 	else
 		entry ("priority", "%d", param.sched_priority);
 
-#ifdef PROCENV_ANDROID
+#ifdef PROCENV_PLATFORM_ANDROID
 	section_close ();
 #else
 	ret = pthread_attr_getinheritsched (&attr, &inherit_sched);
@@ -8617,7 +3870,7 @@ main (int    argc,
 {
 	int       option;
 	int       long_index;
-	int       done = FALSE;
+	int       done = false;
 
 	struct option long_options[] = {
 		{"meta"            , no_argument, NULL, 'a'},
@@ -8662,6 +3915,7 @@ main (int    argc,
 		{"timezone"        , no_argument, NULL, 'z'},
 		{"exec"            , no_argument      , NULL, 0},
 		{"file"            , required_argument, NULL, 0},
+		{"file-append"     , no_argument, NULL, 0},
 		{"format"          , required_argument, NULL, 0},
 		{"indent"          , required_argument, NULL, 0},
 		{"indent-char"     , required_argument, NULL, 0},
@@ -8687,7 +3941,7 @@ main (int    argc,
 
 	init ();
 
-	while (TRUE) {
+	while (true) {
 		option = getopt_long (argc, argv,
 				"aAbBcCdeEfFghijklLmMnNopPqrsStTuUvwxyYz",
 				long_options, &long_index);
@@ -8699,7 +3953,7 @@ main (int    argc,
 		 * count non-display options).
 		 */
 		if (option) {
-			done = TRUE;
+			done = true;
 			master_header (&doc);
 		}
 
@@ -8713,47 +3967,53 @@ main (int    argc,
 				die ("Must specify non-display options before display options");
 
 			if (! strcmp ("output", long_options[long_index].name)) {
-				output = get_output_value (optarg);
+				set_output_value (optarg);
 			} else if (! strcmp ("file", long_options[long_index].name)) {
-				output = OUTPUT_FILE;
-				output_file = optarg;
+				set_output_value_raw (OUTPUT_FILE);
+				set_output_file (optarg);
+			} else if (! strcmp ("file-append", long_options[long_index].name)) {
+				set_output_file_append ();
 			} else if (! strcmp ("exec", long_options[long_index].name)) {
-				reexec = TRUE;
+				reexec = true;
 			} else if (! strcmp ("format", long_options[long_index].name)) {
-				output_format = get_output_format (optarg);
+				set_output_format (optarg);
 			} else if (! strcmp ("indent", long_options[long_index].name)) {
-				indent_amount = atoi (optarg);
-				if (indent_amount <= 0)
+				set_indent_amount (atoi (optarg));
+				if (get_indent_amount () <= 0)
 					die ("cannot specify indent <= 0");
 			} else if (! strcmp ("indent-char", long_options[long_index].name)) {
+				char *c = NULL;
+
 				/* Special character handling */
 				if (! strcmp (optarg, "\\t")) {
-					indent_char = "\t";
+					c = "\t";
 				} else {
-					indent_char = optarg;
+					c = optarg;
 				}
-				if (! indent_char)
+				if (! c)
 					die ("cannot use nul indent character");
+
+				set_indent_char (c);
 
 				/* call again */
 				handle_indent_char ();
 
 			} else if (! strcmp ("separator", long_options[long_index].name)) {
 				if (! strcmp (optarg, "\\t")) {
-					text_separator = "\t";
+					set_text_separator ("\t");
 				} else {
-					text_separator = optarg;
+					set_text_separator (optarg);
 				}
 			} else if (! strcmp ("crumb-separator", long_options[long_index].name)) {
 				if (! strcmp (optarg, "\\t")) {
-					crumb_separator = "\t";
+					set_crumb_separator ("\t");
 				} else {
-					crumb_separator = optarg;
-			}
+					set_crumb_separator (optarg);
+				}
 			}
 			/* reset */
 			selected_option = 0;
-			indent = 0;
+			reset_indent ();
 
 			break;
 
@@ -8766,7 +4026,7 @@ main (int    argc,
 			break;
 
 		case 'b':
-#ifndef PROCENV_ANDROID
+#ifndef PROCENV_PLATFORM_ANDROID
 			show_libs ();
 #endif
 			break;
@@ -8843,9 +4103,7 @@ main (int    argc,
 			break;
 
 		case 'n':
-#ifndef PROCENV_ANDROID
-			show_confstrs ();
-#endif
+			show_confstrs();
 			break;
 
 		case 'N':
@@ -8932,16 +4190,14 @@ main (int    argc,
 
 		master_footer (&doc);
 
-		chomp (doc);
-
+		pstring_chomp (doc);
 
 		if (output_format != OUTPUT_FORMAT_XML && output_format != OUTPUT_FORMAT_JSON) {
-			compress (&doc, wide_indent_char);
+			pstring_compress (&doc, wide_indent_char);
 		}
 	}
 
-	if (output == OUTPUT_SYSLOG)
-		openlog (PACKAGE_NAME, LOG_CONS | LOG_PID, LOG_USER);
+	output_init ();
 
 	if (reexec && ! exec_args && optind >= argc)
 		die ("must specify atleast one argument with '--exec'");
@@ -8957,9 +4213,9 @@ main (int    argc,
 	if (! done) {
 		dump ();
 
-		chomp (doc);
+		pstring_chomp (doc);
 
-		compress (&doc, wide_indent_char);
+		pstring_compress (&doc, wide_indent_char);
 	}
 
 	_show_output_pstring (doc);
@@ -8975,7 +4231,9 @@ main (int    argc,
 
 }
 
-char *
+/* FIXME: we _assume_ the returned value is a static, but is it guaranteed?
+*/
+const char *
 get_user_name (uid_t uid)
 {
 	struct passwd *p;
@@ -8985,7 +4243,9 @@ get_user_name (uid_t uid)
 	return p ? p->pw_name : NULL;
 }
 
-char *
+/* FIXME: we _assume_ the returned value is a static, but is it guaranteed?
+*/
+const char *
 get_group_name (gid_t gid)
 {
 	struct group *g;
@@ -8993,1081 +4253,6 @@ get_group_name (gid_t gid)
 	g = getgrgid (gid);
 
 	return g ? g->gr_name : NULL;
-}
-
-/**
- * encode_string:
- *
- * @str: string to encode.
- *
- * Returns: 0 on success, -1 on failure.
- *
- * Convert the specified string to its encoded form. If no encoding is
- * necessary, the string will not be modified.
- *
- * Notes:
- *
- * - By encoding, we mean replacing literals with their
- *   format-langage-specific encodings. For example for XML output,
- *   '<' is converted to '&lt;'.
- *
- * - It is the callers responsibility to free @str iff this function
- * is successful. any previous value of @str will be freed by
- * encode_string().
- *
- * BUGS: this is just horribly, horribly gross :(
- **/
-int
-encode_string (pstring **pstr)
-{
-	int       ret = 0;
-	pstring  *new = NULL;
-	wchar_t  *p, *q;
-	size_t    non_printables;
-	size_t    len = 0;
-	size_t    bytes;
-
-	assert (pstr);
-	assert (*pstr);
-
-	if ((*pstr)->len <= 1) {
-		/* Nothing to do */
-		return 0;
-	}
-
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_CRUMB: /* FALL */
-	case OUTPUT_FORMAT_TEXT:
-		/* Nothing to do */
-		ret = 0;
-		break;
-
-	case OUTPUT_FORMAT_JSON: /* FALL THROUGH */
-	case OUTPUT_FORMAT_XML:
-		new = translate (*pstr);
-		if (new) {
-			pstring_free (*pstr);
-			*pstr = new;
-			new = NULL;
-		} else {
-			ret = -1;
-		}
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-
-	if (ret < 0)
-		return ret;
-
-	/* Now, search for evil non-printable characters and encode those
-	 * appropriately.
-	 */
-	for (p = (*pstr)->buf, non_printables = 0; p && *p; p++) {
-		if (! iswprint (*p))
-			non_printables++;
-	}
-
-	if (non_printables &&
-		(output_format == OUTPUT_FORMAT_XML
-		 || output_format == OUTPUT_FORMAT_JSON)) {
-
-		size_t   new_size = 0;
-
-		wchar_t  *json_format = L"\\u%4.4x";
-
-		/* XXX:
-		 *
-		 * Although this format spec _may_ produce valid XML,
-		 * the rules are arcane and some(?) control characters
-		 * cannot be used within an XML document, hence the
-		 * "may".
-		 *
-		 * Aside from simply discarding non-printable characters
-		 * (thus distorting the output), we are left with
-		 * attempting to produce some sort of encoded
-		 * representation which may well choke a validating
-		 * parser.
-		 *
-		 * Realistically, the problem is confined to handling
-		 * control characters set in environment variables when
-		 * attempting to output XML. This may occur if you run
-		 * GNU Screen since it sets $TERMCAP which includes
-		 * binary characters.
-		 *
-		 * FIXME:
-		 *
-		 * If you hit this issue, raise a bug so we can consider
-		 * simply discarding all non-printables when attempting
-		 * XML output.
-		 */
-		wchar_t    *xml_format = L"&#x%2.2x;";
-
-		len = (*pstr)->len;
-
-		/* Calculate expanded size of string by removing
-		 * count of non-printable byte and adding back the
-		 * number of bytes required to encode them in expanded
-		 * form.
-		 */
-		switch (output_format) {
-		case OUTPUT_FORMAT_XML:
-			new_size = (len - non_printables) + (non_printables * wcslen (L"&#x..;"));
-			break;
-
-		case OUTPUT_FORMAT_JSON:
-			new_size = (len - non_printables) + (non_printables * wcslen (L"\\u...."));
-			break;
-		default:
-			break;
-		}
-
-		new = pstring_new ();
-		if (! new)
-			return -1;
-
-		bytes = (1 + new_size) * sizeof (wchar_t);
-
-		new->buf = malloc (bytes);
-		if (! new->buf) {
-			free (new);
-			return -1;
-		}
-
-		new->size = bytes;
-
-		memset (new->buf, '\0', bytes);
-
-		for (p = (*pstr)->buf, q = new->buf; p && *p; p++) {
-			if (iswprint (*p)) {
-				*q = *p;
-				q++;
-				new->len++;
-			} else {
-				ret = swprintf (q,
-						new_size,
-						output_format == OUTPUT_FORMAT_JSON
-						? json_format : xml_format,
-						*p);
-				q += ret;
-			}
-		}
-
-		/* include terminator */
-		new->len = wcslen (new->buf) + 1;
-
-		pstring_free (*pstr);
-		*pstr = new;
-	}
-
-	return ret;
-}
-
-/* Performs simple substitution on the input */
-pstring *
-translate (const pstring *pstr)
-{
-	pstring           *result = NULL;
-	const wchar_t     *start;
-	const wchar_t     *p;
-	TranslateTable    *table;
-	size_t             i;
-	size_t             len;
-	size_t             extra;
-	size_t             bytes;
-	size_t             amount;
-	wchar_t            from;
-
-	assert (pstr);
-	assert (output_format != OUTPUT_FORMAT_TEXT);
-	assert (output_format != OUTPUT_FORMAT_CRUMB);
-
-	/* Find the correct translation table for the chosen output format */
-	for (i = 0; i < sizeof (translate_table) / sizeof (translate_table[0]); i++) {
-		table = &translate_table[i];
-		if (table && table->output_format == output_format)
-			break;
-	}
-
-	if (! table)
-		return NULL;
-
-	len = pstr->len;
-	start = pstr->buf;
-
-	/* First, calculate the amount of space needed for the expanded
-	 * buffer.
-	 */
-	extra = 0;
-	while (start && *start) {
-		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
-			from = table->map[i].from;
-			if (*start == from) {
-				/* Subtract one to take account of the
-				 * pre-existing character we're going to
-				 * replace.
-				 */
-				extra += (wcslen (table->map[i].to) - 1);
-			}
-		}
-		start++;
-	}
-
-	if (! extra) {
-		/* No translation required.
-		 *
-		 * FIXME: this is inefficient - we should really have
-		 * the function accept a 'pstring **' to avoid
-		 * re-copying.
-		 */
-		return pstring_create (pstr->buf);
-	}
-
-	len += extra;
-
-	result = pstring_new ();
-	if (! result)
-		return NULL;
-
-	/* Note that this includes the space for the terminator
-	 * (since a pstring's len includes the terminator)
-	 */
-	bytes = len * sizeof (wchar_t);
-
-	result->buf = malloc (bytes);
-	if (! result->buf) {
-		pstring_free (result);
-		return NULL;
-	}
-
-	/* We're using wcsncat() so we'd better make sure there is a
-	 * nul for it to find!
-	 *
-	 * Note: we could have used calloc to do this for us, but
-	 * the code is clearer using the @bytes idiom.
-	 */
-	memset (result->buf, '\0', bytes);
-
-	result->size = bytes;
-
-	/* Sanity check for upcoming overrun check */
-	assert (result->buf[len-1] == L'\0');
-
-	/* Now, iterate the string again, performing the actual
-	 * replacements.
-	 */
-	p = start = pstr->buf;
-
-	while (p && *p) {
-		for (i = 0; i < TRANSLATE_MAP_ENTRIES; i++) {
-			wchar_t  *to;
-			size_t    len;
-
-			from = table->map[i].from;
-
-			if (*p != from)
-				continue;
-
-			to = table->map[i].to;
-
-			amount = p - start;
-
-			/* Copy from start to match */
-			wcsncat (result->buf + result->len, start, amount);
-
-			result->len += amount;
-
-			/* Copy replacement text */
-			len = wcslen (to);
-			wcsncat (result->buf + result->len, to, len);
-			result->len += len;
-
-			/* Jump over the matching character */
-			start = p + 1;
-
-			break;
-		}
-		p++;
-	}
-
-	/* Copy remaining non-matching chars */
-	amount = p - start;
-	wcsncat (result->buf + result->len, start, amount);
-	result->len += amount;
-
-	/* Account for terminator */
-	result->len += 1;
-
-	/* check for buffer overrun */
-	assert (result->buf[len-1] == L'\0');
-
-	return result;
-}
-/**
- * change_element:
- *
- * Handle changing to a new element type. Depending on the output
- * format, this may require separators and newlines to be emitted to
- * produce well-formatted output.
- **/
-void
-change_element (ElementType new)
-{
-	common_assert ();
-
-	last_element = current_element;
-
-	current_element = new;
-
-	format_element ();
-}
-
-void
-format_element (void)
-{
-	switch (output_format) {
-
-	case OUTPUT_FORMAT_TEXT:
-		format_text_element ();
-		break;
-
-	case OUTPUT_FORMAT_CRUMB:
-		/* NOP */
-		break;
-
-	case OUTPUT_FORMAT_JSON:
-		format_json_element ();
-		break;
-
-	case OUTPUT_FORMAT_XML:
-		format_xml_element ();
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-void
-format_text_element (void)
-{
-	common_assert ();
-	switch (last_element) {
-
-	case ELEMENT_TYPE_ENTRY:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_NONE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-void
-format_json_element (void)
-{
-	common_assert ();
-
-	switch (last_element) {
-
-	case ELEMENT_TYPE_ENTRY:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L",\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE:
-			case ELEMENT_TYPE_OBJECT_OPEN:
-				/* NOP */
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				assert_not_reached ();
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L",\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_OPEN:
-				/* NOP */
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				assert_not_reached ();
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L",\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_OPEN:
-			case ELEMENT_TYPE_SECTION_OPEN:
-				wappend (&doc, L",\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_NONE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-void
-format_xml_element (void)
-{
-	common_assert ();
-
-	switch (last_element) {
-
-	case ELEMENT_TYPE_ENTRY:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				assert_not_reached ();
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_SECTION_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				assert_not_reached ();
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_OPEN:
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_CONTAINER_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_OPEN:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_OPEN:
-				wappend (&doc, L"\n");
-				inc_indent ();
-				add_indent (&doc);
-				break;
-
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				/* NOP */
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_OBJECT_CLOSE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_CLOSE:
-				/* NOP */
-				break;
-
-			case ELEMENT_TYPE_CONTAINER_CLOSE:
-			case ELEMENT_TYPE_ENTRY:
-				wappend (&doc, L"\n");
-				dec_indent ();
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	case ELEMENT_TYPE_NONE:
-		{
-			switch (current_element) {
-			case ELEMENT_TYPE_ENTRY: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_OPEN: /* FALL */
-			case ELEMENT_TYPE_SECTION_CLOSE: /* FALL */
-			case ELEMENT_TYPE_CONTAINER_CLOSE: /* FALL */
-			case ELEMENT_TYPE_OBJECT_OPEN: /* FALL */
-			case ELEMENT_TYPE_OBJECT_CLOSE:
-				add_indent (&doc);
-				break;
-
-			default:
-				assert_not_reached ();
-				break;
-			}
-		}
-		break;
-
-	default:
-		assert_not_reached ();
-		break;
-	}
-}
-
-/**
- * compress:
- *
- * Remove lines composed entirely of whitespace from @str.
- *
- * This is required specifically for '--output=text' which in some
- * scenarios generates lines comprising pure whitespace. This is
- * unecessary and results from the fact that when an
- * ELEMENT_TYPE_OBJECT_* is encountered, formatting is applied for the
- * previously seen element, but sometimes such "objects" should be
- * invisible.
- **/
-void
-compress (pstring **wstr, wchar_t remove_char)
-{
-	wchar_t  *from;
-	wchar_t  *to;
-	wchar_t  *p;
-	wchar_t  *start;
-	size_t    count = 0;
-	size_t    blanks = 0;
-	size_t    new_len;
-	size_t    bytes;
-
-	assert (wstr);
-
-	to = from = (*wstr)->buf;
-
-	while (to && *to) {
-again:
-		while (*to == L'\n' && *(to+1) == L'\n') {
-			/* skip over blank lines */
-			to++;
-			blanks++;
-		}
-
-		start = to;
-
-		while (*to == remove_char) {
-			/* skip runs of contiguous characters */
-			to++;
-			count++;
-		}
-
-		if (to != start) {
-			/* Only start consuming NLs at the end of a
-			 * contiguous run *iff* there was more than a
-			 * single removed char. This is a heuristic to
-			 * avoid removing valid entries for example env
-			 * vars that are set to nul are shown as:
-			 *
-			 *  'var: '
-			 *
-			 * Shudder.
-			 */
-			if (*to == L'\n' && to != start+1) {
-				while (*to == L'\n') {
-					/* consume the NL at the end of the contiguous run */
-					to++;
-				}
-
-				/* check to ensure that we haven't entered a new line
-				 * containing another block of chars to remove.
-				 */
-				if (*to == remove_char)
-					goto again;
-
-				blanks++;
-
-			} else  {
-				/* not a full line so backtrack */
-				to = start;
-				count = 0;
-			}
-		}
-
-		*from++ = *to++;
-	}
-
-	/* terminate */
-	*from = L'\0';
-
-	if (blanks || count) {
-		new_len = (*wstr)->len - (blanks + count);
-
-		bytes = new_len * sizeof (wchar_t);
-
-		p = realloc ((*wstr)->buf, bytes);
-		assert (p);
-
-		(*wstr)->buf = p;
-
-		(*wstr)->buf[new_len-1] = L'\0';
-
-		(*wstr)->len = new_len;
-		(*wstr)->size = bytes;
-	}
-}
-/**
- * chomp:
- *
- * Remove trailing extraneous newlines and indent_chars from @str.
- **/
-void
-chomp (pstring *str)
-{
-	size_t    len;
-	int       removable = 0;
-	wchar_t  *p;
-
-	assert (str);
-
-	/* Unable to add '\n' in this scenario */
-	if (str->len < 2)
-		return;
-
-	for (p = str->buf+str->len-1; *p == L'\n' || *p == wide_indent_char;
-			p--, removable++)
-		;
-
-	/* Chop string at the appropriate place after first adding a new
-	 * newline.
-	 */
-	if (removable > 1) {
-		len = str->len - (removable-1);
-		str->buf[len-1] = L'\n';
-		str->buf[len] = L'\0';
-		str->len = len;
-	}
 }
 
 void
@@ -10087,424 +4272,35 @@ show_version (void)
 void
 show_shared_mem (void)
 {
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_shared_mem_linux ();
-#else
-	show_shared_mem_stub ();
-#endif
+	header ("shared memory");
+
+	if (ops->show_shared_mem)
+		ops->show_shared_mem ();
+
+	footer ();
 }
 
 void
 show_semaphores (void)
 {
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_semaphores_linux ();
-#else
-	show_semaphores_stub ();
-#endif
+	header ("semaphores");
+
+	if (ops->show_semaphores)
+		ops->show_semaphores ();
+
+	footer ();
 }
 
 void
 show_msg_queues (void)
 {
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-	show_msg_queues_linux ();
-#else
-	show_msg_queues_stub ();
-#endif
-}
-
-
-#if defined (PROCENV_LINUX) || defined (PROCENV_HURD)
-void
-show_shared_mem_linux (void)
-{
-	int               i;
-	int               id;
-	int               max;
-	struct shm_info   info;
-	struct shmid_ds   shmid_ds;
-	struct ipc_perm  *perm;
-	char              formatted_atime[CTIME_BUFFER];
-	char              formatted_ctime[CTIME_BUFFER];
-	char              formatted_dtime[CTIME_BUFFER];
-	char             *modestr = NULL;
-	int               locked = -1;
-	int               destroy = -1;
-	char             *cpid = NULL;
-	char             *lpid = NULL;
-
-	header ("shared memory");
-
-	max = shmctl (0, SHM_INFO, (void *)&info);
-	if (max < 0)
-		goto out;
-
-	/* Display summary details */
-
-	section_open ("info");
-
-	entry ("segments", "%u", info.used_ids);
-	entry ("pages", "%lu", info.shm_tot);
-	entry ("shm_rss", "%lu", info.shm_rss);
-	entry ("shm_swp", "%lu", info.shm_swp);
-
-	/* Apparently unused */
-	entry ("swap_attempts", "%lu", info.swap_attempts);
-	entry ("swap_successes", "%lu", info.swap_successes);
-
-	section_close ();
-
-	container_open ("segments");
-
-	object_open (FALSE);
-
-	for (i = 0; i <= max; i++) {
-		char *id_str = NULL;
-
-		id = shmctl (i, SHM_STAT, &shmid_ds);
-		if (id < 0) {
-			/* found an unused slot, so ignore it */
-			continue;
-		}
-
-		perm = &shmid_ds.shm_perm;
-
-		modestr = format_perms (perm->mode);
-		if (! modestr)
-			die ("failed to allocate space for permissions string");
-
-#ifdef PROCENV_LINUX
-		locked = (perm->mode & SHM_LOCKED);
-		destroy = (perm->mode & SHM_DEST);
-#endif
-
-		format_time (&shmid_ds.shm_atime, formatted_atime, sizeof (formatted_atime));
-		format_time (&shmid_ds.shm_ctime, formatted_ctime, sizeof (formatted_ctime));
-		format_time (&shmid_ds.shm_dtime, formatted_dtime, sizeof (formatted_dtime));
-
-		cpid = pid_to_name (shmid_ds.shm_cpid);
-		lpid = pid_to_name (shmid_ds.shm_lpid);
-
-		appendf (&id_str, "%d", id);
-
-		container_open (id_str);
-		free (id_str);
-
-		object_open (FALSE);
-
-		/* pad out to max pointer size represented in hex.
-		*/
-		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
-		entry ("sequence", "%u", perm->__seq);
-
-		section_open ("permissions");
-		entry ("octal", "%4.4o", perm->mode);
-		entry ("symbolic", "%s", modestr);
-		section_close ();
-
-		section_open ("pids");
-		entry ("create", "%d (%s)", shmid_ds.shm_cpid, cpid ? cpid : UNKNOWN_STR);
-		entry ("last", "%d (%s)", shmid_ds.shm_lpid, lpid ? lpid : UNKNOWN_STR);
-		section_close ();
-
-		entry ("attachers", "%lu", shmid_ds.shm_nattch);
-
-		section_open ("creator");
-		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
-		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
-		section_close ();
-
-		section_open ("owner");
-		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
-		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
-		section_close ();
-
-		entry ("segment size", "%lu", shmid_ds.shm_segsz);
-
-		section_open ("times");
-		entry ("last attach (atime)", "%lu (%s)", shmid_ds.shm_atime, formatted_atime);
-		entry ("last detach (dtime)", "%lu (%s)", shmid_ds.shm_dtime, formatted_dtime);
-		entry ("last change (ctime)", "%lu (%s)", shmid_ds.shm_ctime, formatted_ctime);
-		section_close ();
-
-		entry ("locked", "%s", locked == 0 ? NO_STR
-				: locked > 0 ? YES_STR
-				: NA_STR);
-		entry ("destroy", "%s", destroy == 0 ? NO_STR
-				: destroy > 0 ? YES_STR
-				: NA_STR);
-
-		object_close (FALSE);
-
-		container_close ();
-
-		free (modestr);
-		if (cpid)
-			free (cpid);
-		if (lpid)
-			free (lpid);
-	}
-
-	object_close (FALSE);
-
-	container_close ();
-
-out:
-	footer ();
-}
-
-void
-show_semaphores_linux (void)
-{
-	int               i;
-	int               id;
-	int               max;
-	struct semid_ds   semid_ds;
-	struct seminfo    info;
-	struct ipc_perm  *perm;
-	char              formatted_otime[CTIME_BUFFER];
-	char              formatted_ctime[CTIME_BUFFER];
-	char             *modestr = NULL;
-	union semun       arg;
-
-	header ("semaphores");
-
-	arg.array = (unsigned short int *)(void *)&info;
-	max = semctl (0, 0, SEM_INFO, arg);
-	if (max < 0)
-		goto out;
-
-	section_open ("info");
-
-	entry ("semmap", "%d", info.semmap);
-	entry ("semmni", "%d", info.semmni);
-	entry ("semmns", "%d", info.semmns);
-	entry ("semmnu", "%d", info.semmnu);
-	entry ("semmsl", "%d", info.semmsl);
-	entry ("semopm", "%d", info.semopm);
-	entry ("semume", "%d", info.semume);
-	entry ("semusz", "%d", info.semusz);
-	entry ("semvmx", "%d", info.semvmx);
-	entry ("semaem", "%d", info.semaem);
-
-	section_close ();
-
-	container_open ("set");
-
-	object_open (FALSE);
-
-	for (i = 0; i <= max; i++) {
-		char *id_str = NULL;
-
-		/* see semctl(2) */
-		arg.buf = (struct semid_ds *)&semid_ds;
-
-		id = semctl (i, 0, SEM_STAT, arg);
-		if (id < 0) {
-			/* found an unused slot, so ignore it */
-			continue;
-		}
-
-		perm = &semid_ds.sem_perm;
-
-		modestr = format_perms (perm->mode);
-		if (! modestr)
-			die ("failed to allocate space for permissions string");
-
-		/* May not have been set */
-		if (semid_ds.sem_otime)
-			format_time (&semid_ds.sem_otime, formatted_otime, sizeof (formatted_otime));
-		else
-			sprintf (formatted_otime, "%s", NA_STR);
-
-		format_time (&semid_ds.sem_ctime, formatted_ctime, sizeof (formatted_ctime));
-
-		appendf (&id_str, "%d", id);
-
-		container_open (id_str);
-		free (id_str);
-
-		object_open (FALSE);
-
-		/* pad out to max pointer size represented in hex.
-		*/
-		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
-		entry ("sequence", "%u", perm->__seq);
-
-		entry ("number in set", "%lu", semid_ds.sem_nsems);
-
-		section_open ("permissions");
-		entry ("octal", "%4.4o", perm->mode);
-		entry ("symbolic", "%s", modestr);
-		free (modestr);
-		section_close ();
-
-		section_open ("creator");
-		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
-		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
-		section_close ();
-
-		section_open ("owner");
-		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
-		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
-		section_close ();
-
-		section_open ("times");
-		entry ("last semop (otime)", "%lu (%s)", semid_ds.sem_otime, formatted_otime);
-		entry ("last change (ctime)", "%lu (%s)", semid_ds.sem_ctime, formatted_ctime);
-		section_close ();
-
-		object_close (FALSE);
-
-		container_close ();
-	}
-
-	object_close (FALSE);
-
-	container_close ();
-
-out:
-	footer ();
-}
-
-void
-show_msg_queues_linux (void)
-{
-	int               i;
-	int               id;
-	int               max;
-	struct msginfo    info;
-	struct msqid_ds   msqid_ds;
-	struct ipc_perm  *perm;
-	char              formatted_stime[CTIME_BUFFER];
-	char              formatted_rtime[CTIME_BUFFER];
-	char              formatted_ctime[CTIME_BUFFER];
-	char             *modestr = NULL;
-	char             *lspid = NULL;
-	char             *lrpid = NULL;
-
 	header ("message queues");
 
-	max = msgctl (0, MSG_INFO, (void *)&info);
-	if (max < 0)
-		goto out;
+	if (ops->show_msg_queues)
+		ops->show_msg_queues ();
 
-	section_open ("info");
-
-	entry ("msgpool", "%d", info.msgpool);
-	entry ("msgmap", "%d", info.msgmap);
-	entry ("msgmax", "%d", info.msgmax);
-	entry ("msgmnb", "%d", info.msgmnb);
-	entry ("msgmni", "%d", info.msgmni);
-	entry ("msgssz", "%d", info.msgssz);
-	entry ("msgtql", "%d", info.msgtql);
-	entry ("msgseg", "%d", info.msgseg);
-
-	section_close ();
-
-	container_open ("sets");
-
-	object_open (FALSE);
-
-	for (i = 0; i <= max; i++) {
-		char *id_str = NULL;
-
-		id = msgctl (i, MSG_STAT, &msqid_ds);
-		if (id < 0) {
-			/* found an unused slot, so ignore it */
-			continue;
-		}
-
-		perm = &msqid_ds.msg_perm;
-
-		modestr = format_perms (perm->mode);
-		if (! modestr)
-			die ("failed to allocate space for permissions string");
-
-		/* May not have been set */
-		if (msqid_ds.msg_stime)
-			format_time (&msqid_ds.msg_stime, formatted_stime, sizeof (formatted_stime));
-		else
-			sprintf (formatted_stime, "%s", NA_STR);
-
-		/* May not have been set */
-		if (msqid_ds.msg_rtime)
-			format_time (&msqid_ds.msg_rtime, formatted_rtime, sizeof (formatted_rtime));
-		else
-			sprintf (formatted_rtime, "%s", NA_STR);
-
-		/* May not have been set */
-		if (msqid_ds.msg_ctime)
-			format_time (&msqid_ds.msg_ctime, formatted_ctime, sizeof (formatted_ctime));
-		else
-			sprintf (formatted_ctime, "%s", NA_STR);
-
-		lspid = pid_to_name (msqid_ds.msg_lspid);
-		lrpid = pid_to_name (msqid_ds.msg_lrpid);
-
-		appendf (&id_str, "%d", id);
-
-		container_open (id_str);
-		free (id_str);
-
-		object_open (FALSE);
-
-		/* pad out to max pointer size represented in hex */
-		entry ("key", "0x%.*x", POINTER_SIZE * 2, perm->__key);
-		entry ("sequence", "%u", perm->__seq);
-
-		section_open ("permissions");
-		entry ("octal", "%4.4o", perm->mode);
-		entry ("symbolic", "%s", modestr);
-		section_close ();
-
-		section_open ("creator");
-		entry ("euid", "%u ('%s')", perm->cuid, get_user_name (perm->cuid));
-		entry ("egid", "%u ('%s')", perm->cgid, get_group_name (perm->cgid));
-		section_close ();
-
-		section_open ("owner");
-		entry ("uid", "%u ('%s')", perm->uid, get_user_name (perm->uid));
-		entry ("gid", "%u ('%s')", perm->gid, get_group_name (perm->gid));
-		section_close ();
-
-		section_open ("times");
-		entry ("last send (stime)", "%lu (%s)", msqid_ds.msg_stime, formatted_stime);
-		entry ("last receive (rtime)", "%lu (%s)", msqid_ds.msg_rtime, formatted_rtime);
-		entry ("last change (ctime)", "%lu (%s)", msqid_ds.msg_ctime, formatted_ctime);
-		section_close ();
-
-		entry ("queue_bytes", "%lu", msqid_ds.__msg_cbytes);
-
-		entry ("msg_qnum", "%lu", msqid_ds.msg_qnum);
-		entry ("msg_qbytes", "%lu", msqid_ds.msg_qbytes);
-
-		entry ("last msgsnd pid", "%d (%s)", msqid_ds.msg_lspid,
-				lspid ? lspid : UNKNOWN_STR);
-
-		entry ("last msgrcv pid", "%d (%s)", msqid_ds.msg_lrpid,
-				lrpid ? lrpid : UNKNOWN_STR);
-
-		object_close (FALSE);
-
-		container_close ();
-
-		free (modestr);
-		if (lspid)
-			free (lspid);
-		if (lrpid)
-			free (lrpid);
-	}
-
-	object_close (FALSE);
-
-	container_close ();
-
-out:
 	footer ();
 }
-#endif /* PROCENV_LINUX || PROCENV_HURD */
 
 void
 format_time (const time_t *t, char *buffer, size_t len)
@@ -10574,290 +4370,250 @@ format_perms (mode_t mode)
 	return modestr;
 }
 
-char *
-pid_to_name (pid_t pid)
-{
-	char   path[PATH_MAX];
-	char  *name = NULL;
-	FILE  *f = NULL;
-
-	sprintf (path, "/proc/%d/cmdline", (int)pid);
-
-	f = fopen (path, "r");
-	if (! f) 
-		goto out;
-
-	/* Reuse buffer */
-	if (! fgets (path, sizeof (path), f))
-		goto out;
-
-	/* Nul delimiting within /proc file will ensure we only get the
-	 * program name.
-	 */
-	append (&name, path);
-
-out:
-	if (f)
-		fclose (f);
-
-	return name;
-}
-
-
-void
-add_breadcrumb (const char *name)
-{
-	assert (name);
-
-	if (! crumb_list)
-		crumb_list = pr_list_new (NULL);
-
-	assert (crumb_list);
-
-	pr_list_prepend_str (crumb_list, name);
-}
-
-void
-remove_breadcrumb (void)
-{
-	PRList  *entry;
-
-	assert (crumb_list);
-
-	entry = pr_list_remove (crumb_list->prev);
-	assert (entry);
-
-	free ((char *)entry->data);
-	free (entry);
-}
-
-void
-clear_breadcrumbs (void)
-{
-	assert (crumb_list);
-
-	while (crumb_list->prev != crumb_list)
-		remove_breadcrumb ();
-}
-
-wchar_t *
-char_to_wchar (const char *str)
-{
-	const char  *p;
-	wchar_t     *wstr = NULL;
-	size_t       len;
-	size_t       bytes;
-
-	assert (str);
-
-	len = mbsrtowcs (NULL, &str, 0, NULL);
-	if (len <= 0)
-		return NULL;
-
-	/* include space for terminator */
-	bytes = (1 + len) * sizeof (wchar_t);
-
-	wstr = malloc (bytes);
-	if (! wstr)
-		return NULL;
-
-	p = str;
-
-	if (mbsrtowcs (wstr, &p, len, NULL) != len)
-		goto error;
-
-	/* ensure it's terminated */
-	wstr[len] = L'\0';
-
-	return wstr;
-
-error:
-	free (wstr);
-	return NULL;
-}
-
-pstring *
-pstring_new (void)
-{
-	pstring *pstr = NULL;
-
-	pstr = calloc (1, sizeof (pstring));
-	if (! pstr)
-		return NULL;
-
-	pstr->len = 0;
-	pstr->size = 0;
-	pstr->buf = NULL;
-
-	return pstr;
-}
-
-pstring *
-pstring_create (const wchar_t *str)
-{
-	pstring *pstr = NULL;
-
-	assert (str);
-
-	pstr = pstring_new ();
-
-	if (! pstr)
-		return NULL;
-
-	pstr->buf = wcsdup (str);
-	if (! pstr->buf) {
-		pstring_free (pstr);
-		return NULL;
-	}
-
-	/* include the L'\0' terminator */
-	pstr->len = 1 + wcslen (pstr->buf);
-
-	pstr->size = pstr->len * sizeof (wchar_t);
-
-	return pstr;
-}
-
-void
-pstring_free (pstring *str)
-{
-	assert (str);
-
-	if (str->buf)
-		free (str->buf);
-
-	free (str);
-}
-
-pstring *
-char_to_pstring (const char *str)
-{
-	pstring  *pstr = NULL;
-	wchar_t  *s;
-
-	assert (str);
-
-	s = char_to_wchar (str);
-	if (! s)
-		return NULL;
-
-	pstr = pstring_create (s);
-
-	free (s);
-
-	return pstr;
-}
-
-char *
-pstring_to_char (const pstring *str)
-{
-	assert (str);
-
-	return wchar_to_char (str->buf);
-}
-
-char *
-wchar_to_char (const wchar_t *wstr)
-{
-	char           *str = NULL;
-	size_t          len;
-	size_t          bytes;
-	size_t          ret;
-
-	assert (wstr);
-
-	len = wcslen (wstr);
-
-	/* determine number of MBS (char) bytes requires to hold the
-	 * wchar_t string.
-	 */
-	bytes = wcstombs (NULL, wstr, len);
-	if (! bytes)
-		return NULL;
-
-	str = calloc (bytes + 1, sizeof (char));
-	if (! str)
-		return NULL;
-
-	/* actually perform the conversion */
-	ret = wcstombs (str, wstr, bytes);
-
-	if (! ret)
-		goto error;
-
-	return str;
-
-error:
-	free (str);
-	return NULL;
-}
-
-#if ! defined (HAVE_SCHED_GETCPU)
-
-/**
- * @string: input,
- * @delimiter: field delimiter,
- * @compress: if TRUE, ignore repeated contiguous delimiter characters,
- * @array: [output] array of fields, which this function will allocate.
+/*
+ * BSD returns an additional AF_LINK ifaddrs containing the
+ * actual link-layer MAC address for each interface.
  *
- * Notes: it is the callers responsibility to free @array
- * if the returned value is >0.
+ * Linux does the same but with one additional AF_PACKET family / interface.
  *
- * Returns: number of fields in @string.
- **/
-size_t
-split_fields (const char *string, char delimiter, int compress, char ***array)
+ * This is somewhat noisome since for BSD we need to cache the MAC addresses
+ * such that they can be retrieved when the _next_ ifaddrs structure
+ * appears for the *same* interface, but we only want to
+ * display the non-AF_LINK elements *unless* they refer
+ * to an interface with no associated address.
+ *
+ * The situation for Linux is similar but we only care
+ * about AF_PACKET entries for interfaces that have no
+ * associated address since we can extract the MAC
+ * address using an ioctl (rather than considering the
+ * AF_PACKET element).
+ *
+ * The strategy therefore is to:
+ *
+ * 1) Cache all AF_LINK/AF_PACKET elements.
+ * 2) Once an element arrives that matches an interface
+ *    name found in the cache, use that as necessary (extra
+ *    the MAC for BSD, NOP for Linux), then free that cache
+ *    element.
+ * 3) Having processed all entries, if any entries are
+ * left in the cache, they must refer to interfaces that
+ * have no address, so display them.
+ *
+ * XXX: Note the implicit assumption that the AF_LINK/AF_PACKET entries
+ * will appear _before_ the corresponding entry containing address
+ * details for the interface in the output of getifaddrs(): observations
+ * suggests this _seems_ to be the case, but is not documented as being
+ * guaranteed.
+ */
+#ifdef PROCENV_PLATFORM_ANDROID
+
+// FIXME: split out to platfom
+void
+show_network (void)
 {
-	const char  *p = NULL;
-	const char  *start = NULL;
-	size_t       count = 0;
-	char        *elem;
-	char       **new;
-
-	assert (string);
-	assert (delimiter);
-	assert (array);
-
-	*array = NULL;
-
-	new = realloc ((*array), sizeof (char *) * (1+count));
-	assert (new);
-
-	new[0] = NULL;
-	*array = new;
-
-	p = string;
-
-	while (p && *p) {
-		/* skip leading prefix */
-		while (compress && p && *p == delimiter)
-			p++;
-
-		if (! *p)
-			break;
-
-		/* found a field */
-		count++;
-
-		if (! compress)
-			p++;
-
-		/* skip over the field */
-		start = p;
-		while (p && *p && *p != delimiter)
-			p++;
-
-		elem = strndup (start, p-start);
-		assert (elem);
-
-		new = realloc ((*array), sizeof (char *) * (1+count));
-		assert (new);
-
-		new[count-1] = elem;
-		*array = new;
-	}
-
-	return count;
+	/* Bionic isn't actually that bionic at all :( */
+	header ("network");
+	footer ();
 }
 
+#else
+
+void
+show_network (void)
+{
+	struct ifaddrs      *if_addrs;
+	struct ifaddrs      *ifa;
+	char                *mac_address = NULL;
+	struct network_map  *head = NULL;
+	struct network_map  *node = NULL;
+	struct network_map  *tmp = NULL;
+
+	common_assert ();
+
+	header ("network");
+
+	/* Query all network interfaces */
+	if (getifaddrs (&if_addrs) < 0)
+		return;
+
+	/* Construct an initial node for the cache */
+	head = calloc (1, sizeof (struct network_map));
+	assert (head);
+
+	/* Iterate over all network interfaces */
+	for (ifa = if_addrs; ifa; ifa = ifa->ifa_next) {
+#if !defined (PROCENV_PLATFORM_HURD)
+		int family;
 #endif
+
+		if (! ifa->ifa_addr)
+			continue;
+
+#if !defined (PROCENV_PLATFORM_HURD)
+		family = ifa->ifa_addr->sa_family;
+
+		if (family == PROCENV_LINK_LEVEL_FAMILY) {
+
+			/* Add link level interface details to the cache */
+			mac_address = get_mac_address (ifa);
+
+			node = calloc (1, sizeof (struct network_map));
+			assert (node);
+
+			/* Conveniently, an ifaddrs contains a bunch of
+			 * pointers and some flags.
+			 *
+			 * Since all those pointers are valid until we
+			 * call freeifaddrs(), all we need to do is copy
+			 * the flags since the memcpy will copy the
+			 * pointers addresses for us :)
+			 */
+			memcpy (&node->ifaddr, ifa, sizeof (struct ifaddrs));
+			node->ifaddr.ifa_flags = ifa->ifa_flags;
+
+			/* Since we've already formatted the MAC
+			 * address, we'll cache that too.
+			 */
+			node->mac_address = mac_address;
+			mac_address = NULL;
+
+			/* prepend */
+			node->next = head->next;
+			if (head->next)
+				head->next->prev = node;
+			node->prev = head;
+			head->next = node;
+
+			continue;
+		}
+#endif
+
+		/* From now on, we're only looking at interfaces with an
+		 * address.
+		 */
+
+		/* Search for an entry corresponding to the interface in the cache */
+		for (node = head->next; node && node->ifaddr.ifa_name; node = node->next) {
+			if (! strcmp (node->ifaddr.ifa_name, ifa->ifa_name)) {
+
+				/* Save */
+				mac_address = node->mac_address
+					? strdup (node->mac_address)
+					: NULL;
+
+				/* Unlink existing node as it has now served its purpose */
+				node->prev->next = node->next;
+				if (node->next)
+					node->next->prev = node->prev;
+
+				/* Destroy */
+				if (node->mac_address)
+					free (node->mac_address);
+				free (node);
+
+				break;
+			}
+		}
+
+		/* Display the interface (which must have an associated address) */
+		show_network_if (ifa, mac_address);
+		if (mac_address) {
+			free (mac_address);
+			mac_address = NULL;
+		}
+	}
+
+	/* Destroy the cache, displaying any interfaces not previously displayed.
+	 * These by definition cannot have addresses assigned to them.
+	 */
+	for (node = head->next; node && node->ifaddr.ifa_name; node = tmp) {
+
+		tmp = node->next;
+
+		show_network_if (&node->ifaddr, node->mac_address);
+
+		/* Destroy */
+		if (node->mac_address)
+			free (node->mac_address);
+		free (node);
+	}
+
+	free (head);
+	freeifaddrs (if_addrs);
+
+	footer ();
+}
+#endif
+
+void
+show_misc (void)
+{
+#if defined (PROCENV_PLATFORM_LINUX)
+	int            domain = 0x0;
+
+	/* magic value - see personality(2) */
+	unsigned int   persona = 0xFFFFFFFF;
+
+	unsigned int   mask = PER_MASK;
+
+	const char    *personality_name = NULL;
+	char          *personality_flags = NULL;
+#endif
+
+	header ("misc");
+
+	entry ("umask", "%4.4o", misc.umask_value);
+	entry ("current directory (cwd)", "'%s'", misc.cwd);
+#if defined (PROCENV_PLATFORM_LINUX)
+	entry ("root", "%s%s%s",
+			strcmp (misc.root, UNKNOWN_STR) ? "'" : "",
+			misc.root,
+			strcmp (misc.root, UNKNOWN_STR) ? "'" : "");
+#endif
+	entry ("chroot", "%s", in_chroot () ? YES_STR : NO_STR);
+	entry ("container", "%s", container_type ());
+
+	if (ops->show_prctl) {
+		section_open ("prctl");
+		ops->show_prctl ();
+		section_close ();
+	}
+
+	if (ops->show_security_module) {
+		section_open ("security module");
+		ops->show_security_module ();
+		section_close ();
+	}
+
+#if defined (PROCENV_PLATFORM_LINUX)
+#ifdef LINUX_VERSION_CODE
+	entry ("kernel headers version", "%u.%u.%u",
+			(LINUX_VERSION_CODE >> 16),
+			((LINUX_VERSION_CODE >> 8) & 0xFF),
+			(LINUX_VERSION_CODE & 0xFF));
+#endif
+
+	domain = personality (persona);
+
+	personality_name = get_personality_name (domain & mask);
+
+	section_open ("personality");
+
+	entry ("type", "%s", personality_name
+			? personality_name
+			: UNKNOWN_STR);
+
+	personality_flags = get_personality_flags (domain & (-1 ^ mask));
+	entry ("flags", "%s",
+			personality_flags
+			? personality_flags
+			: "");
+
+	section_close ();
+
+	if (personality_flags)
+		free (personality_flags);
+#endif
+
+	footer ();
+}

@@ -1,10 +1,12 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([procenv_version], 0.44)
+m4_define([procenv_version], [0.44])
 
-AC_INIT(procenv, [procenv_version], [jamesodhunt@ubuntu.com], , https://github.com/jamesodhunt/procenv)
+AC_INIT(procenv, [procenv_version], [jamesodhunt@ubuntu.com], ,[https://github.com/jamesodhunt/procenv])
+
 AC_COPYRIGHT([Copyright (C) 2012-2015 James Hunt <jamesodhunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
+
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
@@ -14,6 +16,9 @@ AC_SUBST(PROCENV_VERSION, procenv_version)
 
 AC_GNU_SOURCE
 AC_SYS_LARGEFILE
+
+# expose $target
+AC_CANONICAL_TARGET
 
 #---------------------------------------------------------------------
 # Checks for programs.
@@ -38,7 +43,7 @@ AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
 AC_HEADER_STDBOOL
 
 # Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu])
+AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm],
@@ -144,6 +149,36 @@ if test "$reproducible_build" = yes; then
 	AC_DEFINE([PROCENV_REPRODUCIBLE_BUILD], [1], [Generate a reproducible build])
 fi
 
+AC_ARG_WITH([forced_driver],
+	AS_HELP_STRING([--with-forced-driver=...],
+		[Used to force a particular platform driver. Warning: These aren't the droids you're looking for...]))
+
+target_to_consider="$target"
+
+AS_IF([test "x$with_forced_driver" != "x"], [
+       target_to_consider="$withval"
+       ])
+
+#---------------------------------------------------------------------
+# Determine platform
+
+case "$target_to_consider" in
+    *freebsd*) procenv_platform=freebsd;;
+
+    # BUG: FIXME: this test does not look reliable!
+    *hurd*|*unknown-gnu*) procenv_platform=hurd;;
+
+    *linux*) procenv_platform=linux;;
+    *) procenv_platform=unknown;;
+esac
+
+AM_CONDITIONAL([PROCENV_PLATFORM_FREEBSD], [test "$procenv_platform" = freebsd])
+AM_CONDITIONAL([PROCENV_PLATFORM_HURD], [test "$procenv_platform" = hurd])
+AM_CONDITIONAL([PROCENV_PLATFORM_LINUX], [test "$procenv_platform" = linux])
+AM_CONDITIONAL([PROCENV_PLATFORM_GENERIC], [test "$procenv_platform" = unknown])
+
+AC_SUBST([procenv_platform])
+
 #---------------------------------------------------------------------
 # XXX: Dump details of the preprocess/compiler/linker *NOW* so that if
 # procenv fails to build later, the build logs will show details of the
@@ -165,9 +200,12 @@ AC_OUTPUT(Makefile src/Makefile procenv.spec)
 AC_MSG_RESULT([
     Configure settings for $PACKAGE_NAME version $VERSION
 
+    Build platform              : $procenv_platform
     Reproducible build          : ${reproducible_build}
     Debug build                 : ${DEBUG_BUILD}
-    Check Unit Test Framework   : ${HAVE_CHECK}
+    Check unit test framework   : ${HAVE_CHECK}
+
+    Libraries:
 
     libapparmor                 : ${HAVE_APPARMOR}
     libselinux                  : ${HAVE_SELINUX}

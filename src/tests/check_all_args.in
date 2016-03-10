@@ -8,6 +8,7 @@ script_name=${0##*/}
 # Use full path to build binary
 procenv="@builddir@/procenv"
 man_path="@man_path@"
+driver="@procenv_platform@"
 
 template="/tmp/${script_name}.XXXXXXXXXX"
 
@@ -194,7 +195,13 @@ run_tests()
 
 	# pathconf cannot be handled below as it is indented under the mount
 	# output, so just check we can find some evidence of it being displayed.
-	$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
+	#
+	# Don't do this for the unknown driver since that doesn't produce
+	# mount output.
+	if [ "$driver" != "unknown" ]
+	then
+		$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
+	fi
 
 	#---------------------------------------------------------------------
 	msg "Ensure --file=<file> works"
@@ -208,6 +215,56 @@ run_tests()
 	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
 	[ -s "$out" ] || die "Expected output in file $out"
+
+	rm "$out"
+	rm -f "$stdout" "$stderr"
+
+	#---------------------------------------------------------------------
+	msg "Ensure running multiple '--file=<file> --version' works"
+
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	cmd="$procenv --file=\"$out\" --version 1>\"$stdout\" 2>\"$stderr\""
+
+	# run twice - we expect the output file to be overwritten
+	for expected in 1 1
+	do
+		run_command "$cmd" "$stdout" "$stderr"
+		[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+		[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+		[ -s "$out" ] || die "Expected output in file $out"
+
+		count=$(grep -c ^version: "$out")
+		[ "$count" -eq "$expected" ] || die "expected $expected match in file $out - got $count"
+	done
+
+	#---------------------------------------------------------------------
+	msg "Ensure '--file-append --file=<file> --version' works"
+
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	cmd="$procenv --file-append --file=\"$out\" --version 1>\"$stdout\" 2>\"$stderr\""
+
+	run_command "$cmd" "$stdout" "$stderr"
+	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+	[ -s "$out" ] || die "Expected output in file $out"
+
+	expected=1
+	count=$(grep -c ^version: "$out")
+	[ "$count" -eq "$expected" ] || die "expected $expected match in file $out - got $count"
+
+	run_command "$cmd" "$stdout" "$stderr"
+	[ -s "$stdout" ] && die "Unexpected stdout output: $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output: $stderr"
+	[ -s "$out" ] || die "Expected output in file $out"
+
+	# the output file should be appended
+	expected=$((expected+1))
+	count=$(grep -c ^version: "$out")
+	[ "$count" -eq "$expected" ] || die "expected $expected match in file $out - got $count"
 
 	rm "$out"
 	rm -f "$stdout" "$stderr"
@@ -242,7 +299,7 @@ run_tests()
 	rm -f "$stdout" "$stderr"
 
 	#---------------------------------------------------------------------
-	msg "Ensure --exec works"
+	msg "Ensure --exec works (with no previous arguments)"
 
 	str="hello world"
 	out=$(mktemp "$template")
@@ -263,7 +320,29 @@ run_tests()
 	rm -f "$stdout" "$stderr" "$out"
 
 	#---------------------------------------------------------------------
-	msg "Ensure --exec can exec $procenv"
+	msg "Ensure '--version --exec' works"
+
+	str="hello world"
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+	cmd="$procenv --output=file --file=\"$out\" --version \
+		--exec echo \"$str\" 1>\"$stdout\" 2>\"$stderr\""
+	run_command "$cmd" "$stdout" "$stderr"
+
+	[ -s "$out" ] || die "Expected $procenv output in file $out"
+	grep -q ^version: "$out" || die "Expected $procenv --version output in file $out"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+	[ -s "$stdout" ] || die "Expected stdout output in file $stdout"
+	result=$(cat "$stdout")
+
+	[ "$result" != "$str" ] && die \
+		"Expected file $stdout to contain '$str', found '$result'"
+
+	rm -f "$stdout" "$stderr" "$out"
+
+	#---------------------------------------------------------------------
+	msg "Ensure '--exec' can exec $procenv"
 
 	out=$(mktemp "$template")
 	out2=$(mktemp "$template")
@@ -642,12 +721,16 @@ run_final_tests()
 
 #---------------------------------------------------------------------
 
-# allow this useful function to be called independent of the tests.
-case "$1" in
-    options)
-        get_procenv_options
-        exit 0
-esac
+while getopts "o" opt
+do
+	case "$opt" in
+		o)
+			# allow this useful function to be called independent of the tests.
+			get_procenv_options
+			exit 0
+			;;
+	esac
+done
 
 init
 

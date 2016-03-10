@@ -86,12 +86,23 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+build_triplet = @build@
+host_triplet = @host@
+target_triplet = @target@
 bin_PROGRAMS = procenv$(EXEEXT)
-@HAVE_SELINUX_TRUE@am__append_1 = -DHAVE_SELINUX
-@HAVE_APPARMOR_TRUE@am__append_2 = -DHAVE_APPARMOR
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_1 = platform/linux/platform.c platform/linux/platform-linux.h
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_2 = -I $(srcdir)/platform/linux -DPROCENV_PLATFORM_LINUX
+@PROCENV_PLATFORM_HURD_TRUE@am__append_3 = platform/hurd/platform.c platform/hurd/platform-hurd.h
+@PROCENV_PLATFORM_HURD_TRUE@am__append_4 = -I $(srcdir)/platform/hurd -DPROCENV_PLATFORM_HURD
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_5 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_6 = -I $(srcdir)/platform/freebsd -DPROCENV_PLATFORM_FREEBSD
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_7 = platform/unknown/platform.c platform/unknown/platform-unknown.h
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_8 = -I $(srcdir)/platform/unknown -DPROCENV_PLATFORM_GENERIC
+@HAVE_SELINUX_TRUE@am__append_9 = -DHAVE_SELINUX
+@HAVE_APPARMOR_TRUE@am__append_10 = -DHAVE_APPARMOR
 @ENABLE_TESTS_TRUE@TESTS = $(am__EXEEXT_1) procenv$(EXEEXT) \
 @ENABLE_TESTS_TRUE@	check_all_args
-@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_3 = check_pr_list
+@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_11 = check_pr_list
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_PROGRAMS =  \
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	check_pr_list$(EXEEXT)
 subdir = src
@@ -114,10 +125,30 @@ check_pr_list_OBJECTS = $(am_check_pr_list_OBJECTS)
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	pr_list.o
 check_pr_list_LINK = $(CCLD) $(check_pr_list_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+am__procenv_SOURCES_DIST = procenv.c procenv.h pr_list.c pr_list.h \
+	pstring.c pstring.h string-util.c string-util.h output.c \
+	output.h util.c util.h types.h messages.h platform.h \
+	platform-headers.h platform/platform-generic.c \
+	platform/platform-generic.h platform/linux/platform.c \
+	platform/linux/platform-linux.h platform/hurd/platform.c \
+	platform/hurd/platform-hurd.h platform/freebsd/platform.c \
+	platform/freebsd/platform-freebsd.h \
+	platform/unknown/platform.c \
+	platform/unknown/platform-unknown.h
+@PROCENV_PLATFORM_LINUX_TRUE@am__objects_1 = platform/linux/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_HURD_TRUE@am__objects_2 = platform/hurd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__objects_3 = platform/freebsd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_GENERIC_TRUE@am__objects_4 = platform/unknown/procenv-platform.$(OBJEXT)
 am_procenv_OBJECTS = procenv-procenv.$(OBJEXT) \
-	procenv-pr_list.$(OBJEXT)
+	procenv-pr_list.$(OBJEXT) procenv-pstring.$(OBJEXT) \
+	procenv-string-util.$(OBJEXT) procenv-output.$(OBJEXT) \
+	procenv-util.$(OBJEXT) \
+	platform/procenv-platform-generic.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4)
 procenv_OBJECTS = $(am_procenv_OBJECTS)
 procenv_DEPENDENCIES =
+procenv_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(procenv_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -151,7 +182,8 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(check_pr_list_SOURCES) $(procenv_SOURCES)
-DIST_SOURCES = $(am__check_pr_list_SOURCES_DIST) $(procenv_SOURCES)
+DIST_SOURCES = $(am__check_pr_list_SOURCES_DIST) \
+	$(am__procenv_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -204,13 +236,13 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/config/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CFLAGS = \
-	-pedantic \
-	-std=gnu99 \
-	-Wall -Wunused \
-	-fstack-protector \
-	-Wformat
 
+# XXX: magic option that will remove all unused symbols
+# (defined by platform-generic.c).
+
+# keep it tight
+AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused -fstack-protector \
+	-Wformat -fdata-sections -ffunction-sections -Werror
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -271,14 +303,22 @@ am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
 bindir = @bindir@
+build = @build@
 build_alias = @build_alias@
+build_cpu = @build_cpu@
+build_os = @build_os@
+build_vendor = @build_vendor@
 builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+host = @host@
 host_alias = @host_alias@
+host_cpu = @host_cpu@
+host_os = @host_os@
+host_vendor = @host_vendor@
 htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
@@ -292,6 +332,7 @@ mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
 prefix = @prefix@
+procenv_platform = @procenv_platform@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
 runstatedir = @runstatedir@
@@ -299,17 +340,28 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+target = @target@
 target_alias = @target_alias@
+target_cpu = @target_cpu@
+target_os = @target_os@
+target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
-procenv_SOURCES = \
-	procenv.c procenv.h \
-	pr_list.c pr_list.h
+procenv_SOURCES = procenv.c procenv.h pr_list.c pr_list.h pstring.c \
+	pstring.h string-util.c string-util.h output.c output.h util.c \
+	util.h types.h messages.h platform.h platform-headers.h \
+	platform/platform-generic.c platform/platform-generic.h \
+	$(am__append_1) $(am__append_3) $(am__append_5) \
+	$(am__append_7)
 
+# XXX: unused symbol removal magic - part 2
+procenv_LDFLAGS = -Wl,--gc-sections
 procenv_LDADD = -lrt
-procenv_CPPFLAGS = $(am__append_1) $(am__append_2)
+procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_2) \
+	$(am__append_4) $(am__append_6) $(am__append_8) \
+	$(am__append_9) $(am__append_10)
 @ENABLE_TESTS_TRUE@CLEANFILES = check_all_args
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_SOURCES = tests/check_pr_list.c
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
@@ -409,20 +461,78 @@ tests/check_pr_list-check_pr_list.$(OBJEXT): tests/$(am__dirstamp) \
 check_pr_list$(EXEEXT): $(check_pr_list_OBJECTS) $(check_pr_list_DEPENDENCIES) $(EXTRA_check_pr_list_DEPENDENCIES) 
 	@rm -f check_pr_list$(EXEEXT)
 	$(AM_V_CCLD)$(check_pr_list_LINK) $(check_pr_list_OBJECTS) $(check_pr_list_LDADD) $(LIBS)
+platform/$(am__dirstamp):
+	@$(MKDIR_P) platform
+	@: > platform/$(am__dirstamp)
+platform/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/$(DEPDIR)
+	@: > platform/$(DEPDIR)/$(am__dirstamp)
+platform/procenv-platform-generic.$(OBJEXT): platform/$(am__dirstamp) \
+	platform/$(DEPDIR)/$(am__dirstamp)
+platform/linux/$(am__dirstamp):
+	@$(MKDIR_P) platform/linux
+	@: > platform/linux/$(am__dirstamp)
+platform/linux/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/linux/$(DEPDIR)
+	@: > platform/linux/$(DEPDIR)/$(am__dirstamp)
+platform/linux/procenv-platform.$(OBJEXT):  \
+	platform/linux/$(am__dirstamp) \
+	platform/linux/$(DEPDIR)/$(am__dirstamp)
+platform/hurd/$(am__dirstamp):
+	@$(MKDIR_P) platform/hurd
+	@: > platform/hurd/$(am__dirstamp)
+platform/hurd/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/hurd/$(DEPDIR)
+	@: > platform/hurd/$(DEPDIR)/$(am__dirstamp)
+platform/hurd/procenv-platform.$(OBJEXT):  \
+	platform/hurd/$(am__dirstamp) \
+	platform/hurd/$(DEPDIR)/$(am__dirstamp)
+platform/freebsd/$(am__dirstamp):
+	@$(MKDIR_P) platform/freebsd
+	@: > platform/freebsd/$(am__dirstamp)
+platform/freebsd/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/freebsd/$(DEPDIR)
+	@: > platform/freebsd/$(DEPDIR)/$(am__dirstamp)
+platform/freebsd/procenv-platform.$(OBJEXT):  \
+	platform/freebsd/$(am__dirstamp) \
+	platform/freebsd/$(DEPDIR)/$(am__dirstamp)
+platform/unknown/$(am__dirstamp):
+	@$(MKDIR_P) platform/unknown
+	@: > platform/unknown/$(am__dirstamp)
+platform/unknown/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/unknown/$(DEPDIR)
+	@: > platform/unknown/$(DEPDIR)/$(am__dirstamp)
+platform/unknown/procenv-platform.$(OBJEXT):  \
+	platform/unknown/$(am__dirstamp) \
+	platform/unknown/$(DEPDIR)/$(am__dirstamp)
 
 procenv$(EXEEXT): $(procenv_OBJECTS) $(procenv_DEPENDENCIES) $(EXTRA_procenv_DEPENDENCIES) 
 	@rm -f procenv$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(procenv_OBJECTS) $(procenv_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(procenv_LINK) $(procenv_OBJECTS) $(procenv_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f platform/*.$(OBJEXT)
+	-rm -f platform/freebsd/*.$(OBJEXT)
+	-rm -f platform/hurd/*.$(OBJEXT)
+	-rm -f platform/linux/*.$(OBJEXT)
+	-rm -f platform/unknown/*.$(OBJEXT)
 	-rm -f tests/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-output.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-pr_list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-procenv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-pstring.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-string-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/$(DEPDIR)/procenv-platform-generic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/freebsd/$(DEPDIR)/procenv-platform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/hurd/$(DEPDIR)/procenv-platform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/linux/$(DEPDIR)/procenv-platform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/unknown/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/check_pr_list-check_pr_list.Po@am__quote@
 
 .c.o:
@@ -482,6 +592,132 @@ procenv-pr_list.obj: pr_list.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pr_list.c' object='procenv-pr_list.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-pr_list.obj `if test -f 'pr_list.c'; then $(CYGPATH_W) 'pr_list.c'; else $(CYGPATH_W) '$(srcdir)/pr_list.c'; fi`
+
+procenv-pstring.o: pstring.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-pstring.o -MD -MP -MF $(DEPDIR)/procenv-pstring.Tpo -c -o procenv-pstring.o `test -f 'pstring.c' || echo '$(srcdir)/'`pstring.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-pstring.Tpo $(DEPDIR)/procenv-pstring.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pstring.c' object='procenv-pstring.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-pstring.o `test -f 'pstring.c' || echo '$(srcdir)/'`pstring.c
+
+procenv-pstring.obj: pstring.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-pstring.obj -MD -MP -MF $(DEPDIR)/procenv-pstring.Tpo -c -o procenv-pstring.obj `if test -f 'pstring.c'; then $(CYGPATH_W) 'pstring.c'; else $(CYGPATH_W) '$(srcdir)/pstring.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-pstring.Tpo $(DEPDIR)/procenv-pstring.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pstring.c' object='procenv-pstring.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-pstring.obj `if test -f 'pstring.c'; then $(CYGPATH_W) 'pstring.c'; else $(CYGPATH_W) '$(srcdir)/pstring.c'; fi`
+
+procenv-string-util.o: string-util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-string-util.o -MD -MP -MF $(DEPDIR)/procenv-string-util.Tpo -c -o procenv-string-util.o `test -f 'string-util.c' || echo '$(srcdir)/'`string-util.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-string-util.Tpo $(DEPDIR)/procenv-string-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='string-util.c' object='procenv-string-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-string-util.o `test -f 'string-util.c' || echo '$(srcdir)/'`string-util.c
+
+procenv-string-util.obj: string-util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-string-util.obj -MD -MP -MF $(DEPDIR)/procenv-string-util.Tpo -c -o procenv-string-util.obj `if test -f 'string-util.c'; then $(CYGPATH_W) 'string-util.c'; else $(CYGPATH_W) '$(srcdir)/string-util.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-string-util.Tpo $(DEPDIR)/procenv-string-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='string-util.c' object='procenv-string-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-string-util.obj `if test -f 'string-util.c'; then $(CYGPATH_W) 'string-util.c'; else $(CYGPATH_W) '$(srcdir)/string-util.c'; fi`
+
+procenv-output.o: output.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-output.o -MD -MP -MF $(DEPDIR)/procenv-output.Tpo -c -o procenv-output.o `test -f 'output.c' || echo '$(srcdir)/'`output.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-output.Tpo $(DEPDIR)/procenv-output.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='output.c' object='procenv-output.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-output.o `test -f 'output.c' || echo '$(srcdir)/'`output.c
+
+procenv-output.obj: output.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-output.obj -MD -MP -MF $(DEPDIR)/procenv-output.Tpo -c -o procenv-output.obj `if test -f 'output.c'; then $(CYGPATH_W) 'output.c'; else $(CYGPATH_W) '$(srcdir)/output.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-output.Tpo $(DEPDIR)/procenv-output.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='output.c' object='procenv-output.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-output.obj `if test -f 'output.c'; then $(CYGPATH_W) 'output.c'; else $(CYGPATH_W) '$(srcdir)/output.c'; fi`
+
+procenv-util.o: util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-util.o -MD -MP -MF $(DEPDIR)/procenv-util.Tpo -c -o procenv-util.o `test -f 'util.c' || echo '$(srcdir)/'`util.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-util.Tpo $(DEPDIR)/procenv-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util.c' object='procenv-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-util.o `test -f 'util.c' || echo '$(srcdir)/'`util.c
+
+procenv-util.obj: util.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT procenv-util.obj -MD -MP -MF $(DEPDIR)/procenv-util.Tpo -c -o procenv-util.obj `if test -f 'util.c'; then $(CYGPATH_W) 'util.c'; else $(CYGPATH_W) '$(srcdir)/util.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/procenv-util.Tpo $(DEPDIR)/procenv-util.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='util.c' object='procenv-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o procenv-util.obj `if test -f 'util.c'; then $(CYGPATH_W) 'util.c'; else $(CYGPATH_W) '$(srcdir)/util.c'; fi`
+
+platform/procenv-platform-generic.o: platform/platform-generic.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/procenv-platform-generic.o -MD -MP -MF platform/$(DEPDIR)/procenv-platform-generic.Tpo -c -o platform/procenv-platform-generic.o `test -f 'platform/platform-generic.c' || echo '$(srcdir)/'`platform/platform-generic.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/$(DEPDIR)/procenv-platform-generic.Tpo platform/$(DEPDIR)/procenv-platform-generic.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/platform-generic.c' object='platform/procenv-platform-generic.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/procenv-platform-generic.o `test -f 'platform/platform-generic.c' || echo '$(srcdir)/'`platform/platform-generic.c
+
+platform/procenv-platform-generic.obj: platform/platform-generic.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/procenv-platform-generic.obj -MD -MP -MF platform/$(DEPDIR)/procenv-platform-generic.Tpo -c -o platform/procenv-platform-generic.obj `if test -f 'platform/platform-generic.c'; then $(CYGPATH_W) 'platform/platform-generic.c'; else $(CYGPATH_W) '$(srcdir)/platform/platform-generic.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/$(DEPDIR)/procenv-platform-generic.Tpo platform/$(DEPDIR)/procenv-platform-generic.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/platform-generic.c' object='platform/procenv-platform-generic.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/procenv-platform-generic.obj `if test -f 'platform/platform-generic.c'; then $(CYGPATH_W) 'platform/platform-generic.c'; else $(CYGPATH_W) '$(srcdir)/platform/platform-generic.c'; fi`
+
+platform/linux/procenv-platform.o: platform/linux/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/linux/procenv-platform.o -MD -MP -MF platform/linux/$(DEPDIR)/procenv-platform.Tpo -c -o platform/linux/procenv-platform.o `test -f 'platform/linux/platform.c' || echo '$(srcdir)/'`platform/linux/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/linux/$(DEPDIR)/procenv-platform.Tpo platform/linux/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/linux/platform.c' object='platform/linux/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/linux/procenv-platform.o `test -f 'platform/linux/platform.c' || echo '$(srcdir)/'`platform/linux/platform.c
+
+platform/linux/procenv-platform.obj: platform/linux/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/linux/procenv-platform.obj -MD -MP -MF platform/linux/$(DEPDIR)/procenv-platform.Tpo -c -o platform/linux/procenv-platform.obj `if test -f 'platform/linux/platform.c'; then $(CYGPATH_W) 'platform/linux/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/linux/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/linux/$(DEPDIR)/procenv-platform.Tpo platform/linux/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/linux/platform.c' object='platform/linux/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/linux/procenv-platform.obj `if test -f 'platform/linux/platform.c'; then $(CYGPATH_W) 'platform/linux/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/linux/platform.c'; fi`
+
+platform/hurd/procenv-platform.o: platform/hurd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/hurd/procenv-platform.o -MD -MP -MF platform/hurd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/hurd/procenv-platform.o `test -f 'platform/hurd/platform.c' || echo '$(srcdir)/'`platform/hurd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/hurd/$(DEPDIR)/procenv-platform.Tpo platform/hurd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/hurd/platform.c' object='platform/hurd/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/hurd/procenv-platform.o `test -f 'platform/hurd/platform.c' || echo '$(srcdir)/'`platform/hurd/platform.c
+
+platform/hurd/procenv-platform.obj: platform/hurd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/hurd/procenv-platform.obj -MD -MP -MF platform/hurd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/hurd/procenv-platform.obj `if test -f 'platform/hurd/platform.c'; then $(CYGPATH_W) 'platform/hurd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/hurd/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/hurd/$(DEPDIR)/procenv-platform.Tpo platform/hurd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/hurd/platform.c' object='platform/hurd/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/hurd/procenv-platform.obj `if test -f 'platform/hurd/platform.c'; then $(CYGPATH_W) 'platform/hurd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/hurd/platform.c'; fi`
+
+platform/freebsd/procenv-platform.o: platform/freebsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/freebsd/procenv-platform.o -MD -MP -MF platform/freebsd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/freebsd/procenv-platform.o `test -f 'platform/freebsd/platform.c' || echo '$(srcdir)/'`platform/freebsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/freebsd/$(DEPDIR)/procenv-platform.Tpo platform/freebsd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/freebsd/platform.c' object='platform/freebsd/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/freebsd/procenv-platform.o `test -f 'platform/freebsd/platform.c' || echo '$(srcdir)/'`platform/freebsd/platform.c
+
+platform/freebsd/procenv-platform.obj: platform/freebsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/freebsd/procenv-platform.obj -MD -MP -MF platform/freebsd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/freebsd/procenv-platform.obj `if test -f 'platform/freebsd/platform.c'; then $(CYGPATH_W) 'platform/freebsd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/freebsd/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/freebsd/$(DEPDIR)/procenv-platform.Tpo platform/freebsd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/freebsd/platform.c' object='platform/freebsd/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/freebsd/procenv-platform.obj `if test -f 'platform/freebsd/platform.c'; then $(CYGPATH_W) 'platform/freebsd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/freebsd/platform.c'; fi`
+
+platform/unknown/procenv-platform.o: platform/unknown/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/unknown/procenv-platform.o -MD -MP -MF platform/unknown/$(DEPDIR)/procenv-platform.Tpo -c -o platform/unknown/procenv-platform.o `test -f 'platform/unknown/platform.c' || echo '$(srcdir)/'`platform/unknown/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/unknown/$(DEPDIR)/procenv-platform.Tpo platform/unknown/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/unknown/platform.c' object='platform/unknown/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/unknown/procenv-platform.o `test -f 'platform/unknown/platform.c' || echo '$(srcdir)/'`platform/unknown/platform.c
+
+platform/unknown/procenv-platform.obj: platform/unknown/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/unknown/procenv-platform.obj -MD -MP -MF platform/unknown/$(DEPDIR)/procenv-platform.Tpo -c -o platform/unknown/procenv-platform.obj `if test -f 'platform/unknown/platform.c'; then $(CYGPATH_W) 'platform/unknown/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/unknown/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/unknown/$(DEPDIR)/procenv-platform.Tpo platform/unknown/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/unknown/platform.c' object='platform/unknown/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/unknown/procenv-platform.obj `if test -f 'platform/unknown/platform.c'; then $(CYGPATH_W) 'platform/unknown/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/unknown/platform.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -694,6 +930,16 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f platform/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/$(am__dirstamp)
+	-rm -f platform/freebsd/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/freebsd/$(am__dirstamp)
+	-rm -f platform/hurd/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/hurd/$(am__dirstamp)
+	-rm -f platform/linux/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/linux/$(am__dirstamp)
+	-rm -f platform/unknown/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/unknown/$(am__dirstamp)
 	-rm -f tests/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/$(am__dirstamp)
 
@@ -706,7 +952,7 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -752,7 +998,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -793,6 +1039,8 @@ uninstall-am: uninstall-binPROGRAMS
 @ENABLE_TESTS_TRUE@	sed -e 's|[@]builddir[@]|$(top_builddir)/$(subdir)|g' \
 @ENABLE_TESTS_TRUE@	    -e 's|[@]man_path[@]|$(top_srcdir)/man/procenv.1|g' \
 @ENABLE_TESTS_TRUE@	    -e 's|[@]package_url[@]|$(PACKAGE_URL)|g' \
+@ENABLE_TESTS_TRUE@	    -e 's|[@]package_url[@]|$(PACKAGE_URL)|g' \
+@ENABLE_TESTS_TRUE@	    -e 's|[@]procenv_platform[@]|$(procenv_platform)|g' \
 @ENABLE_TESTS_TRUE@	    $< > $@
 @ENABLE_TESTS_TRUE@	chmod +x $@
 

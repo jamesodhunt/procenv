@@ -1,4 +1,4 @@
-.TH PROCENV "1" "2015-10-27" "User Commands"
+.TH PROCENV "1" "2016-03-10" "User Commands"
 .\"
 .SH NAME
 procenv \- display process environment details
@@ -111,6 +111,11 @@ See
 .TP
 \fB\-\-file=\fR\fIFILE\fR (*)
 Send output to file \fIFILE\fR (implies \fB\-\-output=file\fR).
+.\"
+.TP
+\fB\-\-file\-append\fR (*)
+If \fB\-\-file\fR is specifed, append to it rather than
+overwriting it.
 .PP
 .\"
 .TP
@@ -213,7 +218,7 @@ See
 \fB\-N\fR, \fB\-\-network\fR
 Display network details.
 See
-.BR getifaddrs (3) "" ", " getnameinfo (3) "" ", and " ioctl (2) " (Linux)" .
+.BR getifaddrs (3) "" ", " getnameinfo (3) "" ", " ip (7) "" ", " netdevice (7) "" ", and " ioctl (2) " (Linux)" .
 .PP
 .\"
 .TP
@@ -395,6 +400,10 @@ Alternative to \fB\-\-exec\fR.
 .TP
 \fBPROCENV_FILE\fR
 Alternative to \fB\-\-file\fR.
+.\"
+.TP
+\fBPROCENV_FILE_APPEND\fR
+Alternative to \fB\-\-file\-append\fR.
 .PP
 .\"
 .TP
@@ -519,7 +528,7 @@ Kees Cook
 .RB < kees@ubuntu.com > "" "."
 .\"
 .SH COPYRIGHT
-Copyright \(co 2012-2014 James Hunt
+Copyright \(co 2012-2016 James Hunt
 .RB < jamesodhunt@ubuntu.com >
 and
 Kees Cook
