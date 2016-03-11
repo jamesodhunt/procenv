@@ -53,6 +53,8 @@ static struct procenv_map signal_map_freebsd[] = {
 	mk_map_entry (SIGXFSZ),
 	mk_map_entry (SIGEMT),
 	mk_map_entry (SIGINFO),
+	mk_map_entry (SIGTHR),
+	mk_map_entry (SIGLIBRT),
 
 	{ 0, NULL },
 };
