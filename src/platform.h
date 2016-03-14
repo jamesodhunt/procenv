@@ -31,7 +31,7 @@
 #endif
 
 #define PROCENV_SET_DRIVER(_name) \
-    { .name = #_name, .file = __FILE__, }
+	{ .name = #_name, .file = __FILE__, }
 
 #if defined (PROCENV_PLATFORM_FREEBSD)
 #include <sys/user.h>
@@ -96,10 +96,11 @@ struct procenv_misc {
 	int    in_jail;
 #endif
 };
+
 struct procenv_driver
 {
-    const char *name;
-    const char *file;
+	const char *name;
+	const char *file;
 };
 
 /*
@@ -112,54 +113,55 @@ struct procenv_driver
  */
 struct procenv_ops
 {
-    struct procenv_driver driver;
+	struct procenv_driver driver;
 
-    void (*init) (void);
-    void (*cleanup) (void);
+	void (*init) (void);
+	void (*cleanup) (void);
 
-    const struct procenv_map *signal_map;
-    const struct procenv_map *if_flag_map;
-    const struct procenv_map *personality_map;
-    const struct procenv_map *personality_flag_map;
+	const struct procenv_map *signal_map;
+	const struct procenv_map *if_flag_map;
+	const struct procenv_map *personality_map;
+	const struct procenv_map *personality_flag_map;
 
-    void (*get_user_misc) (struct procenv_user *user,
-			   struct procenv_misc *misc);
+	void (*get_user_misc) (struct procenv_user *user,
+			       struct procenv_misc *misc);
 
-    void (*get_proc_name) (struct procenv_user *user);
+	void (*get_proc_name) (struct procenv_user *user);
 
-    void (*get_io_priorities) (struct procenv_priority *iop);
-    void (*get_tty_locked_status) (struct termios *lock_status);
+	void (*get_io_priorities) (struct procenv_priority *iop);
+	void (*get_tty_locked_status) (struct termios *lock_status);
 
-    long (*get_kernel_bits) (void);
+	long (*get_kernel_bits) (void);
 
-    void (*show_capabilities) (void);
-    void (*show_cgroups) (void);
-    void (*show_confstrs) (void);
-    void (*show_cpu_affinities) (void);
-    void (*show_cpu) (void);
-    void (*show_extended_if_flags) (const char *interface, unsigned short *flags);
-    void (*show_fd_capabilities) (int fd);
-    void (*show_fds) (void);
-    void (*show_io_priorities) (void);
-    void (*show_mounts) (ShowMountType what);
-    void (*show_msg_queues) (void);
-    void (*show_namespaces) (void);
-    void (*show_oom) (void);
-    void (*show_prctl) (void);
-    void (*show_rlimits) (void);
-    void (*show_security_module) (void);
-    void (*show_semaphores) (void);
-    void (*show_shared_mem) (void);
-    void (*show_timezone) (void);
+	void (*show_capabilities) (void);
+	void (*show_cgroups) (void);
+	void (*show_confstrs) (void);
+	void (*show_cpu_affinities) (void);
+	void (*show_cpu) (void);
+	void (*show_extended_if_flags) (const char *interface,
+					unsigned short *flags);
+	void (*show_fd_capabilities) (int fd);
+	void (*show_fds) (void);
+	void (*show_io_priorities) (void);
+	void (*show_mounts) (ShowMountType what);
+	void (*show_msg_queues) (void);
+	void (*show_namespaces) (void);
+	void (*show_oom) (void);
+	void (*show_prctl) (void);
+	void (*show_rlimits) (void);
+	void (*show_security_module) (void);
+	void (*show_semaphores) (void);
+	void (*show_shared_mem) (void);
+	void (*show_timezone) (void);
 
-    void (*handle_numa_memory) (void);
-    void (*handle_proc_branch) (void);
-    void (*handle_scheduler_type) (void);
+	void (*handle_numa_memory) (void);
+	void (*handle_proc_branch) (void);
+	void (*handle_scheduler_type) (void);
 
-    PROCENV_CPU_SET_TYPE *(*get_cpuset) (void);
-    void (*free_cpuset) (PROCENV_CPU_SET_TYPE *cs);
-    bool (*cpuset_has_cpu) (const PROCENV_CPU_SET_TYPE *cs,
-			    PROCENV_CPU_TYPE cpu);
+	PROCENV_CPU_SET_TYPE *(*get_cpuset) (void);
+	void (*free_cpuset) (PROCENV_CPU_SET_TYPE *cs);
+	bool (*cpuset_has_cpu) (const PROCENV_CPU_SET_TYPE *cs,
+			PROCENV_CPU_TYPE cpu);
 };
 
 #endif /* _PROCENV_PLATFORM_H */
