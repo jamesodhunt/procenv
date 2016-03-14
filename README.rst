@@ -32,7 +32,7 @@ it runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 It is useful as a test tool, to understand what environment a process
 runs in and for system comparison.
 
-``procenv`` runs on Linux, FreeBSD, kFreeBSD, GNU Hurd and Android. It
+``procenv`` runs on Linux, FreeBSD, NetBSD, GNU Hurd and Android. It
 unashamedly emulates a number of existing system utilities as it is
 attempting to be all-encompassing: I wrote it with the aim of being able
 to dump "everything" that a process may care about by simply running a
