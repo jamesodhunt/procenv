@@ -406,9 +406,7 @@ show_cpu_affinities_generic (void)
 		return;
 
 	// FIXME: should be handled by get_cpuset()!!
-#if 1
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
-#endif
 
 	for (cpu = 0; cpu < max; cpu++) {
 

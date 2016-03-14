@@ -180,13 +180,32 @@ handle_proc_branch_netbsd (void)
 static PROCENV_CPU_SET_TYPE *
 get_cpuset_netbsd (void)
 {
-	return cpuset_create ();
+	PROCENV_CPU_SET_TYPE *cs = NULL;
+	int ret;
+
+	cs = cpuset_create ();
+	if (! cs)
+		return NULL;
+
+	ret = pthread_getaffinity_np (pthread_self (), cpuset_size (cs), cs);
+	if (ret) {
+		cpuset_destroy (cs);
+		return NULL;
+	}
+
+	return cs;
 }
 
 static void
 free_cpuset_netbsd (PROCENV_CPU_SET_TYPE *cs)
 {
 	cpuset_destroy (cs);
+}
+
+bool cpuset_has_cpu_netbsd (const PROCENV_CPU_SET_TYPE *cs,
+		PROCENV_CPU_TYPE cpu)
+{
+	return cpuset_isset (cpu, cs);
 }
 
 /* XXX:Notes:
@@ -201,6 +220,7 @@ struct procenv_ops platform_ops =
     .get_kernel_bits               = get_kernel_bits_generic,
     .get_cpuset                    = get_cpuset_netbsd,
     .free_cpuset                   = free_cpuset_netbsd,
+    .cpuset_has_cpu                = cpuset_has_cpu_netbsd,
 
     .signal_map                    = signal_map_netbsd,
     .if_flag_map                   = if_flag_map_netbsd,

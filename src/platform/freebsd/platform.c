@@ -423,12 +423,45 @@ handle_proc_branch_freebsd (void)
 	free (str);
 }
 
+static PROCENV_CPU_SET_TYPE *
+get_cpuset_freebsd (void)
+{
+	static PROCENV_CPU_SET_TYPE  cpu_set_real;
+	PROCENV_CPU_SET_TYPE        *cs = NULL;
+	size_t                       size;
+
+	CPU_ZERO (&cpu_set_real);
+	cs = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+	if (pthread_getaffinity_np (pthread_self (), size, cs))
+		return NULL;
+
+	return cs;
+}
+
+static void
+free_cpuset_freebsd (PROCENV_CPU_SET_TYPE *cs)
+{
+	(void) cs;
+}
+
+static bool cpuset_has_cpu_freebsd (const PROCENV_CPU_SET_TYPE *cs,
+		PROCENV_CPU_TYPE cpu)
+{
+	return CPU_ISSET (cpu, cs);
+}
+
 struct procenv_ops platform_ops =
 {
     .driver                        = PROCENV_SET_DRIVER (freebsd),
 
     .get_user_misc                 = get_user_misc_freebsd,
     .get_kernel_bits               = get_kernel_bits_generic,
+    .get_cpuset                    = get_cpuset_freebsd,
+    .free_cpuset                   = free_cpuset_freebsd,
+    .cpuset_has_cpu                = cpuset_has_cpu_freebsd,
 
     .signal_map                    = signal_map_freebsd,
     .if_flag_map                   = if_flag_map_freebsd,
