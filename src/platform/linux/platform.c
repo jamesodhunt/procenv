@@ -2039,43 +2039,269 @@ out:
 	close (sock);
 }
 
+static PROCENV_CPU_SET_TYPE *
+get_cpuset_linux (void)
+{
+	int ret = 0;
+
+#if ! defined (CPU_ALLOC)
+	/* RHEL 5 */
+	static PROCENV_CPU_SET_TYPE  cpu_set_real;
+#else
+	long   max;
+	size_t size;
+#endif
+
+	PROCENV_CPU_SET_TYPE *cs = NULL;
+
+	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+	if (max < 0)
+		return NULL;
+
+#if defined (CPU_ALLOC)
+
+	cs = CPU_ALLOC (max);
+	if (! cs)
+		return NULL;
+
+	size = CPU_ALLOC_SIZE (max);
+	CPU_ZERO_S (size, cs);
+
+#else /* ! CPU_ALLOC */
+
+	CPU_ZERO (&cpu_set_real);
+	cs = &cpu_set_real;
+
+#endif /* CPU_ALLOC */
+
+	/* We could use sched_getaffinity(2) rather than
+	 * sched_getaffinity() on Linux (2.5.8+) but
+	 * pthread_getaffinity_np() provides the same information...
+	 * Except it is missing on kFreeBSD systems (!) so we have to
+	 * use sched_getaffinity() there. :(
+	 */
+#if ! defined (CPU_ALLOC)
+	ret = sched_getaffinity (0, size, cs);
+#else
+
+	/* On a hyperthreaded system, "size" as above may not actually
+	 * be big enough, and we get EINVAL (hwloc has a similar
+	 * workaround).
+	 */
+	{
+		int mult = 0;
+		while ((ret = pthread_getaffinity_np (pthread_self (), size, cs))
+				== EINVAL) {
+			CPU_FREE (cs);
+			/* Bail out at an arbitrary value.  */
+			if (mult > 128) break;
+			mult += 2;
+			cs = CPU_ALLOC (mult * max);
+			size = CPU_ALLOC_SIZE (mult * max);
+			CPU_ZERO_S (size, cs);
+		}
+	}
+#endif
+	if (ret)
+		goto err;
+
+	return cs;
+err:
+#if defined (CPU_ALLOC)
+	CPU_FREE (cs);
+#endif
+	return NULL;
+}
+
+static void
+free_cpuset_linux (PROCENV_CPU_SET_TYPE *cs)
+{
+#if defined (CPU_ALLOC)
+	CPU_FREE (cs);
+#endif
+}
+
+bool cpuset_has_cpu_linux (const PROCENV_CPU_SET_TYPE *cs,
+		PROCENV_CPU_TYPE cpu)
+{
+	return CPU_ISSET (cpu, cs);
+}
+
+#if 0
+static void
+show_cpu_affinities_linux (void)
+{
+	int                   ret = 0;
+	long                  max;
+	size_t                size;
+#if ! defined (CPU_ALLOC)
+    /* RHEL 5 */
+	PROCENV_CPU_SET_TYPE  cpu_set_real;
+#endif
+	PROCENV_CPU_SET_TYPE *cpu_set;
+	long                  cpu;
+	char                 *cpu_list = NULL;
+
+	/* true if any enabled cpus have been displayed yet */
+	int                   displayed = false;
+
+	/* Number of cpu's in *current* range */
+	size_t                count = 0;
+
+	/* Only valid to read these when count is >0 */
+	size_t                last = 0;
+	size_t                first = 0;
+
+	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+	if (max < 0)
+		die ("failed to query cpu count");
+
+#if defined (CPU_ALLOC)
+
+	cpu_set = CPU_ALLOC (max);
+	assert (cpu_set);
+
+	size = CPU_ALLOC_SIZE (max);
+	CPU_ZERO_S (size, cpu_set);
+
+#else /* ! CPU_ALLOC */
+
+    CPU_ZERO (&cpu_set_real);
+	cpu_set = &cpu_set_real;
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
+
+#endif /* CPU_ALLOC */
+
+	/* We could use sched_getaffinity(2) rather than
+	 * sched_getaffinity() on Linux (2.5.8+) but
+	 * pthread_getaffinity_np() provides the same information...
+	 * Except it is missing on kFreeBSD systems (!) so we have to
+	 * use sched_getaffinity() there. :(
+	 */
+#if ! defined (CPU_ALLOC)
+	ret = sched_getaffinity (0, size, cpu_set);
+#else
+
+	/* On a hyperthreaded system, "size" as above may not actually
+	   be big enough, and we get EINVAL.  (hwloc has a similar
+	   workaround.)  */
+
+	{
+		int mult = 0;
+		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
+				== EINVAL) {
+			CPU_FREE (cpu_set);
+			/* Bail out at an arbitrary value.  */
+			if (mult > 128) break;
+			mult += 2;
+			cpu_set = CPU_ALLOC (mult * max);
+			size = CPU_ALLOC_SIZE (mult * max);
+			CPU_ZERO_S (size, cpu_set);
+		}
+	}
+
+#endif
+
+	if (ret)
+		goto out;
+
+	for (cpu = 0; cpu < max; cpu++) {
+
+		if (CPU_ISSET (cpu, cpu_set)) {
+
+			/* Record first entry in the range */
+			if (! count)
+				first = cpu;
+
+			last = cpu;
+			count++;
+		} else {
+			if (count) {
+				if (first == last) {
+					appendf (&cpu_list, "%s%d",
+							displayed ? "," : "",
+							first);
+				} else {
+					appendf (&cpu_list, "%s%d-%d",
+							displayed ? "," : "",
+							first, last);
+				}
+				displayed = true;
+			}
+
+			/* Reset */
+			count = 0;
+		}
+	}
+
+	if (count) {
+		if (first == last) {
+			appendf (&cpu_list, "%s%d",
+					displayed ? "," : "",
+					first);
+		} else {
+			appendf (&cpu_list, "%s%d-%d",
+					displayed ? "," : "",
+					first, last);
+		}
+	}
+
+out:
+	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
+
+#if defined (CPU_ALLOC)
+	CPU_FREE (cpu_set);
+#endif
+
+	free (cpu_list);
+}
+#endif
+
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (linux),
+	.driver                        = PROCENV_SET_DRIVER (linux),
 
-    .get_user_misc                 = get_user_misc_linux,
-    .get_proc_name                 = get_proc_name_linux,
-    .get_io_priorities             = get_io_priorities_linux,
+	.get_cpuset                    = get_cpuset_linux,
+	.free_cpuset                   = free_cpuset_linux,
+	.cpuset_has_cpu                = cpuset_has_cpu_linux,
+	.get_user_misc                 = get_user_misc_linux,
+	.get_proc_name                 = get_proc_name_linux,
+	.get_io_priorities             = get_io_priorities_linux,
 
-    .get_tty_locked_status         = get_tty_locked_status_linux,
-    .get_kernel_bits               = get_kernel_bits_generic,
+	.get_tty_locked_status         = get_tty_locked_status_linux,
+	.get_kernel_bits               = get_kernel_bits_generic,
 
-    .signal_map                    = signal_map_linux,
-    .if_flag_map                   = if_flag_map_linux,
-    .personality_map               = personality_map_linux,
-    .personality_flag_map          = personality_flag_map_linux,
+	.signal_map                    = signal_map_linux,
+	.if_flag_map                   = if_flag_map_linux,
+	.personality_map               = personality_map_linux,
+	.personality_flag_map          = personality_flag_map_linux,
 
-    .show_capabilities             = show_capabilities_linux,
-    .show_cgroups                  = show_cgroups_linux,
-    .show_confstrs                 = show_confstrs_generic,
-    .show_cpu_affinities           = show_cpu_affinities_generic,
-    .show_cpu                      = show_cpu_linux,
-    .show_extended_if_flags        = show_extended_if_flags_linux,
-    .show_fds                      = show_fds_linux,
-    .show_io_priorities            = show_io_priorities_linux,
-    .show_mounts                   = show_mounts_generic_linux,
-    .show_msg_queues               = show_msg_queues_linux,
-    .show_namespaces               = show_namespaces_linux,
-    .show_oom                      = show_oom_linux,
-    .show_prctl                    = show_prctl_linux,
-    .show_rlimits                  = show_rlimits_linux,
-    .show_security_module          = show_security_module_linux,
-    .show_semaphores               = show_semaphores_linux,
-    .show_shared_mem               = show_shared_mem_linux,
-    .show_timezone                 = show_timezone_linux,
+	.show_capabilities             = show_capabilities_linux,
+	.show_cgroups                  = show_cgroups_linux,
+	.show_confstrs                 = show_confstrs_generic,
 
-    .handle_numa_memory            = handle_numa_memory_linux,
-    .handle_proc_branch            = handle_proc_branch_linux,
-    .handle_scheduler_type         = handle_scheduler_type_linux,
+	// FIXME
+	//.show_cpu_affinities           = show_cpu_affinities_linux,
+	.show_cpu_affinities           = show_cpu_affinities_generic,
+
+	.show_cpu                      = show_cpu_linux,
+	.show_extended_if_flags        = show_extended_if_flags_linux,
+	.show_fds                      = show_fds_linux,
+	.show_io_priorities            = show_io_priorities_linux,
+	.show_mounts                   = show_mounts_generic_linux,
+	.show_msg_queues               = show_msg_queues_linux,
+	.show_namespaces               = show_namespaces_linux,
+	.show_oom                      = show_oom_linux,
+	.show_prctl                    = show_prctl_linux,
+	.show_rlimits                  = show_rlimits_linux,
+	.show_security_module          = show_security_module_linux,
+	.show_semaphores               = show_semaphores_linux,
+	.show_shared_mem               = show_shared_mem_linux,
+	.show_timezone                 = show_timezone_linux,
+
+	.handle_numa_memory            = handle_numa_memory_linux,
+	.handle_proc_branch            = handle_proc_branch_linux,
+	.handle_scheduler_type         = handle_scheduler_type_linux,
 
 };

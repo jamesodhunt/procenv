@@ -43,7 +43,7 @@ AC_CHECK_HEADERS(pthread.h,, [AC_MSG_ERROR([pthread.h required])])
 AC_HEADER_STDBOOL
 
 # Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname getresuid getresgid])
+AC_CHECK_FUNCS([clock_gettime getcwd localtime_r strcasecmp strchr strstr sched_getcpu ttyname getresuid getresgid cpuset_alloc])
 
 # BSD process inspection library
 AC_SEARCH_LIBS([kvm_openfiles], [kvm],
@@ -169,11 +169,13 @@ case "$target_to_consider" in
     *hurd*|*unknown-gnu*) procenv_platform=hurd;;
 
     *linux*) procenv_platform=linux;;
+    *netbsd*) procenv_platform=netbsd;;
     *) procenv_platform=unknown;;
 esac
 
 AM_CONDITIONAL([PROCENV_PLATFORM_FREEBSD], [test "$procenv_platform" = freebsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_HURD], [test "$procenv_platform" = hurd])
+AM_CONDITIONAL([PROCENV_PLATFORM_NETBSD], [test "$procenv_platform" = netbsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_LINUX], [test "$procenv_platform" = linux])
 AM_CONDITIONAL([PROCENV_PLATFORM_GENERIC], [test "$procenv_platform" = unknown])
 

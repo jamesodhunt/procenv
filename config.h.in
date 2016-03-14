@@ -3,6 +3,9 @@
 /* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
 
+/* Define to 1 if you have the `cpuset_alloc' function. */
+#undef HAVE_CPUSET_ALLOC
+
 /* Define to 1 if you have the `getcwd' function. */
 #undef HAVE_GETCWD
 

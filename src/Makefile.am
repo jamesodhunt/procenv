@@ -38,22 +38,31 @@ procenv_CPPFLAGS += -I $(srcdir) -I $(srcdir)/platform
 
 if PROCENV_PLATFORM_LINUX
 procenv_SOURCES += platform/linux/platform.c platform/linux/platform-linux.h
-procenv_CPPFLAGS += -I $(srcdir)/platform/linux -DPROCENV_PLATFORM_LINUX
+procenv_CPPFLAGS += -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
 endif
 
 if PROCENV_PLATFORM_HURD
 procenv_SOURCES += platform/hurd/platform.c platform/hurd/platform-hurd.h
-procenv_CPPFLAGS += -I $(srcdir)/platform/hurd -DPROCENV_PLATFORM_HURD
+procenv_CPPFLAGS += -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
 endif
 
 if PROCENV_PLATFORM_FREEBSD
 procenv_SOURCES += platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
-procenv_CPPFLAGS += -I $(srcdir)/platform/freebsd -DPROCENV_PLATFORM_FREEBSD
+procenv_CPPFLAGS += -I $(srcdir)/platform/freebsd \
+				-D PROCENV_PLATFORM_FREEBSD \
+				-D PROCENV_PLATFORM_BSD
+endif
+
+if PROCENV_PLATFORM_NETBSD
+procenv_SOURCES += platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
+procenv_CPPFLAGS += -I $(srcdir)/platform/netbsd \
+				-D PROCENV_PLATFORM_NETBSD \
+				-D PROCENV_PLATFORM_BSD
 endif
 
 if PROCENV_PLATFORM_GENERIC
 procenv_SOURCES += platform/unknown/platform.c platform/unknown/platform-unknown.h
-procenv_CPPFLAGS += -I $(srcdir)/platform/unknown -DPROCENV_PLATFORM_GENERIC
+procenv_CPPFLAGS += -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
 endif
 
 if HAVE_SELINUX

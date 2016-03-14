@@ -59,10 +59,7 @@ static struct procenv_map signal_map_freebsd[] = {
 	{ 0, NULL },
 };
 
-static struct mntopt_map {
-	uint64_t   flag;
-	char      *name;
-} mntopt_map[] = {
+static struct procenv_map64 mntopt_map[] = {
 
 	{ MNT_ACLS         , "acls" },
 	{ MNT_ASYNC        , "asynchronous" },
@@ -132,57 +129,6 @@ get_user_misc_freebsd (struct procenv_user *user,
 	if (kvm_close (kvm) < 0)
 		die ("failed to close kvm");
 }
-
-static char *
-get_mount_opts_freebsd (uint64_t flags)
-{
-	struct mntopt_map  *opt;
-	char               *str = NULL;
-	size_t              len = 0;
-	size_t              total = 0;
-	int                 count = 0;
-
-	if (! flags)
-		return strdup ("");
-
-	/* Calculate how much space we need to allocate by iterating
-	 * array for the first time.
-	 */
-	for (opt = mntopt_map; opt && opt->name; opt++) {
-		if (flags & opt->flag) {
-			count++;
-			len += strlen (opt->name);
-		}
-	}
-
-	if (count > 1) {
-		/* we need space for the option value themselves, plus a
-		 * ", " separator between each option (except the first),
-		 * and finally space for the nul terminator */
-		total = len + (count-1) + 1;
-	} else {
-		total = len + 1;
-	}
-
-	str = calloc (total, sizeof (char));
-	if (! str)
-		die ("failed to allocate space for mount options");
-
-	/* Re-iterate to construct the string. This is still going to be
-	 * a lot quicker than calling malloc a stack of times.
-	 */
-	for (opt = mntopt_map; opt && opt->name; opt++) {
-		if (flags & opt->flag) {
-			strcat (str, opt->name);
-			if (count > 1)
-				strcat (str, ",");
-			count--;
-		}
-	}
-
-	return str;
-}
-
 
 static void
 show_fd_capabilities_freebsd (int fd)
@@ -323,98 +269,7 @@ out:
 static void
 show_mounts_freebsd (ShowMountType what)
 {
-	int               count;
-	struct statfs    *mounts;
-	struct statfs    *mnt;
-	unsigned int      major = 0;
-	unsigned int      minor = 0;
-	int               i;
-	unsigned          multiplier = 0;
-	statfs_int_type   blocks;
-	statfs_int_type   bfree;
-	statfs_int_type   bavail;
-	statfs_int_type   used;
-
-	common_assert ();
-
-	/* Note that returned memory cannot be freed (by us) */
-	count = getmntinfo (&mounts, MNT_WAIT);
-
-	if (! count)
-		die ("unable to query mount info");
-
-	mnt = mounts;
-
-	for (i = 0; i < count; i++) {
-		char *opts = NULL;
-
-		opts = get_mount_opts_freebsd (mnt->f_flags);
-		if (! opts)
-			die ("cannot determine FS flags for mountpoint '%s'",
-					mnt->f_mntonname);
-
-		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
-			(void)get_major_minor (mnt->f_mntonname,
-					&major,
-					&minor);
-
-			multiplier = mnt->f_bsize / DF_BLOCK_SIZE;
-			blocks = mnt->f_blocks * multiplier;
-			bfree = mnt->f_bfree * multiplier;
-			bavail = mnt->f_bavail * multiplier;
-			used = blocks - bfree;
-
-			assert (mnt->f_mntfromname);
-			section_open (mnt->f_mntfromname);
-
-			entry ("dir", "'%s'", mnt->f_mntonname);
-			entry ("type", "%s", mnt->f_fstypename);
-			entry ("options", "'%s'", opts);
-
-			section_open ("device");
-			entry ("major", "%u", major);
-			entry ("minor", "%u", minor);
-			section_close ();
-
-			entry ("fsid", "%.*x%.*x", 
-					/* Always zero on BSD? */
-					2 * sizeof (mnt->f_fsid.val[0]),
-					mnt->f_fsid.val[0],
-					2 * sizeof (mnt->f_fsid.val[1]),
-					mnt->f_fsid.val[1]);
-
-			entry ("optimal block size", "%" statfs_int_fmt,
-					mnt->f_bsize);
-
-			section_open ("blocks");
-
-			entry ("size", "%lu bytes", DF_BLOCK_SIZE);
-
-			entry ("total", "%" statfs_int_fmt, blocks);
-			entry ("used", "%"statfs_int_fmt,  used);
-			entry ("free", "%" statfs_int_fmt, bfree);
-			entry ("available", "%" statfs_int_fmt, bavail);
-
-			section_close ();
-
-			section_open ("files/inodes");
-
-			entry ("total", "%" statfs_int_fmt, mnt->f_files);
-			entry ("used", "%" statfs_int_fmt,
-					mnt->f_files - mnt->f_ffree);
-			entry ("free", "%" statfs_int_fmt, mnt->f_ffree);
-
-			section_close ();
-
-			section_close ();
-		}
-
-		if (what == SHOW_ALL || what == SHOW_PATHCONF)
-			show_pathconfs (what, mnt->f_mntonname);
-		mnt++;
-
-		free (opts);
-	}
+	show_mounts_generic_bsd (what, mntopt_map);
 }
 
 static void
@@ -458,14 +313,14 @@ handle_proc_branch_freebsd (void)
 	kvm_t               *kvm;
 	struct kinfo_proc   *procs;
 	struct kinfo_proc   *p;
-	pid_t                self, current;
+	pid_t                current;
 	int                  done = false;
 	char                *str = NULL;
 	pid_t                ultimate_parent = 0;
 
 	common_assert ();
 
-	self = current = getpid ();
+	current = getpid ();
 
 	kvm = kvm_openfiles (NULL, _PATH_DEVNULL, NULL, O_RDONLY, errors);
 	if (! kvm)
@@ -478,10 +333,10 @@ handle_proc_branch_freebsd (void)
 	/* Calculate the lowest PID number which gives us the ultimate
 	 * parent of all processes.
 	 *
-	 * On BSD sytems, normally PID 0 ('[kernel]') is the ultimate
+	 * On FreeBSD systems, PID 0 ('[kernel]') is the ultimate
 	 * parent rather than PID 1 ('init').
 	 *
-	 * However, this doesn't work in a BSD jail since in that
+	 * However, this doesn't work in a FreeBSD jail since in that
 	 * environment:
 	 *
 	 * - there is no init process visible.

@@ -159,13 +159,6 @@
  **/
 #define PROCENV_FORMAT_VERSION 15
 
-// FIXME: need PROCENV_PLATFORM_{FREE,OPEN,NET}BSD !!
-#if defined (__FreeBSD__) \
-	|| defined (__NetBSD__) \
-	|| defined (__OpenBSD__)
-#define PROCENV_PLATFORM_BSD
-#endif
-
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
 #if ! defined (_LINUX_CAPABILITY_VERSION_3) && ! defined (CAP_LAST_CAP)
@@ -186,10 +179,10 @@
 #define PROCENV_SEPARATOR_ENV        "PROCENV_SEPARATOR"
 #define PROCENV_CRUMB_SEPARATOR_ENV  "PROCENV_CRUMB_SEPARATOR"
 
-#define CTIME_BUFFER                  32
 #define PROCENV_BUFFER                1024
-#define MOUNTS                       "/proc/mounts"
-#define ROOT_PATH                    "/proc/self/root"
+
+/* FIXME: explain! */
+#define CTIME_BUFFER                  32
 
 /* Network family for entries containing link-level interface
  * details. These entries will be cached to allow MAC addresses
@@ -197,7 +190,7 @@
  * higher-level network family entries for the interface in
  * question.
  */
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 #define	PROCENV_LINK_LEVEL_FAMILY AF_LINK
 #elif defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_GENERIC)
 #define PROCENV_LINK_LEVEL_FAMILY AF_PACKET

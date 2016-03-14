@@ -91,18 +91,26 @@ host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = procenv$(EXEEXT)
 @PROCENV_PLATFORM_LINUX_TRUE@am__append_1 = platform/linux/platform.c platform/linux/platform-linux.h
-@PROCENV_PLATFORM_LINUX_TRUE@am__append_2 = -I $(srcdir)/platform/linux -DPROCENV_PLATFORM_LINUX
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_2 = -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
 @PROCENV_PLATFORM_HURD_TRUE@am__append_3 = platform/hurd/platform.c platform/hurd/platform-hurd.h
-@PROCENV_PLATFORM_HURD_TRUE@am__append_4 = -I $(srcdir)/platform/hurd -DPROCENV_PLATFORM_HURD
+@PROCENV_PLATFORM_HURD_TRUE@am__append_4 = -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
 @PROCENV_PLATFORM_FREEBSD_TRUE@am__append_5 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_6 = -I $(srcdir)/platform/freebsd -DPROCENV_PLATFORM_FREEBSD
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_7 = platform/unknown/platform.c platform/unknown/platform-unknown.h
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_8 = -I $(srcdir)/platform/unknown -DPROCENV_PLATFORM_GENERIC
-@HAVE_SELINUX_TRUE@am__append_9 = -DHAVE_SELINUX
-@HAVE_APPARMOR_TRUE@am__append_10 = -DHAVE_APPARMOR
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_6 = -I $(srcdir)/platform/freebsd \
+@PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_FREEBSD \
+@PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_BSD
+
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_7 = platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_8 = -I $(srcdir)/platform/netbsd \
+@PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_NETBSD \
+@PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_BSD
+
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_9 = platform/unknown/platform.c platform/unknown/platform-unknown.h
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_10 = -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
+@HAVE_SELINUX_TRUE@am__append_11 = -DHAVE_SELINUX
+@HAVE_APPARMOR_TRUE@am__append_12 = -DHAVE_APPARMOR
 @ENABLE_TESTS_TRUE@TESTS = $(am__EXEEXT_1) procenv$(EXEEXT) \
 @ENABLE_TESTS_TRUE@	check_all_args
-@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_11 = check_pr_list
+@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_13 = check_pr_list
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_PROGRAMS =  \
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	check_pr_list$(EXEEXT)
 subdir = src
@@ -132,19 +140,21 @@ am__procenv_SOURCES_DIST = procenv.c procenv.h pr_list.c pr_list.h \
 	platform/platform-generic.h platform/linux/platform.c \
 	platform/linux/platform-linux.h platform/hurd/platform.c \
 	platform/hurd/platform-hurd.h platform/freebsd/platform.c \
-	platform/freebsd/platform-freebsd.h \
-	platform/unknown/platform.c \
+	platform/freebsd/platform-freebsd.h platform/netbsd/platform.c \
+	platform/netbsd/platform-netbsd.h platform/unknown/platform.c \
 	platform/unknown/platform-unknown.h
 @PROCENV_PLATFORM_LINUX_TRUE@am__objects_1 = platform/linux/procenv-platform.$(OBJEXT)
 @PROCENV_PLATFORM_HURD_TRUE@am__objects_2 = platform/hurd/procenv-platform.$(OBJEXT)
 @PROCENV_PLATFORM_FREEBSD_TRUE@am__objects_3 = platform/freebsd/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_GENERIC_TRUE@am__objects_4 = platform/unknown/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_NETBSD_TRUE@am__objects_4 = platform/netbsd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_GENERIC_TRUE@am__objects_5 = platform/unknown/procenv-platform.$(OBJEXT)
 am_procenv_OBJECTS = procenv-procenv.$(OBJEXT) \
 	procenv-pr_list.$(OBJEXT) procenv-pstring.$(OBJEXT) \
 	procenv-string-util.$(OBJEXT) procenv-output.$(OBJEXT) \
 	procenv-util.$(OBJEXT) \
 	platform/procenv-platform-generic.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4)
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5)
 procenv_OBJECTS = $(am_procenv_OBJECTS)
 procenv_DEPENDENCIES =
 procenv_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(procenv_LDFLAGS) \
@@ -354,14 +364,14 @@ procenv_SOURCES = procenv.c procenv.h pr_list.c pr_list.h pstring.c \
 	util.h types.h messages.h platform.h platform-headers.h \
 	platform/platform-generic.c platform/platform-generic.h \
 	$(am__append_1) $(am__append_3) $(am__append_5) \
-	$(am__append_7)
+	$(am__append_7) $(am__append_9)
 
 # XXX: unused symbol removal magic - part 2
 procenv_LDFLAGS = -Wl,--gc-sections
 procenv_LDADD = -lrt
 procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_2) \
 	$(am__append_4) $(am__append_6) $(am__append_8) \
-	$(am__append_9) $(am__append_10)
+	$(am__append_10) $(am__append_11) $(am__append_12)
 @ENABLE_TESTS_TRUE@CLEANFILES = check_all_args
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_SOURCES = tests/check_pr_list.c
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
@@ -496,6 +506,15 @@ platform/freebsd/$(DEPDIR)/$(am__dirstamp):
 platform/freebsd/procenv-platform.$(OBJEXT):  \
 	platform/freebsd/$(am__dirstamp) \
 	platform/freebsd/$(DEPDIR)/$(am__dirstamp)
+platform/netbsd/$(am__dirstamp):
+	@$(MKDIR_P) platform/netbsd
+	@: > platform/netbsd/$(am__dirstamp)
+platform/netbsd/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/netbsd/$(DEPDIR)
+	@: > platform/netbsd/$(DEPDIR)/$(am__dirstamp)
+platform/netbsd/procenv-platform.$(OBJEXT):  \
+	platform/netbsd/$(am__dirstamp) \
+	platform/netbsd/$(DEPDIR)/$(am__dirstamp)
 platform/unknown/$(am__dirstamp):
 	@$(MKDIR_P) platform/unknown
 	@: > platform/unknown/$(am__dirstamp)
@@ -516,6 +535,7 @@ mostlyclean-compile:
 	-rm -f platform/freebsd/*.$(OBJEXT)
 	-rm -f platform/hurd/*.$(OBJEXT)
 	-rm -f platform/linux/*.$(OBJEXT)
+	-rm -f platform/netbsd/*.$(OBJEXT)
 	-rm -f platform/unknown/*.$(OBJEXT)
 	-rm -f tests/*.$(OBJEXT)
 
@@ -532,6 +552,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@platform/freebsd/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/hurd/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/linux/$(DEPDIR)/procenv-platform.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/netbsd/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/unknown/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/check_pr_list-check_pr_list.Po@am__quote@
 
@@ -704,6 +725,20 @@ platform/freebsd/procenv-platform.obj: platform/freebsd/platform.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/freebsd/platform.c' object='platform/freebsd/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/freebsd/procenv-platform.obj `if test -f 'platform/freebsd/platform.c'; then $(CYGPATH_W) 'platform/freebsd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/freebsd/platform.c'; fi`
+
+platform/netbsd/procenv-platform.o: platform/netbsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/netbsd/procenv-platform.o -MD -MP -MF platform/netbsd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/netbsd/procenv-platform.o `test -f 'platform/netbsd/platform.c' || echo '$(srcdir)/'`platform/netbsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/netbsd/$(DEPDIR)/procenv-platform.Tpo platform/netbsd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/netbsd/platform.c' object='platform/netbsd/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/netbsd/procenv-platform.o `test -f 'platform/netbsd/platform.c' || echo '$(srcdir)/'`platform/netbsd/platform.c
+
+platform/netbsd/procenv-platform.obj: platform/netbsd/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/netbsd/procenv-platform.obj -MD -MP -MF platform/netbsd/$(DEPDIR)/procenv-platform.Tpo -c -o platform/netbsd/procenv-platform.obj `if test -f 'platform/netbsd/platform.c'; then $(CYGPATH_W) 'platform/netbsd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/netbsd/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/netbsd/$(DEPDIR)/procenv-platform.Tpo platform/netbsd/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/netbsd/platform.c' object='platform/netbsd/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/netbsd/procenv-platform.obj `if test -f 'platform/netbsd/platform.c'; then $(CYGPATH_W) 'platform/netbsd/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/netbsd/platform.c'; fi`
 
 platform/unknown/procenv-platform.o: platform/unknown/platform.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/unknown/procenv-platform.o -MD -MP -MF platform/unknown/$(DEPDIR)/procenv-platform.Tpo -c -o platform/unknown/procenv-platform.o `test -f 'platform/unknown/platform.c' || echo '$(srcdir)/'`platform/unknown/platform.c
@@ -938,6 +973,8 @@ distclean-generic:
 	-rm -f platform/hurd/$(am__dirstamp)
 	-rm -f platform/linux/$(DEPDIR)/$(am__dirstamp)
 	-rm -f platform/linux/$(am__dirstamp)
+	-rm -f platform/netbsd/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/netbsd/$(am__dirstamp)
 	-rm -f platform/unknown/$(DEPDIR)/$(am__dirstamp)
 	-rm -f platform/unknown/$(am__dirstamp)
 	-rm -f tests/$(DEPDIR)/$(am__dirstamp)
@@ -952,7 +989,7 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -998,7 +1035,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

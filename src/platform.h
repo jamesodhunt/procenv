@@ -45,6 +45,16 @@ extern struct procenv_misc misc;
 extern struct procenv_priority priority_io;
 extern struct utsname uts;
 
+typedef enum {
+	SHOW_ALL,
+	SHOW_MOUNTS,
+	SHOW_PATHCONF
+} ShowMountType;
+
+#include <procenv.h>
+#include "platform-generic.h"
+#include "platform-headers.h"
+
 struct procenv_priority {
 	int process;
 	int pgrp;
@@ -86,13 +96,6 @@ struct procenv_misc {
 	int    in_jail;
 #endif
 };
-
-typedef enum {
-	SHOW_ALL,
-	SHOW_MOUNTS,
-	SHOW_PATHCONF
-} ShowMountType;
-
 struct procenv_driver
 {
     const char *name;
@@ -120,7 +123,7 @@ struct procenv_ops
     const struct procenv_map *personality_flag_map;
 
     void (*get_user_misc) (struct procenv_user *user,
-		    struct procenv_misc *misc);
+			   struct procenv_misc *misc);
 
     void (*get_proc_name) (struct procenv_user *user);
 
@@ -153,9 +156,10 @@ struct procenv_ops
     void (*handle_proc_branch) (void);
     void (*handle_scheduler_type) (void);
 
+    PROCENV_CPU_SET_TYPE *(*get_cpuset) (void);
+    void (*free_cpuset) (PROCENV_CPU_SET_TYPE *cs);
+    bool (*cpuset_has_cpu) (const PROCENV_CPU_SET_TYPE *cs,
+			    PROCENV_CPU_TYPE cpu);
 };
-
-#include <procenv.h>
-#include "platform-generic.h"
 
 #endif /* _PROCENV_PLATFORM_H */

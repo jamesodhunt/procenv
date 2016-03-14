@@ -25,6 +25,8 @@
 #include "platform.h"
 #include "util.h"
 
+#define ROOT_PATH                    "/proc/self/root"
+
 #if defined (HAVE_NUMA_H)
 
 #include <numa.h>

@@ -143,6 +143,7 @@ container_type (void)
 	if (misc.in_jail)
 		return "jail";
 #endif
+
 	/* LXC's /dev/console is actually a pty */
 #if defined (PROCENV_PLATFORM_LINUX)
 	if (major (statbuf.st_rdev) != major (expected)

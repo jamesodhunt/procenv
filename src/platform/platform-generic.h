@@ -19,16 +19,28 @@
 #ifndef _PROCENV_PLATFORM_GENERIC_H
 #define _PROCENV_PLATFORM_GENERIC_H
 
+#include "types.h"
+
 void show_fds_generic (void);
 void show_rlimits_generic (void);
 void show_confstrs_generic (void);
 long get_kernel_bits_generic (void);
 
-#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_FREEBSD) || defined (PROCENV_PLATFORM_HURD)
+#if defined (PROCENV_PLATFORM_LINUX) || \
+    defined (PROCENV_PLATFORM_BSD)   || \
+    defined (PROCENV_PLATFORM_HURD)
 
 void show_cpu_affinities_generic (void);
 void show_pathconfs (ShowMountType what, const char *dir);
-#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
+
+#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_HURD */
+
+#if defined (PROCENV_PLATFORM_BSD)
+
+char *get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags);
+void show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_map);
+
+#endif /* PROCENV_PLATFORM_BSD */
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 

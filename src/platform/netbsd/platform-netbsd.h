@@ -16,19 +16,10 @@
  *--------------------------------------------------------------------
  */
 
-#ifndef _PROCENV_TYPES_H
-#define _PROCENV_TYPES_H
+#ifndef _PROCENV_PLATFORM_NETBSD_H
+#define _PROCENV_PLATFORM_NETBSD_H
 
-#include <stdint.h>
+#include "platform.h"
+#include "util.h"
 
-struct procenv_map {
-	unsigned int   num;
-	const char    *name;
-};
-
-struct procenv_map64 {
-	uint64_t       num;
-	const char    *name;
-};
-
-#endif /* _PROCENV_TYPES_H */
+#endif /* _PROCENV_PLATFORM_NETBSD_H */

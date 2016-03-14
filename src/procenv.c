@@ -1529,7 +1529,7 @@ get_user_info (void)
 {
 	struct passwd *pw;
 	void          *p;
-#ifdef _GNU_SOURCE
+#if defined (HAVE_GETRESUID) || defined (HAVE_GETRESGID)
 	int            ret;
 #endif
 
@@ -2113,7 +2113,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *mac_address = NULL;
 	int            i;
 	int            valid = false;
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
@@ -2126,7 +2126,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
@@ -2145,7 +2145,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -2182,7 +2182,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 	/* NOP */
 #else
 	close (sock);
@@ -2249,7 +2249,7 @@ get_net_family_name (sa_family_t family)
 		break;
 #endif
 
-#if defined (PROCENV_PLATFORM_FREEBSD)
+#if defined (PROCENV_PLATFORM_BSD)
 	case AF_LINK:
 		return "AF_LINK";
 		break;
@@ -2484,7 +2484,9 @@ work:
 	show_const_tty (tty, c_oflag, CRDLY, lock_status);
 #endif
 
+#if defined (TABDLY)
 	show_const_tty (tty, c_oflag, TABDLY, lock_status);
+#endif
 
 #if defined (BSDLY)
 	show_const_tty (tty, c_oflag, BSDLY, lock_status);
@@ -3822,7 +3824,10 @@ show_threads (void)
 
 	section_close ();
 
+#if !defined (PROCENV_PLATFORM_NETBSD)
 	entry ("concurrency", "%d", pthread_getconcurrency ());
+#endif
+
 #endif
 
 	footer ();

@@ -21,7 +21,7 @@
 #include "platform-generic.h"
 #include "messages.h"
 
-extern struct procenv_ops platform_ops;
+extern struct procenv_ops *ops;
 
 void
 show_rlimits_generic (void)
@@ -62,8 +62,7 @@ void
 show_fds_generic (void)
 {
 	int fd;
-    int max;
-    struct procenv_ops *ops = &platform_ops;
+	int max;
 
 	max = get_sysconf (_SC_OPEN_MAX);
 
@@ -90,8 +89,8 @@ show_fds_generic (void)
 
 		section_open ("capabilities");
 
-        if (ops->show_fd_capabilities)
-            ops->show_fd_capabilities (fd);
+		if (ops->show_fd_capabilities)
+			ops->show_fd_capabilities (fd);
 
 		section_close ();
 
@@ -371,7 +370,9 @@ show_confstrs_generic (void)
 #endif
 }
 
-#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_FREEBSD) || defined (PROCENV_PLATFORM_HURD)
+#if defined (PROCENV_PLATFORM_LINUX) || \
+    defined (PROCENV_PLATFORM_BSD)   || \
+    defined (PROCENV_PLATFORM_HURD)
 
 /* Display cpu affinities in the same compressed but reasonably
  * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
@@ -379,15 +380,10 @@ show_confstrs_generic (void)
 void
 show_cpu_affinities_generic (void)
 {
-	int                   ret = 0;
-	long                  max;
-	size_t                size;
-#if ! defined (CPU_ALLOC)
-	PROCENV_CPU_SET_TYPE  cpu_set_real;
-#endif
 	PROCENV_CPU_SET_TYPE *cpu_set;
-	long                  cpu;
 	char                 *cpu_list = NULL;
+	PROCENV_CPU_TYPE      cpu;
+	PROCENV_CPU_TYPE      max;
 
 	/* true if any enabled cpus have been displayed yet */
 	int                   displayed = false;
@@ -399,68 +395,24 @@ show_cpu_affinities_generic (void)
 	size_t                last = 0;
 	size_t                first = 0;
 
+	if (! ops->get_cpuset)
+		return;
+
+	if (! ops->cpuset_has_cpu)
+		return;
+
+	cpu_set = ops->get_cpuset();
+	if (! cpu_set)
+		return;
+
+	// FIXME: should be handled by get_cpuset()!!
+#if 1
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
-	if (max < 0)
-		die ("failed to query cpu count");
-
-#if defined (CPU_ALLOC)
-
-	cpu_set = CPU_ALLOC (max);
-	assert (cpu_set);
-
-	size = CPU_ALLOC_SIZE (max);
-	CPU_ZERO_S (size, cpu_set);
-
-#else /* ! CPU_ALLOC */
-
-	/* RHEL 5 + FreeBSD */
-
-    CPU_ZERO (&cpu_set_real);
-	cpu_set = &cpu_set_real;
-
-	size = sizeof (PROCENV_CPU_SET_TYPE);
-
-#endif /* CPU_ALLOC */
-
-	/* We could use sched_getaffinity(2) rather than
-	 * sched_getaffinity() on Linux (2.5.8+) but
-	 * pthread_getaffinity_np() provides the same information...
-	 * Except it is missing on kFreeBSD systems (!) so we have to
-	 * use sched_getaffinity() there. :(
-	 */
-#if (defined (PROCENV_PLATFORM_HURD)) || (defined (PROCENV_PLATFORM_LINUX) && ! defined (CPU_ALLOC))
-	ret = sched_getaffinity (0, size, cpu_set);
-#else
-
-#if defined (PROCENV_PLATFORM_LINUX) && defined (CPU_ALLOC)
-	/* On a hyperthreaded system, "size" as above may not actually
-	   be big enough, and we get EINVAL.  (hwloc has a similar
-	   workaround.)  */
-
-	{
-		int mult = 0;
-		while ((ret = pthread_getaffinity_np (pthread_self (), size, cpu_set))
-				== EINVAL) {
-			CPU_FREE (cpu_set);
-			/* Bail out at an arbitrary value.  */
-			if (mult > 128) break;
-			mult += 2;
-			cpu_set = CPU_ALLOC (mult * max);
-			size = CPU_ALLOC_SIZE (mult * max);
-			CPU_ZERO_S (size, cpu_set);
-		}
-	}
-#endif /* PROCENV_PLATFORM_LINUX && CPU_ALLOC */
-
 #endif
-
-	if (ret)
-		goto out;
 
 	for (cpu = 0; cpu < max; cpu++) {
 
-		if (CPU_ISSET (cpu, cpu_set)) {
-
+		if (ops->cpuset_has_cpu (cpu_set, cpu)) {
 			/* Record first entry in the range */
 			if (! count)
 				first = cpu;
@@ -498,12 +450,10 @@ show_cpu_affinities_generic (void)
 		}
 	}
 
-out:
 	entry ("affinity list", "%s", cpu_list ? cpu_list : "-1");
 
-#if defined (CPU_ALLOC)
-	CPU_FREE (cpu_set);
-#endif
+	if (ops->free_cpuset)
+		ops->free_cpuset (cpu_set);
 
 	free (cpu_list);
 }
@@ -609,7 +559,159 @@ show_pathconfs (ShowMountType what,
 
 #endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
 
+#if defined (PROCENV_PLATFORM_BSD)
+
+char *
+get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags)
+{
+	const struct procenv_map64 *opt;
+	char                       *str = NULL;
+	size_t                      len = 0;
+	size_t                      total = 0;
+	int                         count = 0;
+
+	if (! flags)
+		return strdup ("");
+
+	/* Calculate how much space we need to allocate by iterating
+	 * array for the first time.
+	 */
+	for (opt = opts; opt && opt->name; opt++) {
+		if (flags & opt->num) {
+			count++;
+			len += strlen (opt->name);
+		}
+	}
+
+	if (count > 1) {
+		/* we need space for the option value themselves, plus a
+		 * ", " separator between each option (except the first),
+		 * and finally space for the nul terminator */
+		total = len + (count-1) + 1;
+	} else {
+		total = len + 1;
+	}
+
+	str = calloc (total, sizeof (char));
+	if (! str)
+		die ("failed to allocate space for mount options");
+
+	/* Re-iterate to construct the string. This is still going to be
+	 * a lot quicker than calling malloc a stack of times.
+	 */
+	for (opt = opts; opt && opt->name; opt++) {
+		if (flags & opt->num) {
+			strcat (str, opt->name);
+			if (count > 1)
+				strcat (str, ",");
+			count--;
+		}
+	}
+
+	return str;
+}
+
+void
+show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_map)
+{
+	procenv_mnt_type         *mounts;
+	procenv_mnt_type         *mnt;
+	int                       count;
+	unsigned int              major = 0;
+	unsigned int              minor = 0;
+	int                       i;
+	unsigned                  multiplier = 0;
+	PROCENV_STATFS_INT_TYPE   blocks;
+	PROCENV_STATFS_INT_TYPE   bfree;
+	PROCENV_STATFS_INT_TYPE   bavail;
+	PROCENV_STATFS_INT_TYPE   used;
+
+	common_assert ();
+	assert (mntopt_map);
+
+	/* Note that returned memory cannot be freed (by us) */
+	count = getmntinfo (&mounts, MNT_WAIT);
+
+	if (! count)
+		die ("unable to query mount info");
+
+	mnt = mounts;
+
+	for (i = 0; i < count; i++) {
+		char *opts = NULL;
+
+		opts = get_mount_opts_generic_bsd (mntopt_map, PROCENV_MNT_GET_FLAGS (mnt));
+		if (! opts)
+			die ("cannot determine FS flags for mountpoint '%s'",
+					mnt->f_mntonname);
+
+		if (what == SHOW_ALL || what == SHOW_MOUNTS) {
+			(void)get_major_minor (mnt->f_mntonname,
+					&major,
+					&minor);
+
+			multiplier = mnt->f_bsize / DF_BLOCK_SIZE;
+			blocks = mnt->f_blocks * multiplier;
+			bfree = mnt->f_bfree * multiplier;
+			bavail = mnt->f_bavail * multiplier;
+			used = blocks - bfree;
+
+			assert (mnt->f_mntfromname);
+			section_open (mnt->f_mntfromname);
+
+			entry ("dir", "'%s'", mnt->f_mntonname);
+			entry ("type", "%s", mnt->f_fstypename);
+			entry ("options", "'%s'", opts);
+
+			section_open ("device");
+			entry ("major", "%u", major);
+			entry ("minor", "%u", minor);
+			section_close ();
+
+			entry ("fsid", "%.*x%.*x", 
+					2 * sizeof (PROCENV_MNT_GET_FSID (mnt)[0]),
+					PROCENV_MNT_GET_FSID (mnt)[0],
+					2 * sizeof (PROCENV_MNT_GET_FSID (mnt)[1]),
+					PROCENV_MNT_GET_FSID (mnt)[1]);
+
+			entry ("optimal block size", "%" PROCENV_STATFS_INT_FMT,
+					mnt->f_bsize);
+
+			section_open ("blocks");
+
+			entry ("size", "%lu bytes", DF_BLOCK_SIZE);
+
+			entry ("total", "%" PROCENV_STATFS_INT_FMT, blocks);
+			entry ("used", "%"PROCENV_STATFS_INT_FMT,  used);
+			entry ("free", "%" PROCENV_STATFS_INT_FMT, bfree);
+			entry ("available", "%" PROCENV_STATFS_INT_FMT, bavail);
+
+			section_close ();
+
+			section_open ("files/inodes");
+
+			entry ("total", "%" PROCENV_STATFS_INT_FMT, mnt->f_files);
+			entry ("used", "%" PROCENV_STATFS_INT_FMT,
+					mnt->f_files - mnt->f_ffree);
+			entry ("free", "%" PROCENV_STATFS_INT_FMT, mnt->f_ffree);
+
+			section_close ();
+
+			section_close ();
+		}
+
+		if (what == SHOW_ALL || what == SHOW_PATHCONF)
+			show_pathconfs (what, mnt->f_mntonname);
+		mnt++;
+
+		free (opts);
+	}
+}
+#endif /* PROCENV_PLATFORM_BSD */
+
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
+
+#define MOUNTS                       "/proc/mounts"
 
 /**
  * get_canonical:

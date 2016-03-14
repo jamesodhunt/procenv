@@ -22,9 +22,6 @@
 #include "platform.h"
 #include "util.h"
 
-#define statfs_int_type uint64_t
-#define statfs_int_fmt  PRIu64
-
 #if defined (HAVE_SYS_CAPABILITY_H)
 #include <sys/capability.h>
 
