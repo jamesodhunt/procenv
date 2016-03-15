@@ -633,6 +633,8 @@ PROCENV_PLATFORM_GENERIC_FALSE
 PROCENV_PLATFORM_GENERIC_TRUE
 PROCENV_PLATFORM_LINUX_FALSE
 PROCENV_PLATFORM_LINUX_TRUE
+PROCENV_PLATFORM_OPENBSD_FALSE
+PROCENV_PLATFORM_OPENBSD_TRUE
 PROCENV_PLATFORM_NETBSD_FALSE
 PROCENV_PLATFORM_NETBSD_TRUE
 PROCENV_PLATFORM_HURD_FALSE
@@ -6279,6 +6281,7 @@ case "$target_to_consider" in
 
     *linux*) procenv_platform=linux;;
     *netbsd*) procenv_platform=netbsd;;
+    *openbsd*) procenv_platform=openbsd;;
     *) procenv_platform=unknown;;
 esac
 
@@ -6304,6 +6307,14 @@ fi
 else
   PROCENV_PLATFORM_NETBSD_TRUE='#'
   PROCENV_PLATFORM_NETBSD_FALSE=
+fi
+
+ if test "$procenv_platform" = openbsd; then
+  PROCENV_PLATFORM_OPENBSD_TRUE=
+  PROCENV_PLATFORM_OPENBSD_FALSE='#'
+else
+  PROCENV_PLATFORM_OPENBSD_TRUE='#'
+  PROCENV_PLATFORM_OPENBSD_FALSE=
 fi
 
  if test "$procenv_platform" = linux; then
@@ -6515,6 +6526,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PROCENV_PLATFORM_NETBSD_TRUE}" && test -z "${PROCENV_PLATFORM_NETBSD_FALSE}"; then
   as_fn_error $? "conditional \"PROCENV_PLATFORM_NETBSD\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${PROCENV_PLATFORM_OPENBSD_TRUE}" && test -z "${PROCENV_PLATFORM_OPENBSD_FALSE}"; then
+  as_fn_error $? "conditional \"PROCENV_PLATFORM_OPENBSD\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PROCENV_PLATFORM_LINUX_TRUE}" && test -z "${PROCENV_PLATFORM_LINUX_FALSE}"; then

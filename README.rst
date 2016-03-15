@@ -32,15 +32,15 @@ it runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 It is useful as a test tool, to understand what environment a process
 runs in and for system comparison.
 
-``procenv`` runs on Linux, FreeBSD, NetBSD, GNU Hurd and Android. It
-unashamedly emulates a number of existing system utilities as it is
-attempting to be all-encompassing: I wrote it with the aim of being able
-to dump "everything" that a process may care about by simply running a
-single program (by default). Also, the line of demarcation between
-"process", "program" and  "system" is slightly blurry in some aspects.
-For example ``sysconf(3)`` variables could arguably be considered system
-attributes, but procenv shows these too since they are obviously meant
-to be queryable by applications.
+``procenv`` runs on Linux, FreeBSD, NetBSD, OpenBSD, GNU Hurd and
+Android. It unashamedly emulates a number of existing system utilities
+as it is attempting to be all-encompassing: I wrote it with the aim of
+being able to dump "everything" that a process may care about by simply
+running a single program (by default). Also, the line of demarcation
+between "process", "program" and  "system" is slightly blurry in some
+aspects.  For example ``sysconf(3)`` variables could arguably be
+considered system attributes, but procenv shows these too since they are
+obviously meant to be queryable by applications.
 
 .. [#] If you find anything missing, please either raise a bug or send a
        patch :)

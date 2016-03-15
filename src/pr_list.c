@@ -48,7 +48,7 @@ pr_list_new (void *data)
 	return list;
 }
 
-inline int
+int
 pr_list_empty(PRList *list)
 {
     assert (list);

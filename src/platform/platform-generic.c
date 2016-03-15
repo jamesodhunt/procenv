@@ -28,7 +28,10 @@ show_rlimits_generic (void)
 {
 	header ("limits");
 
+#if defined (RLIMIT_AS)
 	show_limit (RLIMIT_AS);
+#endif
+
 	show_limit (RLIMIT_CORE);
 	show_limit (RLIMIT_CPU);
 	show_limit (RLIMIT_DATA);

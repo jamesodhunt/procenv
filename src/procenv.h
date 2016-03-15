@@ -278,26 +278,27 @@
 	\
 	errno = 0; \
 	len = confstr(s, NULL, 0); \
-	assert (len && errno == 0); \
-	\
-	buffer = calloc (1, len); \
-	if (! buffer) { \
-		die ("failed to allocate space for confstr"); \
+	if (len && errno == 0) { \
+		\
+		buffer = calloc (1, len); \
+		if (! buffer) { \
+			die ("failed to allocate space for confstr"); \
+		} \
+		\
+		assert (confstr (s, buffer, len) == len); \
+		\
+		/* Convert multi-line values to multi-field */ \
+		for (size_t i = 0; i < len; i++) { \
+			if (buffer[i] == '\n') buffer[i] = ' '; \
+		} \
+		\
+		entry (name, "%s%s%s", \
+				buffer && buffer[0] ? "'" : "", \
+				buffer && buffer[0] ? buffer : NA_STR, \
+				buffer && buffer[0] ? "'" : ""); \
+		\
+		free (buffer); \
 	} \
-	\
-	assert (confstr (s, buffer, len) == len); \
-	\
-	/* Convert multi-line values to multi-field */ \
-	for (size_t i = 0; i < len; i++) { \
-		if (buffer[i] == '\n') buffer[i] = ' '; \
-	} \
-	\
-	entry (name, "%s%s%s", \
-			buffer && buffer[0] ? "'" : "", \
-			buffer && buffer[0] ? buffer : NA_STR, \
-			buffer && buffer[0] ? "'" : ""); \
-	\
-	free (buffer); \
 }
 
 /* Note: param is ignored */

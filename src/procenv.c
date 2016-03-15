@@ -2687,10 +2687,6 @@ get_os (void)
 	return "Android";
 #endif
 
-#ifdef __FreeBSD__
-	return "FreeBSD";
-#endif
-
 #if defined (__MACH__) || defined (__GNU__) || defined (__gnu_hurd__)
 	return "GNU (Hurd)";
 #endif
@@ -2718,11 +2714,15 @@ get_os (void)
 	return "Linux";
 #endif
 
-#ifdef _NetBSD__
+#ifdef __FreeBSD__
+	return "FreeBSD";
+#endif
+
+#ifdef __NetBSD__
 	return "NetBSD";
 #endif
 
-#ifdef _OpenBSD__
+#ifdef __OpenBSD__
 	return "OpenBSD";
 #endif
 

@@ -170,12 +170,14 @@ case "$target_to_consider" in
 
     *linux*) procenv_platform=linux;;
     *netbsd*) procenv_platform=netbsd;;
+    *openbsd*) procenv_platform=openbsd;;
     *) procenv_platform=unknown;;
 esac
 
 AM_CONDITIONAL([PROCENV_PLATFORM_FREEBSD], [test "$procenv_platform" = freebsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_HURD], [test "$procenv_platform" = hurd])
 AM_CONDITIONAL([PROCENV_PLATFORM_NETBSD], [test "$procenv_platform" = netbsd])
+AM_CONDITIONAL([PROCENV_PLATFORM_OPENBSD], [test "$procenv_platform" = openbsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_LINUX], [test "$procenv_platform" = linux])
 AM_CONDITIONAL([PROCENV_PLATFORM_GENERIC], [test "$procenv_platform" = unknown])
 

@@ -32,7 +32,10 @@ procenv_SOURCES = \
 # XXX: unused symbol removal magic - part 2
 procenv_LDFLAGS = -Wl,--gc-sections
 
+if !PROCENV_PLATFORM_OPENBSD
 procenv_LDADD = -lrt
+endif
+
 procenv_CPPFLAGS =
 procenv_CPPFLAGS += -I $(srcdir) -I $(srcdir)/platform
 
@@ -57,6 +60,13 @@ if PROCENV_PLATFORM_NETBSD
 procenv_SOURCES += platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
 procenv_CPPFLAGS += -I $(srcdir)/platform/netbsd \
 				-D PROCENV_PLATFORM_NETBSD \
+				-D PROCENV_PLATFORM_BSD
+endif
+
+if PROCENV_PLATFORM_OPENBSD
+procenv_SOURCES += platform/openbsd/platform.c platform/openbsd/platform-openbsd.h
+procenv_CPPFLAGS += -I $(srcdir)/platform/openbsd \
+				-D PROCENV_PLATFORM_OPENBSD \
 				-D PROCENV_PLATFORM_BSD
 endif
 

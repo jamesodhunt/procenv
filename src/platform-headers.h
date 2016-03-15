@@ -137,6 +137,36 @@ typedef struct statvfs procenv_mnt_type;
 
 /*------------------------------------------------------------------*/
 
+#if defined (PROCENV_PLATFORM_OPENBSD)
+
+#include <sched.h>
+#include <sys/mount.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <sys/proc.h>
+
+#include <sys/statvfs.h>
+#include <sys/ucred.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <netinet/in.h>
+#include <kvm.h>
+#include <dev/wscons/wsdisplay_usl_io.h>
+
+#define PROCENV_CPU_TYPE           cpuid_t
+#define PROCENV_CPU_SET_TYPE       struct cpuset
+#define PROCENV_MNT_GET_FLAGS(mnt) (mnt)->f_flags
+#define PROCENV_MNT_GET_FSID(mnt)  (mnt)->f_fsid.val
+
+#define PROCENV_STATFS_INT_TYPE    uint64_t
+#define PROCENV_STATFS_INT_FMT     PRIu64
+
+typedef struct statfs procenv_mnt_type;
+
+#endif /* PROCENV_PLATFORM_OPENBSD */
+
+/*------------------------------------------------------------------*/
+
 #if defined (PROCENV_PLATFORM_HURD)
 
 #include <mntent.h>
