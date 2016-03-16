@@ -258,14 +258,13 @@ out:
 	return name;
 }
 
-/* FIXME: we're not "get"-ing user!! */
 static void
 get_user_misc_linux (struct procenv_user *user,
 		struct procenv_misc *misc)
 {
     assert (user);
     assert (misc);
-	get_canonical_generic_linux (ROOT_PATH, misc->root, sizeof (misc->root));
+    get_canonical_generic_linux (ROOT_PATH, misc->root, sizeof (misc->root));
 }
 
 static void
@@ -2150,8 +2149,6 @@ struct procenv_ops platform_ops =
 	.show_cgroups                  = show_cgroups_linux,
 	.show_confstrs                 = show_confstrs_generic,
 
-	// FIXME
-	//.show_cpu_affinities           = show_cpu_affinities_linux,
 	.show_cpu_affinities           = show_cpu_affinities_generic,
 
 	.show_cpu                      = show_cpu_linux,
