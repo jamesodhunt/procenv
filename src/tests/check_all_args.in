@@ -94,7 +94,11 @@ _run_command()
 
 	debug "Running: '$cmdline'"
 
+	# interestingly, all environment except OpenBSD allow the code below
+	# to run even if cmdline fail.s
+	set +e
 	{ eval "$cmdline"; ret=$?; } || :
+	set -e
 
 	if [ "$expected_outcome" = success ]
 	then
