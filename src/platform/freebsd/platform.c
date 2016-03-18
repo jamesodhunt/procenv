@@ -59,7 +59,7 @@ static struct procenv_map signal_map_freebsd[] = {
 	{ 0, NULL },
 };
 
-static struct procenv_map64 mntopt_map[] = {
+static struct procenv_map64 mntopt_map_freebsd[] = {
 
 	{ MNT_ACLS         , "acls" },
 	{ MNT_ASYNC        , "asynchronous" },
@@ -269,7 +269,7 @@ out:
 static void
 show_mounts_freebsd (ShowMountType what)
 {
-	show_mounts_generic_bsd (what, mntopt_map);
+	show_mounts_generic_bsd (what, mntopt_map_freebsd);
 }
 
 static void
@@ -460,6 +460,7 @@ struct procenv_ops platform_ops =
     .get_user_misc                 = get_user_misc_freebsd,
     .get_kernel_bits               = get_kernel_bits_generic,
     .get_cpuset                    = get_cpuset_freebsd,
+    .get_mtu                       = get_mtu_generic,
     .free_cpuset                   = free_cpuset_freebsd,
     .cpuset_has_cpu                = cpuset_has_cpu_freebsd,
 

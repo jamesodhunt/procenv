@@ -16,9 +16,9 @@
  *--------------------------------------------------------------------
  */
 
-#include "platform-hurd.h"
+#include "platform-minix.h"
 
-static struct procenv_map signal_map_hurd[] = {
+static struct procenv_map signal_map_minix[] = {
 
 	mk_map_entry (SIGABRT),
 	mk_map_entry (SIGALRM),
@@ -53,39 +53,74 @@ static struct procenv_map signal_map_hurd[] = {
 	mk_map_entry (SIGXFSZ),
 	mk_map_entry (SIGEMT),
 	mk_map_entry (SIGINFO),
-	mk_map_entry (SIGLOST),
+	mk_map_entry (SIGKMEM),
+	mk_map_entry (SIGKMESS),
+	mk_map_entry (SIGKSIG),
+	mk_map_entry (SIGKSIGSM),
+	mk_map_entry (SIGPWR),
+	mk_map_entry (SIGSNDELAY),
 
 	{ 0, NULL },
 };
 
-static struct procenv_map if_flag_map_hurd[] = {
-	mk_map_entry (IFF_UP),
-	mk_map_entry (IFF_BROADCAST),
-	mk_map_entry (IFF_DEBUG),
-	mk_map_entry (IFF_LOOPBACK),
-	mk_map_entry (IFF_POINTOPOINT),
-	mk_map_entry (IFF_RUNNING),
-	mk_map_entry (IFF_NOARP),
-	mk_map_entry (IFF_PROMISC),
-	mk_map_entry (IFF_ALLMULTI),
-	mk_map_entry (IFF_MULTICAST),
+static struct procenv_map64 mntopt_map_minix[] = {
+
+	{ MNT_ASYNC       , "async" },
+	//{ MNT_AUTO        , "auto" },
+	{ MNT_DISCARD     , "discard" },
+	{ MNT_EXTATTR     , "extattr" },
+	{ MNT_FORCE       , "force" },
+	{ MNT_GETARGS     , "getargs" },
+	//{ MNT_GROUPQUOTA  , "groupquota" },
+	{ MNT_IGNORE      , "hidden" },
+	{ MNT_LOG         , "log" },
+	{ MNT_NOATIME     , "atime" },
+	{ MNT_NOCOREDUMP  , "coredump" },
+	{ MNT_NODEV       , "dev" },
+	{ MNT_NODEVMTIME  , "devmtime" },
+	{ MNT_NOEXEC      , "exec" },
+	{ MNT_NOSUID      , "suid" },
+	{ MNT_RDONLY      , "rdonly" },
+	{ MNT_RELOAD      , "reload" },
+	//{ MNT_RO          , "ro" },
+	//{ MNT_RUMP        , "rump" },
+	//{ MNT_RW          , "rw" },
+	{ MNT_SOFTDEP     , "softdep" },
+	{ MNT_SYMPERM     , "symperm" },
+	//{ MNT_SYNC        , "sync" },
+	{ MNT_UNION       , "union" },
+	{ MNT_UPDATE      , "update" },
+	//{ MNT_USERQUOTA   , "userquota" },
 
 	{ 0, NULL }
 };
 
+static void
+show_mounts_minix (ShowMountType what)
+{
+	show_mounts_generic_bsd (what, mntopt_map_minix);
+}
+
+static void
+handle_proc_branch_minix (void)
+{
+	/* FIXME */
+}
+
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (hurd),
+    .driver                        = PROCENV_SET_DRIVER (minix),
 
     .get_kernel_bits               = get_kernel_bits_generic,
-    .get_mtu                       = get_mtu_generic,
 
-    .signal_map                    = signal_map_hurd,
-    .if_flag_map                   = if_flag_map_hurd,
+    .signal_map                    = signal_map_minix,
 
-    .show_confstrs                 = show_confstrs_generic,
-    .show_cpu_affinities           = show_cpu_affinities_generic,
+    // FIXME: add show_sysconf (which will do sysctl!)
+
+    .handle_proc_branch            = handle_proc_branch_minix,
+
     .show_fds                      = show_fds_generic,
-    .show_mounts                   = show_mounts_generic_linux,
+
+    .show_mounts                   = show_mounts_minix,
     .show_rlimits                  = show_rlimits_generic,
 };

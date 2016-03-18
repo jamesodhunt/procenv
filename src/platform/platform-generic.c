@@ -61,6 +61,36 @@ get_kernel_bits_generic (void)
 	return value;
 }
 
+#if !defined (PROCENV_PLATFORM_MINIX)
+int
+get_mtu_generic (const struct ifaddrs *ifaddr)
+{
+	int            sock;
+	struct ifreq   ifr;
+	unsigned long  request = SIOCGIFMTU;
+
+	assert (ifaddr);
+
+	/* We need to create a socket to query an interfaces MAC
+	 * address.
+	 */
+	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+	if (sock < 0)
+		return -1;
+
+	memset (&ifr, 0, sizeof (struct ifreq));
+	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
+
+	if (ioctl (sock, request, &ifr) < 0)
+		ifr.ifr_mtu = 0;
+
+	close (sock);
+
+	return ifr.ifr_mtu;
+}
+#endif
+
 void
 show_fds_generic (void)
 {
@@ -459,6 +489,13 @@ show_cpu_affinities_generic (void)
 	free (cpu_list);
 }
 
+#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
+
+#if defined (PROCENV_PLATFORM_LINUX) || \
+    defined (PROCENV_PLATFORM_BSD)   || \
+    defined (PROCENV_PLATFORM_HURD)  || \
+    defined (PROCENV_PLATFORM_MINIX)
+
 void
 show_pathconfs (ShowMountType what,
 		const char *dir)
@@ -558,9 +595,9 @@ show_pathconfs (ShowMountType what,
 	footer ();
 }
 
-#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
+#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD || PROCENV_PLATFORM_MINIX */
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_MINIX)
 
 char *
 get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags)
@@ -611,9 +648,9 @@ get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags)
 
 	return str;
 }
-
 void
-show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_map)
+show_mounts_generic_bsd (ShowMountType what,
+		const struct procenv_map64 *mntopt_map)
 {
 	procenv_mnt_type         *mounts;
 	procenv_mnt_type         *mnt;
@@ -641,7 +678,8 @@ show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_
 	for (i = 0; i < count; i++) {
 		char *opts = NULL;
 
-		opts = get_mount_opts_generic_bsd (mntopt_map, PROCENV_MNT_GET_FLAGS (mnt));
+		opts = get_mount_opts_generic_bsd (mntopt_map,
+				PROCENV_MNT_GET_FLAGS (mnt));
 		if (! opts)
 			die ("cannot determine FS flags for mountpoint '%s'",
 					mnt->f_mntonname);
@@ -708,7 +746,8 @@ show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_
 		free (opts);
 	}
 }
-#endif /* PROCENV_PLATFORM_BSD */
+
+#endif /* PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_MINIX */
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 

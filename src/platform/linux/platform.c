@@ -2136,6 +2136,7 @@ struct procenv_ops platform_ops =
 	.get_user_misc                 = get_user_misc_linux,
 	.get_proc_name                 = get_proc_name_linux,
 	.get_io_priorities             = get_io_priorities_linux,
+	.get_mtu                       = get_mtu_generic,
 
 	.get_tty_locked_status         = get_tty_locked_status_linux,
 	.get_kernel_bits               = get_kernel_bits_generic,

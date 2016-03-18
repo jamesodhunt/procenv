@@ -70,7 +70,6 @@ struct procenv_user {
 
 	pid_t pgroup;
 	pid_t fg_pgroup;
-	pid_t pgid_sid;
 	char  ctrl_terminal[L_ctermid];
 	int   tty_fd;
 
@@ -132,6 +131,7 @@ struct procenv_ops
 	void (*get_tty_locked_status) (struct termios *lock_status);
 
 	long (*get_kernel_bits) (void);
+	int (*get_mtu) (const struct ifaddrs *ifaddr);
 
 	void (*show_capabilities) (void);
 	void (*show_cgroups) (void);

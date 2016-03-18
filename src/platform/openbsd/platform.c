@@ -184,6 +184,7 @@ struct procenv_ops platform_ops =
     .driver                        = PROCENV_SET_DRIVER (openbsd),
 
     .get_kernel_bits               = get_kernel_bits_generic,
+    .get_mtu                       = get_mtu_generic,
 
     .signal_map                    = signal_map_openbsd,
     .if_flag_map                   = if_flag_map_openbsd,

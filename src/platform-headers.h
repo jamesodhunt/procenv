@@ -67,10 +67,52 @@
 #include <sys/capability.h>
 #endif
 
-#define PROCENV_CPU_SET_TYPE cpu_set_t
-#define PROCENV_CPU_TYPE     int
+/* Network family for entries containing link-level interface
+ * details. These entries will be cached to allow MAC addresses
+ * to be extracted from them when displaying the corresponding
+ * higher-level network family entries for the interface in
+ * question.
+ */
+#define PROCENV_LINK_LEVEL_FAMILY  AF_PACKET
+#define PROCENV_PTHREAD_GUARD_SIZE_TYPE  size_t
+#define PROCENV_PTHREAD_GUARD_SIZE_FMT   "%lu"
 
-#endif /* PROCENV_PLATFORM_LINUX */
+#define PROCENV_CPU_SET_TYPE       cpu_set_t
+#define PROCENV_CPU_TYPE           int
+
+#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_GENERIC */
+
+/*------------------------------------------------------------------*/
+
+#if defined (PROCENV_PLATFORM_MINIX)
+
+#include <sched.h>
+#include <sys/mount.h>
+#include <sys/fstypes.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <sys/proc.h>
+#include <sys/user.h>
+#include <sys/statvfs.h>
+#include <sys/ucred.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <kvm.h>
+
+#define	PROCENV_LINK_LEVEL_FAMILY        AF_LINK
+#define PROCENV_PTHREAD_GUARD_SIZE_TYPE  int
+#define PROCENV_PTHREAD_GUARD_SIZE_FMT   "%u"
+#define PROCENV_CPU_TYPE                 cpuid_t
+#define PROCENV_CPU_SET_TYPE             cpuset_t
+#define PROCENV_MNT_GET_FLAGS(mnt)       (mnt)->f_flag
+#define PROCENV_MNT_GET_FSID(mnt)        (mnt)->f_fsidx.__fsid_val
+
+#define PROCENV_STATFS_INT_TYPE    uint64_t
+#define PROCENV_STATFS_INT_FMT     PRIu64
+
+typedef struct statvfs procenv_mnt_type;
+
+#endif /* PROCENV_PLATFORM_MINIX */
 
 /*------------------------------------------------------------------*/
 
@@ -88,6 +130,7 @@
 #include <kvm.h>
 #include <pthread_np.h>
 
+#define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           int
 #define PROCENV_CPU_SET_TYPE       cpuset_t
 #define PROCENV_MNT_GET_FLAGS(mnt) (mnt)->f_flags
@@ -123,6 +166,7 @@ typedef struct statfs procenv_mnt_type;
 #include <kvm.h>
 #include <dev/wscons/wsdisplay_usl_io.h>
 
+#define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           cpuid_t
 #define PROCENV_CPU_SET_TYPE       cpuset_t
 #define PROCENV_MNT_GET_FLAGS(mnt) (mnt)->f_flag
@@ -153,6 +197,7 @@ typedef struct statvfs procenv_mnt_type;
 #include <kvm.h>
 #include <dev/wscons/wsdisplay_usl_io.h>
 
+#define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           cpuid_t
 #define PROCENV_CPU_SET_TYPE       struct cpuset
 #define PROCENV_MNT_GET_FLAGS(mnt) (mnt)->f_flags

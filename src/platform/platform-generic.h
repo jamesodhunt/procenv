@@ -26,21 +26,35 @@ void show_rlimits_generic (void);
 void show_confstrs_generic (void);
 long get_kernel_bits_generic (void);
 
+#if !defined (PROCENV_PLATFORM_MINIX)
+int get_mtu_generic (const struct ifaddrs *ifaddr);
+#endif
+
 #if defined (PROCENV_PLATFORM_LINUX) || \
     defined (PROCENV_PLATFORM_BSD)   || \
-    defined (PROCENV_PLATFORM_HURD)
+    defined (PROCENV_PLATFORM_HURD)  || \
+    defined (PROCENV_PLATFORM_MINIX)
 
 void show_cpu_affinities_generic (void);
+
+#endif
+
+#if defined (PROCENV_PLATFORM_LINUX) || \
+    defined (PROCENV_PLATFORM_BSD)   || \
+    defined (PROCENV_PLATFORM_HURD)  || \
+    defined (PROCENV_PLATFORM_MINIX)
+
 void show_pathconfs (ShowMountType what, const char *dir);
 
-#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_HURD */
+#endif
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_MINIX)
 
 char *get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags);
-void show_mounts_generic_bsd (ShowMountType what, const struct procenv_map64 *mntopt_map);
+void show_mounts_generic_bsd (ShowMountType what,
+		const struct procenv_map64 *mntopt_map);
 
-#endif /* PROCENV_PLATFORM_BSD */
+#endif /* PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_MINIX */
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 

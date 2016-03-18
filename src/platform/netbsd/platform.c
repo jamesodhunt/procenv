@@ -218,6 +218,8 @@ struct procenv_ops platform_ops =
     .driver                        = PROCENV_SET_DRIVER (netbsd),
 
     .get_kernel_bits               = get_kernel_bits_generic,
+    .get_mtu                       = get_mtu_generic,
+
     .get_cpuset                    = get_cpuset_netbsd,
     .free_cpuset                   = free_cpuset_netbsd,
     .cpuset_has_cpu                = cpuset_has_cpu_netbsd,

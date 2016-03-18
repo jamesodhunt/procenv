@@ -32,8 +32,9 @@ procenv_SOURCES = \
 # XXX: unused symbol removal magic - part 2
 procenv_LDFLAGS = -Wl,--gc-sections
 
-if !PROCENV_PLATFORM_OPENBSD
-procenv_LDADD = -lrt
+# should really do this in configure.ac
+if PROCENV_PLATFORM_MINIX
+procenv_LDADD = -lc
 endif
 
 procenv_CPPFLAGS =
@@ -42,6 +43,12 @@ procenv_CPPFLAGS += -I $(srcdir) -I $(srcdir)/platform
 if PROCENV_PLATFORM_LINUX
 procenv_SOURCES += platform/linux/platform.c platform/linux/platform-linux.h
 procenv_CPPFLAGS += -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
+endif
+
+if PROCENV_PLATFORM_MINIX
+procenv_SOURCES += platform/minix/platform.c platform/minix/platform-minix.h
+procenv_CPPFLAGS += \
+	-I $(srcdir)/platform/minix -D PROCENV_PLATFORM_MINIX
 endif
 
 if PROCENV_PLATFORM_HURD

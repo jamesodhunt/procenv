@@ -50,6 +50,10 @@
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
+
+/* XXX: must come before sched.h on Minix! */
+#include <pthread.h>
+
 #include <sched.h>
 #include <termios.h>
 #include <getopt.h>
@@ -63,7 +67,6 @@
 #include <fenv.h>
 #include <sys/utsname.h>
 #include <locale.h>
-#include <pthread.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <ifaddrs.h>
@@ -184,18 +187,6 @@
 /* FIXME: explain! */
 #define CTIME_BUFFER                  32
 
-/* Network family for entries containing link-level interface
- * details. These entries will be cached to allow MAC addresses
- * to be extracted from them when displaying the corresponding
- * higher-level network family entries for the interface in
- * question.
- */
-#if defined (PROCENV_PLATFORM_BSD)
-#define	PROCENV_LINK_LEVEL_FAMILY AF_LINK
-#elif defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_GENERIC)
-#define PROCENV_LINK_LEVEL_FAMILY AF_PACKET
-#endif
- 
 #include "messages.h"
 
 /* Size of blocks we will show the user (as df(1) does) */
@@ -371,7 +362,6 @@ void show_cgroups (void);
 void show_clocks (void);
 void show_compiler (void);
 void show_confstrs (void);
-void show_cpu_affinities (void);
 void show_data_model (void);
 void show_libc (void);
 void show_libs (void);

@@ -3,7 +3,7 @@
 
 m4_define([procenv_version], [0.44])
 
-AC_INIT(procenv, [procenv_version], [jamesodhunt@ubuntu.com], ,[https://github.com/jamesodhunt/procenv])
+AC_INIT(procenv,[procenv_version],[jamesodhunt@ubuntu.com],,[https://github.com/jamesodhunt/procenv])
 
 AC_COPYRIGHT([Copyright (C) 2012-2015 James Hunt <jamesodhunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
 
@@ -76,6 +76,10 @@ AC_CHECK_HEADERS([selinux/selinux.h])
 AC_SEARCH_LIBS([aa_gettaskcon], [apparmor],
                [HAVE_APPARMOR=yes],
                [HAVE_APPARMOR=no])
+
+AC_SEARCH_LIBS([clock_getime], [rt],
+               [HAVE_LIBRT=yes],
+               [HAVE_LIBRT=no])
 
 AM_CONDITIONAL([HAVE_APPARMOR], [test x$HAVE_APPARMOR = xtrue])
 AC_CHECK_HEADERS([sys/apparmor.h])
@@ -169,6 +173,7 @@ case "$target_to_consider" in
     *hurd*|*unknown-gnu*) procenv_platform=hurd;;
 
     *linux*) procenv_platform=linux;;
+    *minix*) procenv_platform=minix;;
     *netbsd*) procenv_platform=netbsd;;
     *openbsd*) procenv_platform=openbsd;;
     *) procenv_platform=unknown;;
@@ -179,6 +184,7 @@ AM_CONDITIONAL([PROCENV_PLATFORM_HURD], [test "$procenv_platform" = hurd])
 AM_CONDITIONAL([PROCENV_PLATFORM_NETBSD], [test "$procenv_platform" = netbsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_OPENBSD], [test "$procenv_platform" = openbsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_LINUX], [test "$procenv_platform" = linux])
+AM_CONDITIONAL([PROCENV_PLATFORM_MINIX], [test "$procenv_platform" = minix])
 AM_CONDITIONAL([PROCENV_PLATFORM_GENERIC], [test "$procenv_platform" = unknown])
 
 AC_SUBST([procenv_platform])

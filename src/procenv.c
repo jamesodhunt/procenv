@@ -1285,8 +1285,8 @@ show_proc (void)
 	entry ("has controlling terminal", "%s",
 			has_ctty () ? YES_STR : NO_STR);
 
-	// FIXME: Is it possible to detect if on console on Hurd?
-#if defined (PROCENV_PLATFORM_HURD)
+	/* FIXME: Is it possible to detect if on console on hurd/minix? */
+#if defined (PROCENV_PLATFORM_HURD) || defined (PROCENV_PLATFORM_MINIX)
 	entry ("on console", "%s", UNKNOWN_STR);
 #else
 	entry ("on console", "%s",
@@ -1349,7 +1349,10 @@ show_proc (void)
 
 	section_close ();
 
+#if ! defined (PROCENV_PLATFORM_MINIX)
+	/* Calling getgroups(2) with Minix 3.3.0 always returns EINVAL :( */
 	show_all_groups ();
+#endif
 
 	footer ();
 }
@@ -1596,7 +1599,6 @@ get_user_info (void)
 		user.tty_fd = STDIN_FILENO;
 
 	user.fg_pgroup = tcgetpgrp (user.tty_fd);
-	user.pgid_sid = tcgetsid (user.tty_fd);
 
 	errno = 0;
 	pw = getpwuid (user.uid);
@@ -2074,38 +2076,11 @@ get_ipv6_scope_name (uint32_t scope)
 	return UNKNOWN_STR;
 }
 
-int
-get_mtu (const struct ifaddrs *ifaddr)
-{
-	int            sock;
-	struct ifreq   ifr;
-	unsigned long  request = SIOCGIFMTU;
-
-	assert (ifaddr);
-
-	/* We need to create a socket to query an interfaces MAC
-	 * address.
-	 */
-	sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP);
-
-	if (sock < 0)
-		return -1;
-
-	memset (&ifr, 0, sizeof (struct ifreq));
-	strncpy (ifr.ifr_name, ifaddr->ifa_name, IFNAMSIZ-1);
-
-	if (ioctl (sock, request, &ifr) < 0)
-		ifr.ifr_mtu = 0;
-
-	close (sock);
-
-	return ifr.ifr_mtu;
-}
-
 /*
  *
  * Returns: IEEE-802 format MAC address, or NULL on error.
  */
+#if !defined (PROCENV_PLATFORM_MINIX)
 char *
 get_mac_address (const struct ifaddrs *ifaddr)
 {
@@ -2189,6 +2164,7 @@ out:
 #endif
 	return mac_address;
 }
+#endif /* PROCENV_PLATFORM_MINIX */
 
 
 #if defined (PROCENV_PLATFORM_LINUX)
@@ -2316,7 +2292,8 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 
 	/*******************************/
 
-	mtu = get_mtu (ifa);
+	if (ops->get_mtu)
+		mtu = ops->get_mtu (ifa);
 
 #if defined (PROCENV_PLATFORM_HURD)
 	/* No AF_LINK/AF_PACKET on Hurd atm */
@@ -2339,6 +2316,7 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 	entry ("netmask", "%s", ifa->ifa_netmask ? address : NA_STR);
 
 #if !defined (PROCENV_PLATFORM_HURD)
+#if defined (IFF_BROADCAST)
 	if (family != PROCENV_LINK_LEVEL_FAMILY) {
 		if ((ifa->ifa_flags & IFF_BROADCAST) && ifa->ifa_broadaddr) {
 			get_network_address (ifa->ifa_broadaddr, family, address);
@@ -2347,17 +2325,22 @@ show_network_if (const struct ifaddrs *ifa, const char *mac_address)
 		}
 	} else {
 #endif
+#endif
 		entry ("broadcast", "%s", NA_STR);
 #if !defined (PROCENV_PLATFORM_HURD)
+#if defined (IFF_BROADCAST)
 	}
 #endif
+#endif
 
+#if defined (IFF_POINTOPOINT)
 	if (ifa->ifa_flags & IFF_POINTOPOINT && ifa->ifa_dstaddr) {
 
 		get_network_address (ifa->ifa_dstaddr, family, address);
 
 		entry ("point-to-point", "%s", address);
 	}
+#endif
 
 	section_close ();
 }
@@ -3047,8 +3030,12 @@ show_sizeof (void)
 	show_sizeof_type (off_t);
 	show_sizeof_type (pid_t);
 	show_sizeof_type (pthread_attr_t);
+
+#if !defined (PROCENV_PLATFORM_MINIX)
 	show_sizeof_type (pthread_barrierattr_t);
 	show_sizeof_type (pthread_barrier_t);
+#endif
+
 	show_sizeof_type (pthread_condattr_t);
 	show_sizeof_type (pthread_cond_t);
 	show_sizeof_type (pthread_key_t);
@@ -3057,7 +3044,11 @@ show_sizeof (void)
 	show_sizeof_type (pthread_once_t);
 	show_sizeof_type (pthread_rwlockattr_t);
 	show_sizeof_type (pthread_rwlock_t);
+
+#if !defined (PROCENV_PLATFORM_MINIX)
 	show_sizeof_type (pthread_spinlock_t);
+#endif
+
 	show_sizeof_type (pthread_t);
 	show_sizeof_type (ptrdiff_t);
 	show_sizeof_type (rlim_t);
@@ -3790,7 +3781,16 @@ show_threads (void)
 			scope == PTHREAD_SCOPE_SYSTEM ? "PTHREAD_SCOPE_SYSTEM"
 			: "PTHREAD_SCOPE_PROCESS");
 
+#if defined (PROCENV_PLATFORM_MINIX)
+	{
+		int size;
+		ret = pthread_attr_getguardsize (&attr, &size);
+		guard_size = size;
+	}
+#else
 	ret = pthread_attr_getguardsize (&attr, &guard_size);
+#endif
+
 	if (ret == 0) {
 		entry ("guard size", "%lu bytes",
 				(unsigned long int)guard_size);
@@ -3888,62 +3888,62 @@ int
 main (int    argc,
 		char  *argv[])
 {
-	int       option;
-	int       long_index;
-	int       done = false;
+	int  option;
+	int  long_index;
+	int  done = false;
 
 	struct option long_options[] = {
-		{"meta"            , no_argument, NULL, 'a'},
-		{"arguments"       , no_argument, NULL, 'A'},
-		{"libs"            , no_argument, NULL, 'b'},
-		{"libc"            , no_argument, NULL, 'B'},
-		{"cgroups"         , no_argument, NULL, 'c'},
-		{"cpu"             , no_argument, NULL, 'C'},
-		{"compiler"        , no_argument, NULL, 'd'},
-		{"crumb-separator" , required_argument, NULL, 0},
-		{"environment"     , no_argument, NULL, 'e'},
-		{"semaphores"      , no_argument, NULL, 'E'},
-		{"fds"             , no_argument, NULL, 'f'},
-		{"namespaces"      , no_argument, NULL, 'F'},
-		{"sizeof"          , no_argument, NULL, 'g'},
-		{"help"            , no_argument, NULL, 'h'},
-		{"misc"            , no_argument, NULL, 'i'},
-		{"uname"           , no_argument, NULL, 'j'},
-		{"clocks"          , no_argument, NULL, 'k'},
-		{"limits"          , no_argument, NULL, 'l'},
-		{"locale"          , no_argument, NULL, 'L'},
-		{"mounts"          , no_argument, NULL, 'm'},
-		{"message-queues"  , no_argument, NULL, 'M'},
-		{"confstr"         , no_argument, NULL, 'n'},
-		{"network"         , no_argument, NULL, 'N'},
-		{"oom"             , no_argument, NULL, 'o'},
-		{"process"         , no_argument, NULL, 'p'},
-		{"platform"        , no_argument, NULL, 'P'},
-		{"time"            , no_argument, NULL, 'q'},
-		{"ranges"          , no_argument, NULL, 'r'},
-		{"signals"         , no_argument, NULL, 's'},
-		{"shared-memory"   , no_argument, NULL, 'S'},
-		{"tty"             , no_argument, NULL, 't'},
-		{"threads"         , no_argument, NULL, 'T'},
-		{"stat"            , no_argument, NULL, 'u'},
-		{"rusage"          , no_argument, NULL, 'U'},
-		{"version"         , no_argument, NULL, 'v'},
-		{"capabilities"    , no_argument, NULL, 'w'},
-		{"pathconf"        , no_argument, NULL, 'x'},
-		{"sysconf"         , no_argument, NULL, 'y'},
-		{"memory"          , no_argument, NULL, 'Y'},
-		{"timezone"        , no_argument, NULL, 'z'},
-		{"exec"            , no_argument      , NULL, 0},
-		{"file"            , required_argument, NULL, 0},
-		{"file-append"     , no_argument, NULL, 0},
-		{"format"          , required_argument, NULL, 0},
-		{"indent"          , required_argument, NULL, 0},
-		{"indent-char"     , required_argument, NULL, 0},
-		{"output"          , required_argument, NULL, 0},
-		{"separator"       , required_argument, NULL, 0},
+		{"meta"            , no_argument       , NULL, 'a'},
+		{"arguments"       , no_argument       , NULL, 'A'},
+		{"libs"            , no_argument       , NULL, 'b'},
+		{"libc"            , no_argument       , NULL, 'B'},
+		{"cgroups"         , no_argument       , NULL, 'c'},
+		{"cpu"             , no_argument       , NULL, 'C'},
+		{"compiler"        , no_argument       , NULL, 'd'},
+		{"crumb-separator" , required_argument , NULL,  0 },
+		{"environment"     , no_argument       , NULL, 'e'},
+		{"semaphores"      , no_argument       , NULL, 'E'},
+		{"fds"             , no_argument       , NULL, 'f'},
+		{"namespaces"      , no_argument       , NULL, 'F'},
+		{"sizeof"          , no_argument       , NULL, 'g'},
+		{"help"            , no_argument       , NULL, 'h'},
+		{"misc"            , no_argument       , NULL, 'i'},
+		{"uname"           , no_argument       , NULL, 'j'},
+		{"clocks"          , no_argument       , NULL, 'k'},
+		{"limits"          , no_argument       , NULL, 'l'},
+		{"locale"          , no_argument       , NULL, 'L'},
+		{"mounts"          , no_argument       , NULL, 'm'},
+		{"message-queues"  , no_argument       , NULL, 'M'},
+		{"confstr"         , no_argument       , NULL, 'n'},
+		{"network"         , no_argument       , NULL, 'N'},
+		{"oom"             , no_argument       , NULL, 'o'},
+		{"process"         , no_argument       , NULL, 'p'},
+		{"platform"        , no_argument       , NULL, 'P'},
+		{"time"            , no_argument       , NULL, 'q'},
+		{"ranges"          , no_argument       , NULL, 'r'},
+		{"signals"         , no_argument       , NULL, 's'},
+		{"shared-memory"   , no_argument       , NULL, 'S'},
+		{"tty"             , no_argument       , NULL, 't'},
+		{"threads"         , no_argument       , NULL, 'T'},
+		{"stat"            , no_argument       , NULL, 'u'},
+		{"rusage"          , no_argument       , NULL, 'U'},
+		{"version"         , no_argument       , NULL, 'v'},
+		{"capabilities"    , no_argument       , NULL, 'w'},
+		{"pathconf"        , no_argument       , NULL, 'x'},
+		{"sysconf"         , no_argument       , NULL, 'y'},
+		{"memory"          , no_argument       , NULL, 'Y'},
+		{"timezone"        , no_argument       , NULL, 'z'},
+		{"exec"            , no_argument       , NULL,  0 },
+		{"file"            , required_argument , NULL,  0 },
+		{"file-append"     , no_argument       , NULL,  0 },
+		{"format"          , required_argument , NULL,  0 },
+		{"indent"          , required_argument , NULL,  0 },
+		{"indent-char"     , required_argument , NULL,  0 },
+		{"output"          , required_argument , NULL,  0 },
+		{"separator"       , required_argument , NULL,  0 },
 
 		/* terminator */
-		{NULL              , no_argument      , NULL, 0}
+		{NULL              , no_argument       , NULL,  0 }
 	};
 
 	doc = pstring_new ();
@@ -4474,8 +4474,11 @@ show_network (void)
 
 		if (family == PROCENV_LINK_LEVEL_FAMILY) {
 
+			/* MAC address cannot be queries on minix seemingly */
+#if !defined (PROCENV_PLATFORM_MINIX)
 			/* Add link level interface details to the cache */
 			mac_address = get_mac_address (ifa);
+#endif
 
 			node = calloc (1, sizeof (struct network_map));
 			assert (node);

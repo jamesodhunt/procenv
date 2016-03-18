@@ -55,7 +55,7 @@ fd_valid (int fd)
 	return 1;
 }
 
-#if !defined (PROCENV_PLATFORM_HURD)
+#if !defined (PROCENV_PLATFORM_HURD) && !defined (PROCENV_PLATFORM_MINIX)
 /**
  * is_console:
  * @fd: open file descriptor.
@@ -79,7 +79,7 @@ is_console (int fd)
 
 	return !ret;
 }
-#endif
+#endif /* !PROCENV_PLATFORM_HURD && !PROCENV_PLATFORM_MINIX */
 
 /**
  * is_big_endian:
