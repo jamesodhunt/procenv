@@ -77,7 +77,7 @@ AC_SEARCH_LIBS([aa_gettaskcon], [apparmor],
                [HAVE_APPARMOR=yes],
                [HAVE_APPARMOR=no])
 
-AC_SEARCH_LIBS([clock_getime], [rt],
+AC_SEARCH_LIBS([clock_gettime], [rt],
                [HAVE_LIBRT=yes],
                [HAVE_LIBRT=no])
 

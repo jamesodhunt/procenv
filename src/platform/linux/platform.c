@@ -2048,16 +2048,16 @@ get_cpuset_linux (void)
 	static PROCENV_CPU_SET_TYPE  cpu_set_real;
 #else
 	long   max;
-	size_t size;
 #endif
 
+	size_t size;
 	PROCENV_CPU_SET_TYPE *cs = NULL;
+
+#if defined (CPU_ALLOC)
 
 	max = get_sysconf (_SC_NPROCESSORS_ONLN);
 	if (max < 0)
 		return NULL;
-
-#if defined (CPU_ALLOC)
 
 	cs = CPU_ALLOC (max);
 	if (! cs)
@@ -2067,6 +2067,8 @@ get_cpuset_linux (void)
 	CPU_ZERO_S (size, cs);
 
 #else /* ! CPU_ALLOC */
+
+	size = sizeof (PROCENV_CPU_SET_TYPE);
 
 	CPU_ZERO (&cpu_set_real);
 	cs = &cpu_set_real;
