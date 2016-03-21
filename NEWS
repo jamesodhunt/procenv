@@ -1,3 +1,23 @@
+0.45	2016-03-21
+
+	* Code restructured internally to simplify maintenance and adding
+	  new platforms. See src/platform/README.rst (and README-BUILD.rst).
+
+	* Dropped support for:
+	  - kFreeBSD (Debian using a FreeBSD kernel) - defunc project.
+	  - Ubuntu Lucid (10.04) - no longer a supported platform.
+
+	* Added support for NetBSD, OpenBSD and Minix 3.
+
+	* --meta: Now shows details of the procenv platform driver being
+	  used.
+
+	* --misc now shows "security module" rather than
+	  "linux security module".
+
+	* --file-append: new option (env var is "PROCENV_FILE_APPEND")
+	  to append to the --file= specified rather than overwriting.
+
 0.44	2016-02-15
 
 	* --cgroup: Handle cgroup2 (cgroups v2).
