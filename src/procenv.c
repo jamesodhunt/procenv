@@ -1018,6 +1018,8 @@ usage (void)
 	show ("  -f, --fds               : Display file descriptor details.");
 	show ("  -F, --namespaces        : Display namespace details.");
 	show ("  --file=<file>           : Send output to <file> (implies --output=file).");
+	show ("  --file-append           : Append to file specified by '--file='");
+    show ("                            rather than overwriting");
 	show ("  --format=<format>       : Specify output format. <format> can be one of:");
 	show ("");
 	show ("                            crumb    : ASCII 'breadcrumbs'");
