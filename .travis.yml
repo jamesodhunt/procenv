@@ -10,8 +10,9 @@ os:
   - linux
   - osx
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
+  - [[ "$TRAVIS_OS_NAME" == "linux" ]] && sudo apt-get update -qq
+  - [[ "$TRAVIS_OS_NAME" == "linux" ]] && sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
+  - [[ "$TRAVIS_OS_NAME" == "osx" ]] && brew install autoconf automake expat check perl
 script: autoreconf -fi && ./configure && make -j4 && make check
 notifications:
   email:
