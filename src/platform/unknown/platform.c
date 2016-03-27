@@ -81,9 +81,11 @@ static struct procenv_map signal_map_generic[] = {
 
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (unknown),
+	.driver                        = PROCENV_SET_DRIVER (unknown),
 
-    .signal_map                    = signal_map_generic,
+	.get_time                      = get_time_generic,
 
-    .show_fds                      = show_fds_generic,
+	.signal_map                    = signal_map_generic,
+	.show_fds                      = show_fds_generic,
+	.show_clocks                   = show_clocks_generic,
 };

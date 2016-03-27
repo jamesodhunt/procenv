@@ -89,37 +89,44 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
+
+# XXX: magic option that will remove all unused symbols
+# (defined by platform-generic.c).
+@PROCENV_PLATFORM_DARWIN_TRUE@am__append_1 = -flto
+@PROCENV_PLATFORM_DARWIN_FALSE@am__append_2 = -fdata-sections -ffunction-sections
 bin_PROGRAMS = procenv$(EXEEXT)
-@PROCENV_PLATFORM_LINUX_TRUE@am__append_1 = platform/linux/platform.c platform/linux/platform-linux.h
-@PROCENV_PLATFORM_LINUX_TRUE@am__append_2 = -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
-@PROCENV_PLATFORM_MINIX_TRUE@am__append_3 = platform/minix/platform.c platform/minix/platform-minix.h
-@PROCENV_PLATFORM_MINIX_TRUE@am__append_4 = \
+@PROCENV_PLATFORM_DARWIN_TRUE@am__append_3 = platform/darwin/platform.c platform/darwin/platform-darwin.h
+@PROCENV_PLATFORM_DARWIN_TRUE@am__append_4 = -I $(srcdir)/platform/darwin -D PROCENV_PLATFORM_DARWIN
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_5 = platform/linux/platform.c platform/linux/platform-linux.h
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_6 = -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
+@PROCENV_PLATFORM_MINIX_TRUE@am__append_7 = platform/minix/platform.c platform/minix/platform-minix.h
+@PROCENV_PLATFORM_MINIX_TRUE@am__append_8 = \
 @PROCENV_PLATFORM_MINIX_TRUE@	-I $(srcdir)/platform/minix -D PROCENV_PLATFORM_MINIX
 
-@PROCENV_PLATFORM_HURD_TRUE@am__append_5 = platform/hurd/platform.c platform/hurd/platform-hurd.h
-@PROCENV_PLATFORM_HURD_TRUE@am__append_6 = -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_7 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_8 = -I $(srcdir)/platform/freebsd \
+@PROCENV_PLATFORM_HURD_TRUE@am__append_9 = platform/hurd/platform.c platform/hurd/platform-hurd.h
+@PROCENV_PLATFORM_HURD_TRUE@am__append_10 = -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_11 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_12 = -I $(srcdir)/platform/freebsd \
 @PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_FREEBSD \
 @PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_NETBSD_TRUE@am__append_9 = platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
-@PROCENV_PLATFORM_NETBSD_TRUE@am__append_10 = -I $(srcdir)/platform/netbsd \
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_13 = platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_14 = -I $(srcdir)/platform/netbsd \
 @PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_NETBSD \
 @PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_11 = platform/openbsd/platform.c platform/openbsd/platform-openbsd.h
-@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_12 = -I $(srcdir)/platform/openbsd \
+@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_15 = platform/openbsd/platform.c platform/openbsd/platform-openbsd.h
+@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_16 = -I $(srcdir)/platform/openbsd \
 @PROCENV_PLATFORM_OPENBSD_TRUE@				-D PROCENV_PLATFORM_OPENBSD \
 @PROCENV_PLATFORM_OPENBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_13 = platform/unknown/platform.c platform/unknown/platform-unknown.h
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_14 = -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
-@HAVE_SELINUX_TRUE@am__append_15 = -DHAVE_SELINUX
-@HAVE_APPARMOR_TRUE@am__append_16 = -DHAVE_APPARMOR
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_17 = platform/unknown/platform.c platform/unknown/platform-unknown.h
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_18 = -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
+@HAVE_SELINUX_TRUE@am__append_19 = -DHAVE_SELINUX
+@HAVE_APPARMOR_TRUE@am__append_20 = -DHAVE_APPARMOR
 @ENABLE_TESTS_TRUE@TESTS = $(am__EXEEXT_1) procenv$(EXEEXT) \
 @ENABLE_TESTS_TRUE@	check_all_args
-@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_17 = check_pr_list
+@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_21 = check_pr_list
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_PROGRAMS =  \
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	check_pr_list$(EXEEXT)
 subdir = src
@@ -146,7 +153,8 @@ am__procenv_SOURCES_DIST = procenv.c procenv.h pr_list.c pr_list.h \
 	pstring.c pstring.h string-util.c string-util.h output.c \
 	output.h util.c util.h types.h messages.h platform.h \
 	platform-headers.h platform/platform-generic.c \
-	platform/platform-generic.h platform/linux/platform.c \
+	platform/platform-generic.h platform/darwin/platform.c \
+	platform/darwin/platform-darwin.h platform/linux/platform.c \
 	platform/linux/platform-linux.h platform/minix/platform.c \
 	platform/minix/platform-minix.h platform/hurd/platform.c \
 	platform/hurd/platform-hurd.h platform/freebsd/platform.c \
@@ -155,20 +163,22 @@ am__procenv_SOURCES_DIST = procenv.c procenv.h pr_list.c pr_list.h \
 	platform/openbsd/platform-openbsd.h \
 	platform/unknown/platform.c \
 	platform/unknown/platform-unknown.h
-@PROCENV_PLATFORM_LINUX_TRUE@am__objects_1 = platform/linux/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_MINIX_TRUE@am__objects_2 = platform/minix/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_HURD_TRUE@am__objects_3 = platform/hurd/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__objects_4 = platform/freebsd/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_NETBSD_TRUE@am__objects_5 = platform/netbsd/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_OPENBSD_TRUE@am__objects_6 = platform/openbsd/procenv-platform.$(OBJEXT)
-@PROCENV_PLATFORM_GENERIC_TRUE@am__objects_7 = platform/unknown/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_DARWIN_TRUE@am__objects_1 = platform/darwin/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_LINUX_TRUE@am__objects_2 = platform/linux/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_MINIX_TRUE@am__objects_3 = platform/minix/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_HURD_TRUE@am__objects_4 = platform/hurd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__objects_5 = platform/freebsd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_NETBSD_TRUE@am__objects_6 = platform/netbsd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_OPENBSD_TRUE@am__objects_7 = platform/openbsd/procenv-platform.$(OBJEXT)
+@PROCENV_PLATFORM_GENERIC_TRUE@am__objects_8 = platform/unknown/procenv-platform.$(OBJEXT)
 am_procenv_OBJECTS = procenv-procenv.$(OBJEXT) \
 	procenv-pr_list.$(OBJEXT) procenv-pstring.$(OBJEXT) \
 	procenv-string-util.$(OBJEXT) procenv-output.$(OBJEXT) \
 	procenv-util.$(OBJEXT) \
 	platform/procenv-platform-generic.$(OBJEXT) $(am__objects_1) \
 	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7)
+	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
+	$(am__objects_8)
 procenv_OBJECTS = $(am_procenv_OBJECTS)
 procenv_DEPENDENCIES =
 procenv_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(procenv_LDFLAGS) \
@@ -261,12 +271,9 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 
-# XXX: magic option that will remove all unused symbols
-# (defined by platform-generic.c).
-
 # keep it tight
 AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused -fstack-protector \
-	-Wformat -fdata-sections -ffunction-sections -Werror
+	-Wformat $(am__append_1) $(am__append_2) -Werror
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -377,19 +384,20 @@ procenv_SOURCES = procenv.c procenv.h pr_list.c pr_list.h pstring.c \
 	pstring.h string-util.c string-util.h output.c output.h util.c \
 	util.h types.h messages.h platform.h platform-headers.h \
 	platform/platform-generic.c platform/platform-generic.h \
-	$(am__append_1) $(am__append_3) $(am__append_5) \
-	$(am__append_7) $(am__append_9) $(am__append_11) \
-	$(am__append_13)
+	$(am__append_3) $(am__append_5) $(am__append_7) \
+	$(am__append_9) $(am__append_11) $(am__append_13) \
+	$(am__append_15) $(am__append_17)
+@PROCENV_PLATFORM_DARWIN_FALSE@procenv_LDFLAGS = -Wl,--gc-sections
 
 # XXX: unused symbol removal magic - part 2
-procenv_LDFLAGS = -Wl,--gc-sections
+@PROCENV_PLATFORM_DARWIN_TRUE@procenv_LDFLAGS = -flto
 
 # should really do this in configure.ac
 @PROCENV_PLATFORM_MINIX_TRUE@procenv_LDADD = -lc
-procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_2) \
-	$(am__append_4) $(am__append_6) $(am__append_8) \
-	$(am__append_10) $(am__append_12) $(am__append_14) \
-	$(am__append_15) $(am__append_16)
+procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_4) \
+	$(am__append_6) $(am__append_8) $(am__append_10) \
+	$(am__append_12) $(am__append_14) $(am__append_16) \
+	$(am__append_18) $(am__append_19) $(am__append_20)
 @ENABLE_TESTS_TRUE@CLEANFILES = check_all_args
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_SOURCES = tests/check_pr_list.c
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
@@ -497,6 +505,15 @@ platform/$(DEPDIR)/$(am__dirstamp):
 	@: > platform/$(DEPDIR)/$(am__dirstamp)
 platform/procenv-platform-generic.$(OBJEXT): platform/$(am__dirstamp) \
 	platform/$(DEPDIR)/$(am__dirstamp)
+platform/darwin/$(am__dirstamp):
+	@$(MKDIR_P) platform/darwin
+	@: > platform/darwin/$(am__dirstamp)
+platform/darwin/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) platform/darwin/$(DEPDIR)
+	@: > platform/darwin/$(DEPDIR)/$(am__dirstamp)
+platform/darwin/procenv-platform.$(OBJEXT):  \
+	platform/darwin/$(am__dirstamp) \
+	platform/darwin/$(DEPDIR)/$(am__dirstamp)
 platform/linux/$(am__dirstamp):
 	@$(MKDIR_P) platform/linux
 	@: > platform/linux/$(am__dirstamp)
@@ -568,6 +585,7 @@ procenv$(EXEEXT): $(procenv_OBJECTS) $(procenv_DEPENDENCIES) $(EXTRA_procenv_DEP
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f platform/*.$(OBJEXT)
+	-rm -f platform/darwin/*.$(OBJEXT)
 	-rm -f platform/freebsd/*.$(OBJEXT)
 	-rm -f platform/hurd/*.$(OBJEXT)
 	-rm -f platform/linux/*.$(OBJEXT)
@@ -587,6 +605,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-string-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/procenv-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/$(DEPDIR)/procenv-platform-generic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@platform/darwin/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/freebsd/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/hurd/$(DEPDIR)/procenv-platform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@platform/linux/$(DEPDIR)/procenv-platform.Po@am__quote@
@@ -723,6 +742,20 @@ platform/procenv-platform-generic.obj: platform/platform-generic.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/platform-generic.c' object='platform/procenv-platform-generic.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/procenv-platform-generic.obj `if test -f 'platform/platform-generic.c'; then $(CYGPATH_W) 'platform/platform-generic.c'; else $(CYGPATH_W) '$(srcdir)/platform/platform-generic.c'; fi`
+
+platform/darwin/procenv-platform.o: platform/darwin/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/darwin/procenv-platform.o -MD -MP -MF platform/darwin/$(DEPDIR)/procenv-platform.Tpo -c -o platform/darwin/procenv-platform.o `test -f 'platform/darwin/platform.c' || echo '$(srcdir)/'`platform/darwin/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/darwin/$(DEPDIR)/procenv-platform.Tpo platform/darwin/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/darwin/platform.c' object='platform/darwin/procenv-platform.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/darwin/procenv-platform.o `test -f 'platform/darwin/platform.c' || echo '$(srcdir)/'`platform/darwin/platform.c
+
+platform/darwin/procenv-platform.obj: platform/darwin/platform.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/darwin/procenv-platform.obj -MD -MP -MF platform/darwin/$(DEPDIR)/procenv-platform.Tpo -c -o platform/darwin/procenv-platform.obj `if test -f 'platform/darwin/platform.c'; then $(CYGPATH_W) 'platform/darwin/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/darwin/platform.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) platform/darwin/$(DEPDIR)/procenv-platform.Tpo platform/darwin/$(DEPDIR)/procenv-platform.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='platform/darwin/platform.c' object='platform/darwin/procenv-platform.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o platform/darwin/procenv-platform.obj `if test -f 'platform/darwin/platform.c'; then $(CYGPATH_W) 'platform/darwin/platform.c'; else $(CYGPATH_W) '$(srcdir)/platform/darwin/platform.c'; fi`
 
 platform/linux/procenv-platform.o: platform/linux/platform.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(procenv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT platform/linux/procenv-platform.o -MD -MP -MF platform/linux/$(DEPDIR)/procenv-platform.Tpo -c -o platform/linux/procenv-platform.o `test -f 'platform/linux/platform.c' || echo '$(srcdir)/'`platform/linux/platform.c
@@ -1035,6 +1068,8 @@ distclean-generic:
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
 	-rm -f platform/$(DEPDIR)/$(am__dirstamp)
 	-rm -f platform/$(am__dirstamp)
+	-rm -f platform/darwin/$(DEPDIR)/$(am__dirstamp)
+	-rm -f platform/darwin/$(am__dirstamp)
 	-rm -f platform/freebsd/$(DEPDIR)/$(am__dirstamp)
 	-rm -f platform/freebsd/$(am__dirstamp)
 	-rm -f platform/hurd/$(DEPDIR)/$(am__dirstamp)
@@ -1061,7 +1096,7 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/minix/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/openbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/darwin/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/minix/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/openbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1107,7 +1142,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/minix/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/openbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) platform/$(DEPDIR) platform/darwin/$(DEPDIR) platform/freebsd/$(DEPDIR) platform/hurd/$(DEPDIR) platform/linux/$(DEPDIR) platform/minix/$(DEPDIR) platform/netbsd/$(DEPDIR) platform/openbsd/$(DEPDIR) platform/unknown/$(DEPDIR) tests/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

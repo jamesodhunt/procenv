@@ -167,6 +167,7 @@ AS_IF([test "x$with_forced_driver" != "x"], [
 # Determine platform
 
 case "$target_to_consider" in
+    *darwin*) procenv_platform=darwin;;
     *freebsd*) procenv_platform=freebsd;;
 
     # BUG: FIXME: this test does not look reliable!
@@ -179,6 +180,7 @@ case "$target_to_consider" in
     *) procenv_platform=unknown;;
 esac
 
+AM_CONDITIONAL([PROCENV_PLATFORM_DARWIN], [test "$procenv_platform" = darwin])
 AM_CONDITIONAL([PROCENV_PLATFORM_FREEBSD], [test "$procenv_platform" = freebsd])
 AM_CONDITIONAL([PROCENV_PLATFORM_HURD], [test "$procenv_platform" = hurd])
 AM_CONDITIONAL([PROCENV_PLATFORM_NETBSD], [test "$procenv_platform" = netbsd])

@@ -75,17 +75,19 @@ static struct procenv_map if_flag_map_hurd[] = {
 
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (hurd),
+	.driver                        = PROCENV_SET_DRIVER (hurd),
 
-    .get_kernel_bits               = get_kernel_bits_generic,
-    .get_mtu                       = get_mtu_generic,
+	.get_kernel_bits               = get_kernel_bits_generic,
+	.get_mtu                       = get_mtu_generic,
+	.get_time                      = get_time_generic,
 
-    .signal_map                    = signal_map_hurd,
-    .if_flag_map                   = if_flag_map_hurd,
+	.signal_map                    = signal_map_hurd,
+	.if_flag_map                   = if_flag_map_hurd,
 
-    .show_confstrs                 = show_confstrs_generic,
-    .show_cpu_affinities           = show_cpu_affinities_generic,
-    .show_fds                      = show_fds_generic,
-    .show_mounts                   = show_mounts_generic_linux,
-    .show_rlimits                  = show_rlimits_generic,
+	.show_clocks                   = show_clocks_generic,
+	.show_confstrs                 = show_confstrs_generic,
+	.show_cpu_affinities           = show_cpu_affinities_generic,
+	.show_fds                      = show_fds_generic,
+	.show_mounts                   = show_mounts_generic_linux,
+	.show_rlimits                  = show_rlimits_generic,
 };

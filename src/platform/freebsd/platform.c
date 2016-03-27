@@ -453,27 +453,63 @@ static bool cpuset_has_cpu_freebsd (const PROCENV_CPU_SET_TYPE *cs,
 	return CPU_ISSET (cpu, cs);
 }
 
+static void
+show_clocks_freebsd (void)
+{
+	show_clock_res (CLOCK_REALTIME);
+
+#if defined CLOCK_REALTIME_COARSE
+	show_clock_res (CLOCK_REALTIME_COARSE);
+#endif
+
+#if defined CLOCK_REALTIME_HR
+	show_clock_res (CLOCK_REALTIME_HR);
+#endif
+
+	show_clock_res (CLOCK_REALTIME_PRECISE);
+	show_clock_res (CLOCK_REALTIME_FAST);
+	show_clock_res (CLOCK_MONOTONIC);
+
+#if defined CLOCK_MONOTONIC_COARSE
+	show_clock_res (CLOCK_MONOTONIC_COARSE);
+#endif
+
+#if defined CLOCK_MONOTONIC_RAW
+	show_clock_res (CLOCK_MONOTONIC_RAW);
+#endif
+
+	show_clock_res (CLOCK_MONOTONIC_PRECISE);
+	show_clock_res (CLOCK_MONOTONIC_FAST);
+	show_clock_res (CLOCK_UPTIME);
+	show_clock_res (CLOCK_UPTIME_PRECISE);
+	show_clock_res (CLOCK_UPTIME_FAST);
+	show_clock_res (CLOCK_VIRTUAL);
+	show_clock_res (CLOCK_PROF);
+}
+	
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (freebsd),
+	.driver                        = PROCENV_SET_DRIVER (freebsd),
 
-    .get_user_misc                 = get_user_misc_freebsd,
-    .get_kernel_bits               = get_kernel_bits_generic,
-    .get_cpuset                    = get_cpuset_freebsd,
-    .get_mtu                       = get_mtu_generic,
-    .free_cpuset                   = free_cpuset_freebsd,
-    .cpuset_has_cpu                = cpuset_has_cpu_freebsd,
+	.get_user_misc                 = get_user_misc_freebsd,
+	.get_kernel_bits               = get_kernel_bits_generic,
+	.get_cpuset                    = get_cpuset_freebsd,
+	.get_mtu                       = get_mtu_generic,
+	.get_time                      = get_time_generic,
+	.free_cpuset                   = free_cpuset_freebsd,
+	.cpuset_has_cpu                = cpuset_has_cpu_freebsd,
 
-    .signal_map                    = signal_map_freebsd,
-    .if_flag_map                   = if_flag_map_freebsd,
+	.signal_map                    = signal_map_freebsd,
+	.if_flag_map                   = if_flag_map_freebsd,
 
-    .show_confstrs                 = show_confstrs_generic,
-    .show_cpu                      = show_cpu_freebsd,
-    .show_cpu_affinities           = show_cpu_affinities_generic,
-    .show_fd_capabilities          = show_fd_capabilities_freebsd,
-    .show_fds                      = show_fds_generic,
-    .show_mounts                   = show_mounts_freebsd,
-    .show_rlimits                  = show_rlimits_generic,
+	.show_confstrs                 = show_confstrs_generic,
+	.show_cpu                      = show_cpu_freebsd,
+	.show_clocks                   = show_clocks_freebsd,
+	.show_cpu_affinities           = show_cpu_affinities_generic,
+	.show_fd_capabilities          = show_fd_capabilities_freebsd,
+	.show_fds                      = show_fds_generic,
+	.show_mounts                   = show_mounts_freebsd,
+	.show_rlimits                  = show_rlimits_generic,
 
-    .handle_proc_branch            = handle_proc_branch_freebsd,
+	.handle_proc_branch            = handle_proc_branch_freebsd,
 };

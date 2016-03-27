@@ -132,9 +132,11 @@ struct procenv_ops
 
 	long (*get_kernel_bits) (void);
 	int (*get_mtu) (const struct ifaddrs *ifaddr);
+	bool (*get_time) (struct timespec *ts);
 
 	void (*show_capabilities) (void);
 	void (*show_cgroups) (void);
+	void (*show_clocks) (void);
 	void (*show_confstrs) (void);
 	void (*show_cpu_affinities) (void);
 	void (*show_cpu) (void);

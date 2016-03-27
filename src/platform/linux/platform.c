@@ -2139,6 +2139,7 @@ struct procenv_ops platform_ops =
 	.get_proc_name                 = get_proc_name_linux,
 	.get_io_priorities             = get_io_priorities_linux,
 	.get_mtu                       = get_mtu_generic,
+	.get_time                      = get_time_generic,
 
 	.get_tty_locked_status         = get_tty_locked_status_linux,
 	.get_kernel_bits               = get_kernel_bits_generic,
@@ -2155,6 +2156,7 @@ struct procenv_ops platform_ops =
 	.show_cpu_affinities           = show_cpu_affinities_generic,
 
 	.show_cpu                      = show_cpu_linux,
+	.show_clocks                   = show_clocks_generic,
 	.show_extended_if_flags        = show_extended_if_flags_linux,
 	.show_fds                      = show_fds_linux,
 	.show_io_priorities            = show_io_priorities_linux,

@@ -109,18 +109,20 @@ handle_proc_branch_minix (void)
 
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (minix),
+	.driver                        = PROCENV_SET_DRIVER (minix),
 
-    .get_kernel_bits               = get_kernel_bits_generic,
+	.get_kernel_bits               = get_kernel_bits_generic,
+	.get_time                      = get_time_generic,
 
-    .signal_map                    = signal_map_minix,
+	.signal_map                    = signal_map_minix,
 
-    // FIXME: add show_sysconf (which will do sysctl!)
+	// FIXME: add show_sysconf (which will do sysctl!)
 
-    .handle_proc_branch            = handle_proc_branch_minix,
+	.handle_proc_branch            = handle_proc_branch_minix,
 
-    .show_fds                      = show_fds_generic,
+	.show_clocks                   = show_clocks_generic,
+	.show_fds                      = show_fds_generic,
 
-    .show_mounts                   = show_mounts_minix,
-    .show_rlimits                  = show_rlimits_generic,
+	.show_mounts                   = show_mounts_minix,
+	.show_rlimits                  = show_rlimits_generic,
 };

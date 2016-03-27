@@ -24,8 +24,8 @@ extern struct procenv_misc misc;
 
 struct baud_speed
 {
-    speed_t  speed;
-    char    *name;
+	speed_t  speed;
+	char    *name;
 };
 
 /**
@@ -55,7 +55,10 @@ fd_valid (int fd)
 	return 1;
 }
 
-#if !defined (PROCENV_PLATFORM_HURD) && !defined (PROCENV_PLATFORM_MINIX)
+#if !defined (PROCENV_PLATFORM_HURD) && \
+    !defined (PROCENV_PLATFORM_MINIX) && \
+    !defined (PROCENV_PLATFORM_DARWIN)
+
 /**
  * is_console:
  * @fd: open file descriptor.
@@ -79,7 +82,7 @@ is_console (int fd)
 
 	return !ret;
 }
-#endif /* !PROCENV_PLATFORM_HURD && !PROCENV_PLATFORM_MINIX */
+#endif
 
 /**
  * is_big_endian:

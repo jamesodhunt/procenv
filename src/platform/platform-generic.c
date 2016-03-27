@@ -26,8 +26,6 @@ extern struct procenv_ops *ops;
 void
 show_rlimits_generic (void)
 {
-	header ("limits");
-
 #if defined (RLIMIT_AS)
 	show_limit (RLIMIT_AS);
 #endif
@@ -41,9 +39,48 @@ show_rlimits_generic (void)
 	show_limit (RLIMIT_NPROC);
 	show_limit (RLIMIT_RSS);
 	show_limit (RLIMIT_STACK);
-
-	footer ();
 }
+
+#if !defined (PROCENV_PLATFORM_DARWIN)
+
+void
+show_clocks_generic (void)
+{
+	show_clock_res (CLOCK_REALTIME);
+
+#if defined CLOCK_REALTIME_COARSE
+	show_clock_res (CLOCK_REALTIME_COARSE);
+#endif
+
+#if defined CLOCK_REALTIME_HR
+	show_clock_res (CLOCK_REALTIME_HR);
+#endif
+
+	show_clock_res (CLOCK_MONOTONIC);
+
+#if defined CLOCK_MONOTONIC_COARSE
+	show_clock_res (CLOCK_MONOTONIC_COARSE);
+#endif
+
+#if defined CLOCK_MONOTONIC_RAW
+	show_clock_res (CLOCK_MONOTONIC_RAW);
+#endif
+
+#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
+
+#ifdef CLOCK_MONOTONIC_RAW
+	show_clock_res (CLOCK_MONOTONIC_RAW);
+#endif
+	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
+	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
+#if defined CLOCK_BOOTTIME
+	show_clock_res (CLOCK_BOOTTIME);
+#endif
+
+#endif
+}
+
+#endif
 
 long
 get_kernel_bits_generic (void)
@@ -89,6 +126,16 @@ get_mtu_generic (const struct ifaddrs *ifaddr)
 
 	return ifr.ifr_mtu;
 }
+#endif
+
+#if !defined (PROCENV_PLATFORM_DARWIN)
+
+bool
+get_time_generic (struct timespec *ts)
+{
+    return clock_gettime (CLOCK_REALTIME, ts);
+}
+
 #endif
 
 void
@@ -494,7 +541,8 @@ show_cpu_affinities_generic (void)
 #if defined (PROCENV_PLATFORM_LINUX) || \
     defined (PROCENV_PLATFORM_BSD)   || \
     defined (PROCENV_PLATFORM_HURD)  || \
-    defined (PROCENV_PLATFORM_MINIX)
+    defined (PROCENV_PLATFORM_MINIX) || \
+    defined (PROCENV_PLATFORM_DARWIN)
 
 void
 show_pathconfs (ShowMountType what,
@@ -595,9 +643,11 @@ show_pathconfs (ShowMountType what,
 	footer ();
 }
 
-#endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD || PROCENV_PLATFORM_MINIX */
+#endif
 
-#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_MINIX)
+#if defined (PROCENV_PLATFORM_BSD)   || \
+    defined (PROCENV_PLATFORM_MINIX) || \
+    defined (PROCENV_PLATFORM_DARWIN)
 
 char *
 get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags)
@@ -648,6 +698,7 @@ get_mount_opts_generic_bsd (const struct procenv_map64 *opts, uint64_t flags)
 
 	return str;
 }
+
 void
 show_mounts_generic_bsd (ShowMountType what,
 		const struct procenv_map64 *mntopt_map)
@@ -747,7 +798,7 @@ show_mounts_generic_bsd (ShowMountType what,
 	}
 }
 
-#endif /* PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_MINIX */
+#endif /* PROCENV_PLATFORM_BSD || PROCENV_PLATFORM_MINIX || PROCENV_PLATFORM_DARWIN */
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 

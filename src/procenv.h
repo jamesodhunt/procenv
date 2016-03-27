@@ -63,7 +63,6 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <link.h>
 #include <fenv.h>
 #include <sys/utsname.h>
 #include <locale.h>

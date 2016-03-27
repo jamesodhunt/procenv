@@ -26,6 +26,40 @@
 
 /*------------------------------------------------------------------*/
 
+#if defined (PROCENV_PLATFORM_DARWIN)
+
+#include <sys/mount.h>
+#include <sys/sysctl.h>
+#include <sys/user.h>
+#include <sys/statvfs.h>
+#include <sys/ucred.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
+#include <sys/proc_info.h>
+#include <libproc.h>
+
+#define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
+#define PROCENV_CPU_TYPE           int
+
+/* XXX: fake value as cpu set are not available on darwin */
+#define PROCENV_CPU_SET_TYPE       void
+
+#define PROCENV_MNT_GET_FLAGS(mnt) (mnt)->f_flags
+#define PROCENV_MNT_GET_FSID(mnt)  (mnt)->f_fsid.val
+
+#define PROCENV_STATFS_INT_TYPE    uint64_t
+#define PROCENV_STATFS_INT_FMT     PRIu64
+
+typedef struct statfs procenv_mnt_type;
+
+#endif /* PROCENV_PLATFORM_DARWIN*/
+
+/*------------------------------------------------------------------*/
+
 /* XXX: for now, let's assume "unknown" is similar to Linux :-) */
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_GENERIC)
 
@@ -33,6 +67,7 @@
 #include <sys/vfs.h>
 #include <mntent.h>
 #include <sched.h>
+#include <link.h>
 
 #include <linux/if.h>
 
@@ -98,6 +133,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <kvm.h>
+#include <link.h>
 
 #define	PROCENV_LINK_LEVEL_FAMILY        AF_LINK
 #define PROCENV_PTHREAD_GUARD_SIZE_TYPE  int
@@ -129,6 +165,7 @@ typedef struct statvfs procenv_mnt_type;
 #include <netinet/in.h>
 #include <kvm.h>
 #include <pthread_np.h>
+#include <link.h>
 
 #define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           int
@@ -165,6 +202,7 @@ typedef struct statfs procenv_mnt_type;
 #include <netinet/in.h>
 #include <kvm.h>
 #include <dev/wscons/wsdisplay_usl_io.h>
+#include <link.h>
 
 #define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           cpuid_t
@@ -196,6 +234,7 @@ typedef struct statvfs procenv_mnt_type;
 #include <netinet/in.h>
 #include <kvm.h>
 #include <dev/wscons/wsdisplay_usl_io.h>
+#include <link.h>
 
 #define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           cpuid_t
@@ -218,6 +257,7 @@ typedef struct statfs procenv_mnt_type;
 #include <sys/vfs.h>
 #include <sys/statvfs.h>
 #include <net/if.h>
+#include <link.h>
 
 #if defined (HAVE_SYS_CAPABILITY_H)
 #include <sys/capability.h>

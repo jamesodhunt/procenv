@@ -1288,7 +1288,9 @@ show_proc (void)
 			has_ctty () ? YES_STR : NO_STR);
 
 	/* FIXME: Is it possible to detect if on console on hurd/minix? */
-#if defined (PROCENV_PLATFORM_HURD) || defined (PROCENV_PLATFORM_MINIX)
+#if defined (PROCENV_PLATFORM_HURD)  || \
+    defined (PROCENV_PLATFORM_MINIX) || \
+    defined (PROCENV_PLATFORM_DARWIN)
 	entry ("on console", "%s", UNKNOWN_STR);
 #else
 	entry ("on console", "%s",
@@ -1958,7 +1960,7 @@ dump (void)
 	show_env ();
 	show_fds ();
 	show_libc ();
-#ifndef PROCENV_PLATFORM_ANDROID
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 	show_libs ();
 #endif
 	show_rlimits ();
@@ -2090,7 +2092,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 	char          *mac_address = NULL;
 	int            i;
 	int            valid = false;
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
 	struct sockaddr_dl *link_layer;
 #else
 	struct ifreq   ifr;
@@ -2103,7 +2105,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 	assert (ifaddr);
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
 	link_layer = (struct sockaddr_dl *)ifaddr->ifa_addr;
 #else
 
@@ -2122,7 +2124,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 		goto out;
 #endif
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
 	data = LLADDR (link_layer);
 #else
 	data = (char *)ifr.ifr_hwaddr.sa_data;
@@ -2159,7 +2161,7 @@ get_mac_address (const struct ifaddrs *ifaddr)
 
 out:
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
 	/* NOP */
 #else
 	close (sock);
@@ -2832,10 +2834,14 @@ get_arch (void)
 	return "x64/AMD64";
 #endif
 
+#if defined (__APPLE__)
+	return "Apple/Darwin";
+#endif
+
 	return UNKNOWN_STR;
 }
 
-#ifndef PROCENV_PLATFORM_ANDROID
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 static int
 libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 {
@@ -2892,56 +2898,8 @@ show_clocks (void)
 {
 	header ("clocks");
 
-	show_clock_res (CLOCK_REALTIME);
-
-#if defined CLOCK_REALTIME_COARSE
-	show_clock_res (CLOCK_REALTIME_COARSE);
-#endif
-
-#if defined CLOCK_REALTIME_HR
-	show_clock_res (CLOCK_REALTIME_HR);
-#endif
-
-#if defined (__FreeBSD__)
-	show_clock_res (CLOCK_REALTIME_PRECISE);
-	show_clock_res (CLOCK_REALTIME_FAST);
-#endif
-
-	show_clock_res (CLOCK_MONOTONIC);
-
-#if defined CLOCK_MONOTONIC_COARSE
-	show_clock_res (CLOCK_MONOTONIC_COARSE);
-#endif
-
-#if defined CLOCK_MONOTONIC_RAW
-	show_clock_res (CLOCK_MONOTONIC_RAW);
-#endif
-
-#if defined (__FreeBSD__)
-	show_clock_res (CLOCK_MONOTONIC_PRECISE);
-	show_clock_res (CLOCK_MONOTONIC_FAST);
-	show_clock_res (CLOCK_UPTIME);
-	show_clock_res (CLOCK_UPTIME_PRECISE);
-	show_clock_res (CLOCK_UPTIME_FAST);
-	show_clock_res (CLOCK_VIRTUAL);
-#endif
-
-#if defined (__FreeBSD__)
-	show_clock_res (CLOCK_PROF);
-#endif
-
-#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
-
-#ifdef CLOCK_MONOTONIC_RAW
-	show_clock_res (CLOCK_MONOTONIC_RAW);
-#endif
-	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
-	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
-#if defined CLOCK_BOOTTIME
-	show_clock_res (CLOCK_BOOTTIME);
-#endif
-
-#endif
+	if (ops->show_clocks)
+		ops->show_clocks();
 
 	footer ();
 }
@@ -2989,7 +2947,11 @@ show_sizeof (void)
 	show_sizeof_type (blkcnt_t);
 	show_sizeof_type (blksize_t);
 	show_sizeof_type (char);
+
+#if !defined (PROCENV_PLATFORM_DARWIN)
 	show_sizeof_type (clockid_t);
+#endif
+
 	show_sizeof_type (clock_t);
 	show_sizeof_type (dev_t);
 	show_sizeof_type (div_t);
@@ -3033,7 +2995,7 @@ show_sizeof (void)
 	show_sizeof_type (pid_t);
 	show_sizeof_type (pthread_attr_t);
 
-#if !defined (PROCENV_PLATFORM_MINIX)
+#if !defined (PROCENV_PLATFORM_MINIX) && !defined (PROCENV_PLATFORM_DARWIN)
 	show_sizeof_type (pthread_barrierattr_t);
 	show_sizeof_type (pthread_barrier_t);
 #endif
@@ -3047,7 +3009,7 @@ show_sizeof (void)
 	show_sizeof_type (pthread_rwlockattr_t);
 	show_sizeof_type (pthread_rwlock_t);
 
-#if !defined (PROCENV_PLATFORM_MINIX)
+#if !defined (PROCENV_PLATFORM_MINIX) && !defined (PROCENV_PLATFORM_DARWIN)
 	show_sizeof_type (pthread_spinlock_t);
 #endif
 
@@ -3059,7 +3021,11 @@ show_sizeof (void)
 	show_sizeof_type (size_t);
 	show_sizeof_type (ssize_t);
 	show_sizeof_type (suseconds_t);
+
+#if !defined (PROCENV_PLATFORM_DARWIN)
 	show_sizeof_type (timer_t);
+#endif
+
 	show_sizeof_type (time_t);
 	show_sizeof_type (uid_t);
 	show_sizeof_type (uint16_t);
@@ -3461,7 +3427,10 @@ show_time (void)
 	struct timespec   ts;
 	struct tm        *tm;
 
-	if (clock_gettime (CLOCK_REALTIME, &ts) < 0)
+	if (! ops->get_time)
+		return;
+
+	if (ops->get_time (&ts))
 		die ("failed to determine time");
 
 	tm = localtime (&ts.tv_sec);
@@ -4048,7 +4017,7 @@ main (int    argc,
 			break;
 
 		case 'b':
-#ifndef PROCENV_PLATFORM_ANDROID
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 			show_libs ();
 #endif
 			break;

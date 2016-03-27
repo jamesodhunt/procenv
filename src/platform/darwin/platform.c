@@ -16,9 +16,9 @@
  *--------------------------------------------------------------------
  */
 
-#include "platform-netbsd.h"
+#include "platform-darwin.h"
 
-static struct procenv_map signal_map_netbsd[] = {
+static struct procenv_map signal_map_darwin[] = {
 
 	mk_map_entry (SIGABRT),
 	mk_map_entry (SIGALRM),
@@ -40,6 +40,7 @@ static struct procenv_map signal_map_netbsd[] = {
 	mk_map_entry (SIGTRAP),
 	mk_map_entry (SIGTSTP),
 	mk_map_entry (SIGTTIN),
+	mk_map_entry (SIGTTOU),
 	mk_map_entry (SIGUSR1),
 	mk_map_entry (SIGUSR2),
 	mk_map_entry (SIGIO),
@@ -52,32 +53,28 @@ static struct procenv_map signal_map_netbsd[] = {
 	mk_map_entry (SIGXFSZ),
 	mk_map_entry (SIGEMT),
 	mk_map_entry (SIGINFO),
-	mk_map_entry (SIGPWR),
 
 	{ 0, NULL },
 };
 
-static struct procenv_map64 mntopt_map[] = {
+static struct procenv_map64 mntopt_map_darwin[] = {
 
 	{ MNT_ASYNC        , "asynchronous" },
 	{ MNT_EXPORTED     , "NFS-exported" },
 	{ MNT_LOCAL        , "local" },
+	{ MNT_MULTILABEL   , "multilabel" },
 	{ MNT_NOATIME      , "noatime" },
 	{ MNT_NOEXEC       , "noexec" },
 	{ MNT_NOSUID       , "nosuid" },
 	{ MNT_QUOTA        , "with quotas" },
 	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SOFTDEP      , "soft-updates" },
-#if defined (MNT_SUJ)
-	{ MNT_SUJ          , "journaled soft-updates" },
-#endif
 	{ MNT_SYNCHRONOUS  , "synchronous" },
 	{ MNT_UNION        , "union" },
 
 	{ 0, NULL }
 };
 
-static struct procenv_map if_flag_map_netbsd[] = {
+static struct procenv_map if_flag_map_darwin[] = {
 	mk_map_entry (IFF_UP),
 	mk_map_entry (IFF_BROADCAST),
 	mk_map_entry (IFF_DEBUG),
@@ -94,146 +91,155 @@ static struct procenv_map if_flag_map_netbsd[] = {
 };
 
 static void
-show_mounts_netbsd (ShowMountType what)
+show_cpu_darwin (void)
 {
-	show_mounts_generic_bsd (what, mntopt_map);
+	long  max;
+
+	max = get_sysconf (_SC_NPROCESSORS_ONLN);
+
+	/* XXX: possible to determine current cpu? */
+	entry ("number", "%s of %lu", UNKNOWN_STR, max);
 }
 
-/* Who would have thought handling PIDs was so tricky? */
+static bool
+get_time_darwin (struct timespec *ts)
+{
+    clock_serv_t     cs;
+    mach_timespec_t  mts;
+
+    // FIXME: can this fail?
+    host_get_clock_service (mach_host_self(), CALENDAR_CLOCK, &cs);
+
+    // FIXME: can this fail?
+    clock_get_time (cs, &mts);
+
+    // FIXME: can this fail?
+    mach_port_deallocate (mach_task_self(), cs);
+
+    ts->tv_sec = mts.tv_sec;
+    ts->tv_nsec = mts.tv_nsec;
+
+    return 0;
+}
+
 static void
-handle_proc_branch_netbsd (void)
+handle_proc_branch_darwin (void)
 {
 	int                  count = 0;
-	int                  i;
-	char                 errors[_POSIX2_LINE_MAX];
-	kvm_t               *kvm;
-	struct kinfo_proc2  *procs;
-	struct kinfo_proc2  *p;
+	pid_t               *pids = NULL;
+	pid_t               *pid;
 	pid_t                current;
+	pid_t                ultimate_parent = 0;
+
+	int                  i;
+	int                  ret;
 	int                  done = false;
 	char                *str = NULL;
-	pid_t                ultimate_parent = 0;
 
 	common_assert ();
 
 	current = getpid ();
 
-	kvm = kvm_openfiles (NULL, NULL, NULL, KVM_NO_FILES, errors);
-	if (! kvm)
-		die ("unable to open kvm");
+	count = proc_listpids (PROC_ALL_PIDS, 0, NULL, 0);
+	pids = calloc (count, sizeof (pid_t));
+	if (! pids)
+		return;
 
-	procs = kvm_getproc2 (kvm, KERN_PROC_ALL, 0, sizeof (struct kinfo_proc2), &count);
-	if (! procs)
-		die ("failed to get process info");
+	ret = proc_listpids (PROC_ALL_PIDS, 0, pids, sizeof (pids));
+	if (ret < 0)
+		goto out;
 
 	/* Calculate the lowest PID number which gives us the ultimate
 	 * parent of all processes.
 	 *
-	 * On NetBSD systems, PID 0 ('[system]') is the ultimate
+	 * On FreeBSD systems, PID 0 ('[kernel]') is the ultimate
 	 * parent rather than PID 1 ('init').
+	 *
+	 * However, this doesn't work in a FreeBSD jail since in that
+	 * environment:
+	 *
+	 * - there is no init process visible.
+	 * - there is no kernel thread visible.
+	 * - the ultimate parent PID will either by 1 (the "invisible"
+	 *   init process) or 'n' where 'n' is a PID>1 which is also
+	 *   "invisible" (since it lives outside the jail in the host
+	 *   environment).
+	 *
+	 * Confused yet?
 	 */
 
-	p = &procs[0];
-	ultimate_parent = p->p_pid;
+	ultimate_parent = pids[0];
 
 	for (i = 1; i < count; i++) {
-		p = &procs[i];
-		if (p->p_pid< ultimate_parent)
-			ultimate_parent = p->p_pid;
+		pid = &pids[i];
+		if (*pid < ultimate_parent)
+			ultimate_parent = *pid;
 	}
 
 	while (! done) {
 		for (i = 0; i < count && !done; i++) {
-			p = &procs[i];
+			pid = &pids[i];
 
-			if (p->p_pid == current) {
+			if (*pid == current) {
+				char name[1024];
+
+				ret = proc_name (pids[i], name, sizeof (name));
+				if (! ret)
+					goto out;
+
 				if (! ultimate_parent && current == ultimate_parent) {
 
 					/* Found the "last" PID so record it and hop out */
-					appendf (&str, "%d ('%*s')",
-							(int)current,
-							KI_MAXCOMLEN,
-							p->p_comm);
+					appendf (&str, "%d ('%s')",
+							(int)current, name);
 					done = true;
 					break;
 				} else {
 					/* Found a valid parent pid */
-					appendf (&str, "%d ('%*s'), ",
-							(int)current,
-							KI_MAXCOMLEN,
-							p->p_comm);
+					appendf (&str, "%d ('%s'), ",
+							(int)current, name);
 				}
 
 				/* Move on */
-				current = p->p_ppid;
+				current = *pid;
 			}
 		}
 	}
 
-	if (kvm_close (kvm) < 0)
-		die ("failed to close kvm");
-
 	entry ("ancestry", "%s", str);
-	free (str);
-}
 
-static PROCENV_CPU_SET_TYPE *
-get_cpuset_netbsd (void)
-{
-	PROCENV_CPU_SET_TYPE *cs = NULL;
-	int ret;
-
-	cs = cpuset_create ();
-	if (! cs)
-		return NULL;
-
-	ret = pthread_getaffinity_np (pthread_self (), cpuset_size (cs), cs);
-	if (ret) {
-		cpuset_destroy (cs);
-		return NULL;
-	}
-
-	return cs;
+out:
+	free_if_set (str);
+	free_if_set (pids);
 }
 
 static void
-free_cpuset_netbsd (PROCENV_CPU_SET_TYPE *cs)
+show_mounts_darwin (ShowMountType what)
 {
-	cpuset_destroy (cs);
+	show_mounts_generic_bsd (what, mntopt_map_darwin);
 }
 
-bool cpuset_has_cpu_netbsd (const PROCENV_CPU_SET_TYPE *cs,
-		PROCENV_CPU_TYPE cpu)
-{
-	return cpuset_isset (cpu, cs);
-}
-
-/* XXX:Notes:
+/* Darwin lacks:
  *
- * - show_cpu : it doesn't appear you can query the CPU of the
- *   current process on NetBSD :-(
+ * - cpusets and cpu affinities.
+ *
  */
 struct procenv_ops platform_ops =
 {
-	.driver                        = PROCENV_SET_DRIVER (netbsd),
+    .driver                        = PROCENV_SET_DRIVER (darwin),
 
-	.get_kernel_bits               = get_kernel_bits_generic,
-	.get_mtu                       = get_mtu_generic,
-	.get_time                      = get_time_generic,
+    .signal_map                    = signal_map_darwin,
+    .if_flag_map                   = if_flag_map_darwin,
 
-	.get_cpuset                    = get_cpuset_netbsd,
-	.free_cpuset                   = free_cpuset_netbsd,
-	.cpuset_has_cpu                = cpuset_has_cpu_netbsd,
+    .get_time                      = get_time_darwin,
+    .get_kernel_bits               = get_kernel_bits_generic,
+    .get_mtu                       = get_mtu_generic,
 
-	.signal_map                    = signal_map_netbsd,
-	.if_flag_map                   = if_flag_map_netbsd,
+    .handle_proc_branch            = handle_proc_branch_darwin,
 
-	.show_clocks                   = show_clocks_generic,
-	.show_confstrs                 = show_confstrs_generic,
-	.show_cpu_affinities           = show_cpu_affinities_generic,
-	.show_fds                      = show_fds_generic,
-	.show_mounts                   = show_mounts_netbsd,
-	.show_rlimits                  = show_rlimits_generic,
-
-	.handle_proc_branch            = handle_proc_branch_netbsd,
+    .show_confstrs                 = show_confstrs_generic,
+    .show_cpu                      = show_cpu_darwin,
+    .show_fds                      = show_fds_generic,
+    .show_mounts                   = show_mounts_darwin,
+    .show_rlimits                  = show_rlimits_generic,
 };
