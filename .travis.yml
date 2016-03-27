@@ -6,6 +6,9 @@ language: c
 compiler:
   - gcc
   - clang
+os:
+  - linux
+  - osx
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
