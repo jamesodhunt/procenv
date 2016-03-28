@@ -20,12 +20,8 @@
 
 static struct procenv_map signal_map_darwin[] = {
 
-	mk_map_entry (SIGABRT),
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
-
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
-
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
 	mk_map_entry (SIGHUP),
@@ -43,16 +39,34 @@ static struct procenv_map signal_map_darwin[] = {
 	mk_map_entry (SIGTTOU),
 	mk_map_entry (SIGUSR1),
 	mk_map_entry (SIGUSR2),
-	mk_map_entry (SIGIO),
+	mk_map_entry (SIGXCPU),
+	mk_map_entry (SIGXFSZ),
+	mk_map_entry (SIGIOT),
 	mk_map_entry (SIGPROF),
 	mk_map_entry (SIGSYS),
 	mk_map_entry (SIGURG),
 	mk_map_entry (SIGVTALRM),
+
+#if defined (SIGIO)
+	mk_map_entry (SIGIO),
+#endif
+
+#if defined (SIGWINCH)
 	mk_map_entry (SIGWINCH),
-	mk_map_entry (SIGXCPU),
-	mk_map_entry (SIGXFSZ),
-	mk_map_entry (SIGEMT),
+#endif
+
+#if defined (SIGINFO)
 	mk_map_entry (SIGINFO),
+#endif
+
+#if defined (SIGPOLL)
+	{ SIGPOLL, "SIGPOLL|SIGEMT" },
+#elif defined (SIGEMT)
+	{ SIGEMT, "SIGPOLL|SIGEMT" },
+#endif
+
+	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ SIGABRT, "SIGABRT|SIGIOT" },
 
 	{ 0, NULL },
 };
