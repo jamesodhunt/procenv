@@ -126,10 +126,10 @@ check_pr_list_LDADD = @CHECK_LIBS@ pr_list.o
 
 endif
 
+TESTS += check_all_args
+
 # Run built binary to ensure we can display all values
 TESTS += procenv
-
-TESTS += check_all_args
 
 CLEANFILES += check_all_args
 
