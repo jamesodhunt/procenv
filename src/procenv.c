@@ -1960,9 +1960,7 @@ dump (void)
 	show_env ();
 	show_fds ();
 	show_libc ();
-#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 	show_libs ();
-#endif
 	show_rlimits ();
 	show_locale ();
 	show_memory ();
@@ -2879,6 +2877,7 @@ libs_callback (struct dl_phdr_info *info, size_t size, void *data)
 
 	return 0;
 }
+#endif
 
 void
 show_libs (void)
@@ -2887,11 +2886,12 @@ show_libs (void)
 
 	container_open ("libraries");
 
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 	dl_iterate_phdr (libs_callback, NULL);
+#endif
 
 	container_close ();
 }
-#endif
 
 void
 show_clocks (void)
@@ -4017,9 +4017,7 @@ main (int    argc,
 			break;
 
 		case 'b':
-#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
 			show_libs ();
-#endif
 			break;
 
 		case 'B':
