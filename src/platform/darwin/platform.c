@@ -165,23 +165,7 @@ handle_proc_branch_darwin (void)
 
 	/* Calculate the lowest PID number which gives us the ultimate
 	 * parent of all processes.
-	 *
-	 * On FreeBSD systems, PID 0 ('[kernel]') is the ultimate
-	 * parent rather than PID 1 ('init').
-	 *
-	 * However, this doesn't work in a FreeBSD jail since in that
-	 * environment:
-	 *
-	 * - there is no init process visible.
-	 * - there is no kernel thread visible.
-	 * - the ultimate parent PID will either by 1 (the "invisible"
-	 *   init process) or 'n' where 'n' is a PID>1 which is also
-	 *   "invisible" (since it lives outside the jail in the host
-	 *   environment).
-	 *
-	 * Confused yet?
 	 */
-
 	ultimate_parent = pids[0];
 
 	for (i = 1; i < count; i++) {
@@ -201,7 +185,7 @@ handle_proc_branch_darwin (void)
 				if (! ret)
 					goto out;
 
-				if (! ultimate_parent && current == ultimate_parent) {
+				if (ultimate_parent == 1 && current == ultimate_parent) {
 
 					/* Found the "last" PID so record it and hop out */
 					appendf (&str, "%d ('%s')",
