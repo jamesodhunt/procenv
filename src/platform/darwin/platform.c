@@ -139,77 +139,108 @@ get_time_darwin (struct timespec *ts)
 static void
 handle_proc_branch_darwin (void)
 {
-	int                  count = 0;
-	pid_t               *pids = NULL;
-	pid_t               *pid;
-	pid_t                current;
-	pid_t                ultimate_parent = 0;
-
-	int                  i;
+	struct kinfo_proc   *procs = NULL;
+	struct kinfo_proc   *p;
+	static const int     mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
 	int                  ret;
 	int                  done = false;
+	size_t               bytes;
+	size_t               count;
+	size_t               i;
+	pid_t                current;
+	pid_t                ultimate_parent = 0;
 	char                *str = NULL;
 
-	common_assert ();
+	/* arbitrary */
+	int                  attempts = 20;
 
 	current = getpid ();
 
-	count = proc_listpids (PROC_ALL_PIDS, 0, NULL, 0);
-	pids = calloc (count, sizeof (pid_t));
-	if (! pids)
-		return;
+	/* XXX: This system interface seems horribly racy - what if the numbe of pids
+	 * XXX: changes between the 1st and 2nd call to sysctl() ???
+	 */
+	while (! done) {
+		attempts--;
+		if (! attempts)
+			return;
 
-	ret = proc_listpids (PROC_ALL_PIDS, 0, pids, sizeof (pids));
-	if (ret < 0)
+		/* determine how much space required to store details of all
+		 * processes.
+		 */
+		ret = sysctl ((int *)mib, mib_len (mib), NULL, &bytes, NULL, 0);
+		if (ret < 0)
+			return;
+
+		count = bytes / sizeof (struct kinfo_proc);
+
+		/* allocate space */
+		procs = calloc (count, sizeof (struct kinfo_proc));
+		if (! procs)
+			return;
+
+		/* request the details of the processes */
+		ret = sysctl ((int *)mib, mib_len (mib), procs, &bytes, NULL, 0);
+		if (ret < 0) {
+			free (procs);
+			procs = NULL;
+			if (errno != ENOMEM) {
+				/* unknown error, so give up */
+				return;
+			}
+		} else {
+			done = true;
+		}
+	}
+
+	if (! done)
 		goto out;
+
+	/* reset */
+	done = false;
 
 	/* Calculate the lowest PID number which gives us the ultimate
 	 * parent of all processes.
 	 */
-	ultimate_parent = pids[0];
+	p = &procs[0];
+	ultimate_parent = p->kp_proc.p_pid;
 
 	for (i = 1; i < count; i++) {
-		pid = &pids[i];
-		if (*pid < ultimate_parent)
-			ultimate_parent = *pid;
+		p = &procs[i];
+		if (p->kp_proc.p_pid < ultimate_parent)
+			ultimate_parent = p->kp_proc.p_pid;
 	}
 
 	while (! done) {
 		for (i = 0; i < count && !done; i++) {
-			pid = &pids[i];
+			p = &procs[i];
 
-			if (*pid == current) {
-				char name[1024];
+			if (p->kp_proc.p_pid == current) {
 
-				ret = proc_name (pids[i], name, sizeof (name));
-				if (! ret)
-					goto out;
-
-				if (ultimate_parent == 1 && current == ultimate_parent) {
+				if (! ultimate_parent && current == ultimate_parent) {
 
 					/* Found the "last" PID so record it and hop out */
 					appendf (&str, "%d ('%s')",
-							(int)current, name);
+							(int)current, p->kp_proc.p_comm);
+
 					done = true;
 					break;
 				} else {
 					/* Found a valid parent pid */
 					appendf (&str, "%d ('%s'), ",
-							(int)current, name);
+							(int)current, p->kp_proc.p_comm);
 				}
 
 				/* Move on */
-				current = *pid;
+				current = p->kp_eproc.e_ppid;
 			}
 		}
 	}
 
-	entry ("ancestry", "%s", str);
-
 out:
 	free_if_set (str);
-	free_if_set (pids);
+	free_if_set (procs);
 }
+
 
 static void
 show_mounts_darwin (ShowMountType what)

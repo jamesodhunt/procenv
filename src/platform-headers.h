@@ -39,8 +39,7 @@
 #include <pthread.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
-#include <sys/proc_info.h>
-#include <libproc.h>
+#include <sys/sysctl.h>
 
 #define	PROCENV_LINK_LEVEL_FAMILY  AF_LINK
 #define PROCENV_CPU_TYPE           int

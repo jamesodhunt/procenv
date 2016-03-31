@@ -22,4 +22,6 @@
 #include "platform.h"
 #include "util.h"
 
+#define mib_len(mib) ((sizeof (mib) / sizeof(*mib)) - 1)
+
 #endif /* _PROCENV_PLATFORM_DARWIN_H */
