@@ -2672,7 +2672,7 @@ get_os (void)
 	return "Android";
 #endif
 
-#if defined (__MACH__) || defined (__GNU__) || defined (__gnu_hurd__)
+#if (defined (__MACH__) && defined (__GNU__)) || defined (__gnu_hurd__)
 	return "GNU (Hurd)";
 #endif
 
