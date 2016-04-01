@@ -236,6 +236,8 @@ handle_proc_branch_darwin (void)
 		}
 	}
 
+	entry ("ancestry", "%s", str);
+
 out:
 	free_if_set (str);
 	free_if_set (procs);
