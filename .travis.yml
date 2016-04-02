@@ -33,6 +33,3 @@ addons:
     build_command_prepend: "autoreconf -fi && ./configure; make clean"
     build_command: "make -j 4"
     branch_pattern: master
-matrix:
-  allow_failures:
-    - os: osx
