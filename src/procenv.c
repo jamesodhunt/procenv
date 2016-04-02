@@ -2731,6 +2731,10 @@ get_os (void)
 	return "z/OS (MVS)";
 #endif
 
+#if defined (__APPLE__)
+	return "Apple/Darwin";
+#endif
+
 #ifndef __COVERITY__
 	return UNKNOWN_STR;
 #endif
@@ -2830,10 +2834,6 @@ get_arch (void)
 
 #if defined (__x86_64__) || defined (__x86_64) || defined (__amd64)
 	return "x64/AMD64";
-#endif
-
-#if defined (__APPLE__)
-	return "Apple/Darwin";
 #endif
 
 	return UNKNOWN_STR;
