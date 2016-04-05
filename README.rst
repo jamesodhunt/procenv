@@ -32,8 +32,18 @@ it runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 It is useful as a test tool, to understand what environment a process
 runs in and for system comparison.
 
-``procenv`` runs on Linux, FreeBSD, NetBSD, OpenBSD, GNU Hurd, 
-Android and Minix 3. It unashamedly emulates a number of existing system
+``procenv`` runs on the following operating systems:
+
+- Android
+- FreeBSD
+- GNU Hurd
+- GNU Linux
+- Minix 3
+- NetBSD
+- OpenBSD
+- OSX
+
+It unashamedly emulates a number of existing system
 utilities as it is attempting to be all-encompassing: I wrote it with
 the aim of being able to dump "everything" that a process may care about
 by simply running a single program (by default). Also, the line of
