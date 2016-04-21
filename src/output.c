@@ -703,28 +703,29 @@ _show_output (const char *str)
 		break;
 
 	case OUTPUT_FILE:
-        {
-            int flags = O_WRONLY;
+		{
+			int flags = (O_WRONLY | O_CREAT);
 
-            flags |= (output_file_append ? O_APPEND : O_CREAT);
+			if (output_file_append)
+				flags |= O_APPEND;
 
-            assert (output_file);
-            if (output_fd < 0) {
-                output_fd = open (output_file, flags,
-                        (S_IRWXU|S_IRGRP|S_IROTH));
-                if (output_fd < 0) {
-                    fprintf (stderr, "ERROR: failed to open file '%s'\n",
-                            output_file);
-                    exit (EXIT_FAILURE);
-                }
-            }
-            ret = write (output_fd, str, strlen (str));
-            if (ret < 0) {
-                fprintf (stderr, "ERROR: failed to write to file '%s'\n",
-                        output_file);
-                exit (EXIT_FAILURE);
-            }
-        }
+			assert (output_file);
+			if (output_fd < 0) {
+				output_fd = open (output_file, flags,
+						(S_IRWXU|S_IRGRP|S_IROTH));
+				if (output_fd < 0) {
+					fprintf (stderr, "ERROR: failed to open file '%s'\n",
+							output_file);
+					exit (EXIT_FAILURE);
+				}
+			}
+			ret = write (output_fd, str, strlen (str));
+			if (ret < 0) {
+				fprintf (stderr, "ERROR: failed to write to file '%s'\n",
+						output_file);
+				exit (EXIT_FAILURE);
+			}
+		}
 		break;
 
 	default:
