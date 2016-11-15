@@ -22,5 +22,5 @@ echo
 echo "XXX:--------------------------------------------------"
 echo "XXX: $0: kernel modules"
 echo
-lsmod
+lsmod|sort
 echo
