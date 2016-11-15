@@ -20,7 +20,21 @@ echo "$kvm"
 echo
 
 echo "XXX:--------------------------------------------------"
+echo "XXX: $0: uname"
+echo
+uname -a
+echo
+
+echo "XXX:--------------------------------------------------"
 echo "XXX: $0: kernel modules"
 echo
 lsmod|sort
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: distro details"
+echo
+cat /etc/os-release 2>/dev/null
+cat /etc/lsb-release 2>/dev/null
+cat /etc/issue 2>/dev/null
 echo
