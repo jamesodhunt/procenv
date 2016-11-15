@@ -11,7 +11,7 @@ echo
 awk 'BEGIN { RS=""; } { printf ("%s\n", $0); exit (0); }' /proc/cpuinfo
 echo
 
-kvm=$(cat /sys/module/kvm_intel/parameters/nested 2>&1 || echo N)
+kvm=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null || echo N)
 
 echo "XXX:--------------------------------------------------"
 echo "XXX: $0: Nested KVM support"
