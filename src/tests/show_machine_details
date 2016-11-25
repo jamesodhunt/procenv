@@ -4,6 +4,18 @@
 #---------------------------------------------------------------------
 
 echo "XXX:--------------------------------------------------"
+echo "XXX: $0: Memory details"
+echo
+cat /proc/meminfo
+echo
+
+echo "XXX:--------------------------------------------------"
+echo "XXX: $0: ulimit details"
+echo
+ulimit -a
+echo
+
+echo "XXX:--------------------------------------------------"
 echo "XXX: $0: CPU count"
 echo
 grep -c ^processor /proc/cpuinfo
