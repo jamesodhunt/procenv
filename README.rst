@@ -65,6 +65,12 @@ build including running itself so that the build environment gets
 captured in the builds logs themselves. Select a link below and drill
 down to the build log to see the ``procenv`` output:
 
+Semaphore-CI
+~~~~~~~~~~~~
+
+* https://semaphoreci.com/jamesodhunt/procenv
+  (Click "Passed", "Job #", then "``make check``" to see output).
+
 Travis-CI
 ~~~~~~~~~
 
