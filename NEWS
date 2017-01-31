@@ -1,7 +1,7 @@
 0.47	2017-01-31
 
-    * Fixed hang when using PROCENV_EXEC variable.
-    * Test improvements.
+	* Fixed hang when using PROCENV_EXEC variable.
+	* Test improvements.
 
 0.46	2016-05-28
 
