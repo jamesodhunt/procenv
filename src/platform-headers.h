@@ -101,6 +101,10 @@ typedef struct statfs procenv_mnt_type;
 #include <sys/capability.h>
 #endif
 
+#if defined (__GLIBC__)
+#include <sys/sysmacros.h>
+#endif
+
 /* Network family for entries containing link-level interface
  * details. These entries will be cached to allow MAC addresses
  * to be extracted from them when displaying the corresponding
