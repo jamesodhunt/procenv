@@ -226,34 +226,34 @@ footer (void)
 void
 master_footer (pstring **doc)
 {
-    common_assert ();
+	common_assert ();
 
-    switch (output_format) {
+	switch (output_format) {
 
 	case OUTPUT_FORMAT_CRUMB: /* FALL */
-        case OUTPUT_FORMAT_TEXT:
-            /* Tweak */
-	    wappend (doc, L"\n");
-            break;
+	case OUTPUT_FORMAT_TEXT:
+		/* Tweak */
+		wappend (doc, L"\n");
+		break;
 
-        case OUTPUT_FORMAT_JSON:
-            object_close (false);
+	case OUTPUT_FORMAT_JSON:
+		object_close (false);
 
-            /* Tweak */
-            wappend (doc, L"\n");
-            break;
+		/* Tweak */
+		wappend (doc, L"\n");
+		break;
 
-        case OUTPUT_FORMAT_XML:
-            /* Tweak */
-            wappend (doc, L"\n");
-            dec_indent ();
-            wappendf (doc, L"</%s>\n", PACKAGE_NAME);
-            break;
+	case OUTPUT_FORMAT_XML:
+		/* Tweak */
+		wappend (doc, L"\n");
+		dec_indent ();
+		wappendf (doc, L"</%s>\n", PACKAGE_NAME);
+		break;
 
-        default:
-            assert_not_reached ();
-            break;
-    }
+	default:
+		assert_not_reached ();
+		break;
+	}
 }
 
 /**
@@ -421,7 +421,7 @@ section_close (void)
 	case OUTPUT_FORMAT_CRUMB:
 		remove_breadcrumb ();
 		break;
-		
+
 	case OUTPUT_FORMAT_JSON:
 		wappend (&doc, L"}");
 		break;
@@ -607,38 +607,38 @@ entry (const char *name, const char *fmt, ...)
 		PR_LIST_FOREACH (crumb_list, iter) {
 			char *crumb = (char *)iter->data;
 			wappendf (&doc,
-				L"%s%s",
-				crumb,
-				crumb_separator);
+					L"%s%s",
+					crumb,
+					crumb_separator);
 		}
 
 		wappendf (&doc,
-			L"%ls%s%ls\n",
-			encoded_name->buf,
-			text_separator,
-			encoded_value->buf);
+				L"%ls%s%ls\n",
+				encoded_name->buf,
+				text_separator,
+				encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_TEXT:
 		wappendf (&doc,
-			L"%ls%s%ls",
-			encoded_name->buf,
-			text_separator,
-			encoded_value->buf);
+				L"%ls%s%ls",
+				encoded_name->buf,
+				text_separator,
+				encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_JSON:
 		wappendf (&doc,
-			L"\"%ls\" : \"%ls\"",
-			encoded_name->buf,
-			encoded_value->buf);
+				L"\"%ls\" : \"%ls\"",
+				encoded_name->buf,
+				encoded_value->buf);
 		break;
 
 	case OUTPUT_FORMAT_XML:
 		wappendf (&doc,
-			L"<entry name=\"%ls\">%ls</entry>",
-			encoded_name->buf,
-			encoded_value->buf);
+				L"<entry name=\"%ls\">%ls</entry>",
+				encoded_name->buf,
+				encoded_value->buf);
 		break;
 
 	default:
@@ -757,13 +757,13 @@ get_indent_amount (void)
 const char *
 get_text_separator (void)
 {
-    return text_separator;
+	return text_separator;
 }
 
 void
 set_text_separator (const char *s)
 {
-    text_separator = s;
+	text_separator = s;
 }
 
 void
@@ -785,31 +785,31 @@ get_indent_char (void)
 void
 set_crumb_separator (const char *c)
 {
-    if (! c)
-        return;
+	if (! c)
+		return;
 
-    crumb_separator = strdup (c);
+	crumb_separator = strdup (c);
 }
 
 void
 set_output_file (const char *f)
 {
-    if (! f)
-        return;
+	if (! f)
+		return;
 
-    output_file = f;
+	output_file = f;
 }
 
 void
 set_output_file_append (void)
 {
-    output_file_append = true;
+	output_file_append = true;
 }
 
 const char *
 get_crumb_separator (void)
 {
-    return crumb_separator;
+	return crumb_separator;
 }
 
 void
@@ -1612,7 +1612,7 @@ set_output_value (const char *name)
 	for (p = output_map; p && p->name; p++) {
 		if (! strcmp (name, p->name)) {
 			output = p->num;
-            return;
+			return;
 		}
 	}
 	die ("invalid output value: '%s'", name);
@@ -1621,7 +1621,7 @@ set_output_value (const char *name)
 void
 set_output_value_raw (Output o)
 {
-    output = o;
+	output = o;
 }
 
 void
@@ -1634,7 +1634,7 @@ set_output_format (const char *name)
 	for (p = output_format_map; p && p->name; p++) {
 		if (! strcmp (name, p->name)) {
 			output_format = p->num;
-            return;
+			return;
 		}
 	}
 	die ("invalid output format value: '%s'", name);
@@ -1674,8 +1674,8 @@ handle_indent_char (void)
 void
 output_init (void)
 {
-    if (output == OUTPUT_SYSLOG)
-        openlog (PACKAGE_NAME, LOG_CONS | LOG_PID, LOG_USER);
+	if (output == OUTPUT_SYSLOG)
+		openlog (PACKAGE_NAME, LOG_CONS | LOG_PID, LOG_USER);
 }
 
 void
@@ -1684,10 +1684,10 @@ output_finalise (void)
 	if (output_fd != -1)
 		close (output_fd);
 
-    free_breadcrumbs ();
+	free_breadcrumbs ();
 
-    if (output == OUTPUT_SYSLOG)
-        closelog ();
+	if (output == OUTPUT_SYSLOG)
+		closelog ();
 }
 
 /* Performs simple substitution on the input */
@@ -1908,8 +1908,8 @@ encode_string (pstring **pstr)
 	}
 
 	if (non_printables &&
-		(output_format == OUTPUT_FORMAT_XML
-		 || output_format == OUTPUT_FORMAT_JSON)) {
+			(output_format == OUTPUT_FORMAT_XML
+			 || output_format == OUTPUT_FORMAT_JSON)) {
 
 		size_t   new_size = 0;
 
