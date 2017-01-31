@@ -697,7 +697,8 @@ _show_output (const char *str)
 		assert (user.tty_fd != -1);
 		ret = write (user.tty_fd, str, strlen (str));
 		if (ret < 0) {
-			fprintf (stderr, "ERROR: failed to write to terminal\n");
+			fprintf (stderr, "ERROR: failed to write to terminal: %s\n",
+					strerror (errno));
 			exit (EXIT_FAILURE);
 		}
 		break;
@@ -714,15 +715,15 @@ _show_output (const char *str)
 				output_fd = open (output_file, flags,
 						(S_IRWXU|S_IRGRP|S_IROTH));
 				if (output_fd < 0) {
-					fprintf (stderr, "ERROR: failed to open file '%s'\n",
-							output_file);
+					fprintf (stderr, "ERROR: failed to open file '%s': %s\n",
+							output_file, strerror (errno));
 					exit (EXIT_FAILURE);
 				}
 			}
 			ret = write (output_fd, str, strlen (str));
 			if (ret < 0) {
-				fprintf (stderr, "ERROR: failed to write to file '%s'\n",
-						output_file);
+				fprintf (stderr, "ERROR: failed to write to file '%s': %s\n",
+						output_file, strerror (errno));
 				exit (EXIT_FAILURE);
 			}
 		}
