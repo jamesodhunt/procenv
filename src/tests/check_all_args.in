@@ -518,6 +518,38 @@ run_tests()
 	rm -f "$stdout" "$stderr" "$out" "$out2"
 
 	#---------------------------------------------------------------------
+	msg "Ensure 'PROCENV_EXEC' and 'PROCENV_FILE' variables work"
+
+	out=$(mktemp "$template")
+	stdout=$(mktemp "$template")
+	stderr=$(mktemp "$template")
+
+    test_script=$(mktemp "$template")
+    test_log=$(mktemp "$template")
+    expected="foo"
+    cat <<EOT > "$test_script"
+    #!/bin/sh
+
+    echo "$expected" > "$test_log"
+EOT
+    chmod +x "$test_script"
+
+    (PROCENV_FILE="$out" PROCENV_EXEC="$test_script" \
+        "$procenv" 1>"$stdout" 2>"$stderr")
+
+	[ -s "$out" ] || die "Expected $procenv output in file $out"
+	[ -s "$test_log" ] || die "Expected output in test log file $test_log"
+    output=$(cat "$test_log")
+
+    [ "$output" = "$expected" ] || \
+        die "incorect output from script (expected '$expected', got '$output')"
+
+	[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
+	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
+
+	rm -f "$out" "$stdout" "$stderr" "$test_script" "$test_log"
+
+	#---------------------------------------------------------------------
 	arg='--format=text'
 	msg "Ensure '$arg' works"
 
