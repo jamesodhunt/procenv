@@ -3614,6 +3614,8 @@ check_envvars (void)
 				die ("failed to allocate space for exec arg");
 		}
 
+		reexec = true;
+
 		free (string);
 	}
 }
