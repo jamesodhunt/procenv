@@ -205,7 +205,16 @@ show_fd_capabilities_freebsd (int fd)
 	show_capsicum_cap (rights, CAP_KQUEUE);
 	show_capsicum_cap (rights, CAP_KQUEUE_CHANGE);
 	show_capsicum_cap (rights, CAP_KQUEUE_EVENT);
+#if defined (CAP_LINKAT)
 	show_capsicum_cap (rights, CAP_LINKAT);
+#endif
+#if defined (CAP_LINKAT_SOURCE)
+	show_capsicum_cap (rights, CAP_LINKAT_SOURCE);
+#endif
+#if defined (CAP_LINKAT_TARGET)
+	show_capsicum_cap (rights, CAP_LINKAT_TARGET);
+#endif
+
 #endif
 	show_capsicum_cap (rights, CAP_LISTEN);
 	show_capsicum_cap (rights, CAP_LOOKUP);
@@ -236,7 +245,15 @@ show_fd_capabilities_freebsd (int fd)
 	show_capsicum_cap (rights, CAP_READ);
 #if __FreeBSD__ > 9
 	show_capsicum_cap (rights, CAP_RECV);
+#if defined (CAP_RENAMEAT)
 	show_capsicum_cap (rights, CAP_RENAMEAT);
+#endif
+#if defined (CAP_RENAMEAT_SOURCE)
+	show_capsicum_cap (rights, CAP_RENAMEAT_SOURCE);
+#endif
+#if defined (CAP_RENAMEAT_TARGET)
+	show_capsicum_cap (rights, CAP_RENAMEAT_TARGET);
+#endif
 #endif
 	show_capsicum_cap (rights, CAP_SEEK);
 #if __FreeBSD__ > 9
