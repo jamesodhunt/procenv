@@ -3582,10 +3582,18 @@ check_envvars (void)
 		char *tmp;
 
 		string = strdup (e);
-		if (! string)
+		if (! string) {
 			die ("failed to copy environment string");
+		}
 
-		/* establish number of fields */
+		if (! *string) {
+			die ("invalid command");
+		}
+
+		/* there must be atleast an no-arg command to run */
+		count = 1;
+
+		/* establish number of fields required for program arguments */
 		for (tmp = string; tmp && *tmp; ) {
 			tmp = index (tmp, ' ');
 			if (tmp) {
@@ -3593,10 +3601,9 @@ check_envvars (void)
 				tmp++;
 				count++;
 			}
-
 		}
 
-		/* allocate space for arguments.
+		/* allocate space for exec arguments.
 		 * +1 for terminator.
 		 */
 		exec_args = calloc (count + 1, sizeof (char *));
