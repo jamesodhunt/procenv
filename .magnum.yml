@@ -1,6 +1,9 @@
 install:
-- sudo apt-get update -qq
-- sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
+  - sudo apt-get update -qq
+  - sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check
 
 script:
-- autoreconf -fi && ./configure && make -j4 && make check
+  - autoreconf -fi
+  - ./configure
+  - make -j4
+  - make check
