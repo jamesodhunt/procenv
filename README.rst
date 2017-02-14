@@ -71,6 +71,11 @@ Semaphore-CI
 * https://semaphoreci.com/jamesodhunt/procenv
   (Click "Passed", "Job #", then "``make check``" to see output).
 
+MagnumCI
+~~~~~~~~
+
+* https://magnum-ci.com/public/93336d48ebd8f8de7980/builds
+
 Travis-CI
 ~~~~~~~~~
 
