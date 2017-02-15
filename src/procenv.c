@@ -3229,16 +3229,70 @@ show_compiler (void)
 
 	section_open ("feature test macros");
 
-#ifdef __STDC_VERSION__
-	entry ("__STDC_VERSION__", "%lu", __STDC_VERSION__);
+#ifdef _ATFILE_SOURCE
+	entry ("_ATFILE_SOURCE", "%s", DEFINED_STR);
 #else
-	entry ("__STDC_VERSION__", "%s", NOT_DEFINED_STR);
+	entry ("_ATFILE_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
-#ifdef __STRICT_ANSI__
-	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
+#ifdef _BSD_SOURCE
+	entry ("_BSD_SOURCE", "%s", DEFINED_STR);
 #else
-	entry ("__STRICT_ANSI__", "%s", NOT_DEFINED_STR);
+	entry ("_BSD_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _DEFAULT_SOURCE
+	entry ("_DEFAULT_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_DEFAULT_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _FILE_OFFSET_BITS
+	entry ("_FILE_OFFSET_BITS", "%lu", _FILE_OFFSET_BITS);
+#else
+	entry ("_FILE_OFFSET_BITS", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _FORTIFY_SOURCE
+	entry ("_FORTIFY_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _GNU_SOURCE
+	entry ("_GNU_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_GNU_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _ISOC11_SOURCE
+	entry ("_ISOC11_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _ISOC95_SOURCE
+	entry ("_ISOC95_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_ISOC95_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _ISOC99_SOURCE
+	entry ("_ISOC99_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_ISOC99_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _LARGEFILE64_SOURCE
+	entry ("_LARGEFILE64_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_LARGEFILE64_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _LARGEFILE_SOURCE
+	entry ("_LARGEFILE_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_LARGEFILE_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 #ifdef _POSIX_C_SOURCE
@@ -3259,6 +3313,54 @@ show_compiler (void)
 	entry ("_POSIX_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#ifdef _REENTRANT
+	entry ("_REENTRANT", "%s", DEFINED_STR);
+#else
+	entry ("_REENTRANT", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_VERSION__
+	entry ("__STDC_VERSION__", "%lu", __STDC_VERSION__);
+#else
+	entry ("__STDC_VERSION__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STRICT_ANSI__
+	entry ("__STRICT_ANSI__", "%s", DEFINED_STR);
+#else
+	entry ("__STRICT_ANSI__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_WANT_IEC_60559_BFP_EXT__
+	entry ("__STDC_WANT_IEC_60559_BFP_EXT__", "%lu", __STDC_WANT_IEC_60559_BFP_EXT__);
+#else
+	entry ("__STDC_WANT_IEC_60559_BFP_EXT__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_WANT_IEC_60559_FUNCS_EXT__
+	entry ("__STDC_WANT_IEC_60559_FUNCS_EXT__", "%lu", __STDC_WANT_IEC_60559_FUNCS_EXT__);
+#else
+	entry ("__STDC_WANT_IEC_60559_FUNCS_EXT__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_WANT_LIB_EXT2__
+	entry ("__STDC_WANT_LIB_EXT2__", "%lu", __STDC_WANT_LIB_EXT2__);
+#else
+	entry ("__STDC_WANT_LIB_EXT2__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _SVID_SOURCE
+	entry ("_SVID_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_SVID_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef _THREAD_SAFE
+	entry ("_THREAD_SAFE", "%s", DEFINED_STR);
+#else
+	entry ("_THREAD_SAFE", "%s", NOT_DEFINED_STR);
+#endif
+
 #ifdef _XOPEN_SOURCE
 	entry ("_XOPEN_SOURCE", "%lu", _XOPEN_SOURCE);
 #else
@@ -3269,90 +3371,6 @@ show_compiler (void)
 	entry ("_XOPEN_SOURCE_EXTENDED", "%s", DEFINED_STR);
 #else
 	entry ("_XOPEN_SOURCE_EXTENDED", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _ISOC95_SOURCE
-	entry ("_ISOC95_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_ISOC95_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _ISOC99_SOURCE
-	entry ("_ISOC99_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_ISOC99_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _ISOC11_SOURCE
-	entry ("_ISOC11_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _LARGEFILE_SOURCE
-	entry ("_LARGEFILE_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_LARGEFILE_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _LARGEFILE64_SOURCE
-	entry ("_LARGEFILE64_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_LARGEFILE64_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _FILE_OFFSET_BITS
-	entry ("_FILE_OFFSET_BITS", "%lu", _FILE_OFFSET_BITS);
-#else
-	entry ("_FILE_OFFSET_BITS", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _BSD_SOURCE
-	entry ("_BSD_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_BSD_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _SVID_SOURCE
-	entry ("_SVID_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_SVID_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _ATFILE_SOURCE
-	entry ("_ATFILE_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_ATFILE_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _GNU_SOURCE
-	entry ("_GNU_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_GNU_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _REENTRANT
-	entry ("_REENTRANT", "%s", DEFINED_STR);
-#else
-	entry ("_REENTRANT", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _THREAD_SAFE
-	entry ("_THREAD_SAFE", "%s", DEFINED_STR);
-#else
-	entry ("_THREAD_SAFE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _FORTIFY_SOURCE
-	entry ("_FORTIFY_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_FORTIFY_SOURCE", "%s", NOT_DEFINED_STR);
-#endif
-
-#ifdef _DEFAULT_SOURCE
-	entry ("_DEFAULT_SOURCE", "%s", DEFINED_STR);
-#else
-	entry ("_DEFAULT_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
 	section_close ();

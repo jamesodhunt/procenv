@@ -158,8 +158,10 @@
  * VERION 15:
  *   - Renamed "linux security module" to "security" module in --misc.
  *   - Added procenv driver details to --meta.
+ * VERSION 16:
+ *   - Sort feature-test macros.
  **/
-#define PROCENV_FORMAT_VERSION 15
+#define PROCENV_FORMAT_VERSION 16
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
