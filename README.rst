@@ -174,6 +174,11 @@ FreeBSD
 Logs used to be available, but sadly it appears pointyhat.freebsd.com has
 been taken offline (any replacement?)
 
+Gentoo
+~~~~~~
+
+* https://packages.gentoo.org/packages/sys-process/procenv/
+
 Porting
 -------
 
