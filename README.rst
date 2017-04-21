@@ -43,7 +43,7 @@ runs in and for system comparison.
 - OpenBSD
 - OSX
 
-It unashamedly emulates a number of existing system
+The ``procenv`` tool unashamedly emulates a number of existing system
 utilities as it is attempting to be all-encompassing: I wrote it with
 the aim of being able to dump "everything" that a process may care about
 by simply running a single program (by default). Also, the line of
