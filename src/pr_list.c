@@ -262,9 +262,9 @@ pr_list_add_sorted_internal(PRList *list,
     direction = prepend ? 1 : -1;
 
     if (direction > 0) {
-        p = start = list->next;
+        start = list->next;
     } else {
-        p = start = list->prev;
+        start = list->prev;
     }
 
     for (p = start; p != list; p = pr_list_next(p, direction)) {
