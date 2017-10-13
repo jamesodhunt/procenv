@@ -235,6 +235,7 @@ pstring_compress (pstring **wstr, wchar_t remove_char)
 	assert (wstr);
 
 	to = from = (*wstr)->buf;
+	assert (from);
 
 	while (to && *to) {
 again:
