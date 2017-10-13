@@ -164,6 +164,8 @@ struct procenv_ops
 	void (*free_cpuset) (PROCENV_CPU_SET_TYPE *cs);
 	bool (*cpuset_has_cpu) (const PROCENV_CPU_SET_TYPE *cs,
 			PROCENV_CPU_TYPE cpu);
+
+	bool (*in_vm) (void);
 };
 
 #endif /* _PROCENV_PLATFORM_H */

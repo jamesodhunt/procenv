@@ -2122,10 +2122,43 @@ free_cpuset_linux (PROCENV_CPU_SET_TYPE *cs)
 #endif
 }
 
-bool cpuset_has_cpu_linux (const PROCENV_CPU_SET_TYPE *cs,
+static bool
+cpuset_has_cpu_linux (const PROCENV_CPU_SET_TYPE *cs,
 		PROCENV_CPU_TYPE cpu)
 {
 	return CPU_ISSET (cpu, cs);
+}
+
+static bool
+in_vm_linux (void)
+{
+	bool result = false;
+	const char *cpuinfo = "/proc/cpuinfo";
+	FILE *f = NULL;
+	char buffer[1024];
+
+	f = fopen (cpuinfo, "r");
+	if (! f) {
+		return false;
+	}
+
+	while (fgets (buffer, sizeof (buffer), f)) {
+		if (strstr (buffer, "flags") != buffer) {
+			continue;
+		}
+
+		if (strstr (buffer, "hypervisor") != NULL) {
+			result = true;
+		}
+
+		/* only test the first CPU */
+		goto out;
+	}
+
+out:
+	fclose (f);
+
+	return result;
 }
 
 struct procenv_ops platform_ops =
@@ -2146,6 +2179,7 @@ struct procenv_ops platform_ops =
 
 	.signal_map                    = signal_map_linux,
 	.if_flag_map                   = if_flag_map_linux,
+	.in_vm                         = in_vm_linux,
 	.personality_map               = personality_map_linux,
 	.personality_flag_map          = personality_flag_map_linux,
 

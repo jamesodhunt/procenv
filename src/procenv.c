@@ -4592,6 +4592,11 @@ show_misc (void)
 	entry ("chroot", "%s", in_chroot () ? YES_STR : NO_STR);
 	entry ("container", "%s", container_type ());
 
+	entry ("vm", "%s",
+            ops->in_vm ?
+            ops->in_vm () ? YES_STR : NO_STR
+            : UNKNOWN_STR);
+
 	if (ops->show_prctl) {
 		section_open ("prctl");
 		ops->show_prctl ();
