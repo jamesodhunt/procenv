@@ -160,8 +160,10 @@
  *   - Added procenv driver details to --meta.
  * VERSION 16:
  *   - Sort feature-test macros.
+ * VERSION 17:
+ *   - Added 'vm' to --misc output.
  **/
-#define PROCENV_FORMAT_VERSION 16
+#define PROCENV_FORMAT_VERSION 17
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
