@@ -1,3 +1,8 @@
+0.50	2017-10-16
+
+	* --compiler: Add additional feature test macros.
+	* --misc: Show if running in a virtual machine.
+
 0.49	2017-02-12
 
 	* FreeBSD 11 capsicum fixes.
