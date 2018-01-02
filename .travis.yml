@@ -9,6 +9,13 @@ compiler:
 os:
   - linux
   - osx
+
+before_script:
+  - git branch
+  - git status
+  - git log -3
+  - git rev-list --no-merges --reverse master..
+
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check; fi
