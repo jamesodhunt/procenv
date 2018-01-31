@@ -170,10 +170,11 @@ case "$target_to_consider" in
     *darwin*) procenv_platform=darwin;;
     *freebsd*) procenv_platform=freebsd;;
 
-    # BUG: FIXME: this test does not look reliable!
-    *hurd*|*unknown-gnu*) procenv_platform=hurd;;
-
     *linux*) procenv_platform=linux;;
+
+    # XXX: must come *AFTER* linux test
+    *hurd*|*-gnu) procenv_platform=hurd;;
+
     *minix*) procenv_platform=minix;;
     *netbsd*) procenv_platform=netbsd;;
     *openbsd*) procenv_platform=openbsd;;
