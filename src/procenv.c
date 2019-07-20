@@ -4337,10 +4337,10 @@ format_time (const time_t *t, char *buffer, size_t len)
 		bug ("buffer too small");
 
 	/* Ensure nul byte copied */
-	strncpy (buffer, str, l+1);
+	strncpy (buffer, str, len);
 
 	/* Overwrite NL */
-	buffer[strlen (buffer)-1] = '\0';
+	buffer[strlen (str)-1] = '\0';
 }
 
 char *
