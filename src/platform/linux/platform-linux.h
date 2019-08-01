@@ -163,10 +163,10 @@ union semun {
 
 static bool linux_kernel_version (int major, int minor, int revision);
 
+#if defined (HAVE_SYS_CAPABILITY_H)
 static int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
     __attribute__((unused));
 
-#if defined (HAVE_SYS_CAPABILITY_H)
 int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap);
 #endif /* HAVE_SYS_CAPABILITY_H */
 
