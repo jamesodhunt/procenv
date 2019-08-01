@@ -1606,8 +1606,13 @@ get_user_info (void)
 
 	errno = 0;
 	pw = getpwuid (user.uid);
-	if (!pw && errno == 0)
-		die ("uid %d no longer exists", user.uid);
+	if (! pw) {
+		if (errno == 0) {
+			die ("uid %d no longer exists", user.uid);
+		}
+
+		die ("cannot determine user details for uid %d: %s", user.uid, strerror (errno));
+	}
 
 	p = memcpy (&user.passwd, pw, sizeof (struct passwd));
 	assert (p == (void *)&user.passwd);
