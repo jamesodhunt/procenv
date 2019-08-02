@@ -122,9 +122,9 @@ if HAVE_CHECK
 TESTS += check_pr_list
 
 check_PROGRAMS = check_pr_list
-check_pr_list_SOURCES = tests/check_pr_list.c
+check_pr_list_SOURCES = tests/check_pr_list.c pr_list.c
 check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
-check_pr_list_LDADD = @CHECK_LIBS@ pr_list.o
+check_pr_list_LDADD = @CHECK_LIBS@
 
 endif
 
