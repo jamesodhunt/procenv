@@ -1,3 +1,10 @@
+0.51	2019-08-02
+
+	* Fixed failure scenario identified by `scan-build(1)`.
+	* Fixed GNU Hurd detection.
+	* Fixed building without `libcap` (thanks Dave Love).
+	* Fix compiler warnings for gcc9 (thanks Vorlon).
+
 0.50	2017-10-16
 
 	* --compiler: Add additional feature test macros.
