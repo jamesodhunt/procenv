@@ -23,7 +23,7 @@
 #include "util.h"
 
 #if defined (HAVE_SYS_CAPABILITY_H)
-#include <sys/capability.h>
+#include <sys/capsicum.h>
 
 #if __FreeBSD__ == 9
 
