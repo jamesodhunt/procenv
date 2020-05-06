@@ -256,7 +256,7 @@ pr_list_add_sorted_internal(PRList *list,
 
     PRList *(*handler)(PRList *list, PRList *entry);
 
-    handler = prepend ? pr_list_prepend : pr_list_append; 
+    handler = prepend ? pr_list_prepend : pr_list_append;
 
     /* 1 being forwards, -1 backwards */
     direction = prepend ? 1 : -1;

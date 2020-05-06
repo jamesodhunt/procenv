@@ -426,7 +426,7 @@ START_TEST(test_pr_list_append)
 
     ck_assert_uint_eq ((size_t)entry4->data, 40);
     ck_assert_ptr_eq (entry4->next, entry4);
-    ck_assert_ptr_eq (entry4->prev, entry4); 
+    ck_assert_ptr_eq (entry4->prev, entry4);
 
     ck_assert_uint_eq ((size_t)entry3->data, 30);
     ck_assert_ptr_eq (entry3->next, entry3);
@@ -797,7 +797,7 @@ START_TEST(test_pr_list_prepend)
 
     ck_assert_uint_eq ((size_t)entry4->data, 40);
     ck_assert_ptr_eq (entry4->next, entry4);
-    ck_assert_ptr_eq (entry4->prev, entry4); 
+    ck_assert_ptr_eq (entry4->prev, entry4);
 
     ck_assert_uint_eq ((size_t)entry3->data, 30);
     ck_assert_ptr_eq (entry3->next, entry3);

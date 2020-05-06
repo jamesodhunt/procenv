@@ -154,7 +154,7 @@ struct procenv_map sysconf_map[] = {
 #endif
 
 #if defined (_SC_2_UPE)
-	mk_sysconf_map_entry (_SC_2_UPE), 
+	mk_sysconf_map_entry (_SC_2_UPE),
 #endif
 
 #if defined (_SC_2_VERSION)
@@ -2918,7 +2918,7 @@ show_rlimits (void)
 		ops->show_rlimits ();
 
 	footer ();
-} 
+}
 
 void
 show_confstrs (void)
@@ -3733,7 +3733,7 @@ get_path (const char *argv0)
 
 	tmp = path;
 	for (element = strsep (&tmp, ":");
-			element;            
+			element;
 			element = strsep (&tmp, ":")) {
 
 		sprintf (possible, "%s%s%s",

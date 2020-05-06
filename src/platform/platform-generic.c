@@ -456,7 +456,7 @@ show_confstrs_generic (void)
 
 /* Display cpu affinities in the same compressed but reasonably
  * human-readable fashion as /proc/self/status:Cpus_allowed_list under Linux.
- */ 
+ */
 void
 show_cpu_affinities_generic (void)
 {
@@ -758,7 +758,7 @@ show_mounts_generic_bsd (ShowMountType what,
 			entry ("minor", "%u", minor);
 			section_close ();
 
-			entry ("fsid", "%.*x%.*x", 
+			entry ("fsid", "%.*x%.*x",
 					2 * sizeof (PROCENV_MNT_GET_FSID (mnt)[0]),
 					PROCENV_MNT_GET_FSID (mnt)[0],
 					2 * sizeof (PROCENV_MNT_GET_FSID (mnt)[1]),
@@ -913,7 +913,7 @@ show_mounts_generic_linux (ShowMountType what)
 
 				fsid_val.fsid = fs.f_fsid;
 
-				entry ("fsid", "%.*x%.*x", 
+				entry ("fsid", "%.*x%.*x",
 						2 * sizeof (fsid_val.val[0]),
 						fsid_val.val[0],
 						2 * sizeof (fsid_val.val[1]),

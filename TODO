@@ -8,7 +8,7 @@
 - add /proc/cmdline?
   - could create a kernel category?:
     kernel:
-      version: 
+      version:
       headers version: 3.19.8
       bits: 64
       cmdline: ...
@@ -65,7 +65,7 @@
   - IPv6 scope_id.
   - gateway.
 - add to show_sizeof():
-  - intN_t group   
+  - intN_t group
 - I18N (gettext)
 - Don't hide any option that a particular O/S / arch doesn't
   have: show the option with a value of `UNKNOWN_STR'.

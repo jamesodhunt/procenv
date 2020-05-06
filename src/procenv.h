@@ -162,8 +162,10 @@
  *   - Sort feature-test macros.
  * VERSION 17:
  *   - Added 'vm' to --misc output.
+ * VERSION 18:
+ *   - Added 'ambient' to --capabilities output.
  **/
-#define PROCENV_FORMAT_VERSION 17
+#define PROCENV_FORMAT_VERSION 18
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
@@ -195,7 +197,7 @@
 /* Size of blocks we will show the user (as df(1) does) */
 #define DF_BLOCK_SIZE 1024
 
-#define PROGRAM_AUTHORS "James Hunt <jamesodhunt@ubuntu.com>"
+#define PROGRAM_AUTHORS "James O. D. Hunt <jamesodhunt@gmail.com>"
 
 #define type_hex_width(type) \
 	(sizeof (type) * 2)

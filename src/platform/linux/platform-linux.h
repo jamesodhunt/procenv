@@ -90,9 +90,11 @@
 	int effective; \
 	int inheritable; \
 	int permitted; \
+	int ambient; \
 	\
 	bound = cap_get_bound (cap); \
 	\
+	ambient = get_ambient_capability (cap); \
 	effective = get_capability_by_flag_type (caps, CAP_EFFECTIVE, cap); \
 	inheritable = get_capability_by_flag_type (caps, CAP_INHERITABLE, cap); \
 	permitted = get_capability_by_flag_type (caps, CAP_PERMITTED, cap); \
@@ -109,6 +111,13 @@
 			bound < 0 \
 			? UNKNOWN_STR \
 			: bound \
+			? YES_STR \
+			: NO_STR); \
+	\
+	entry ("ambient", "%s", \
+			ambient < 0 \
+			? NOT_DEFINED_STR \
+			: permitted == CAP_SET \
 			? YES_STR \
 			: NO_STR); \
 	\
@@ -156,7 +165,7 @@ static int cap_get_bound (cap_value_t cap)
 /* semctl(2) states that POSIX.1-2001 requires the caller define this! */
 union semun {
 	int val;
-	struct semid_ds *buf;     
+	struct semid_ds *buf;
 	unsigned short int *array;
 	struct seminfo *__buf;
 };
@@ -166,9 +175,9 @@ static bool linux_kernel_version (int major, int minor, int revision);
 #if defined (HAVE_SYS_CAPABILITY_H)
 static int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
     __attribute__((unused));
+static int get_ambient_capability(cap_value_t cap)
+    __attribute__((unused));
 
-int get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap);
 #endif /* HAVE_SYS_CAPABILITY_H */
-
 
 #endif /* _PROCENV_PLATFORM_LINUX_H */

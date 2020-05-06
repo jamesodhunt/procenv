@@ -30,7 +30,7 @@
 /* semctl(2) states that POSIX.1-2001 requires the caller define this! */
 union semun {
 	int val;
-	struct semid_ds *buf;     
+	struct semid_ds *buf;
 	unsigned short int *array;
 	struct seminfo *__buf;
 };

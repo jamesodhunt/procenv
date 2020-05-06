@@ -239,7 +239,7 @@ pid_to_name (pid_t pid)
 	sprintf (path, "/proc/%d/cmdline", (int)pid);
 
 	f = fopen (path, "r");
-	if (! f) 
+	if (! f)
 		goto out;
 
 	/* Reuse buffer */
@@ -922,10 +922,10 @@ show_prctl_linux (void)
 		else {
 			switch (arg2) {
 			case PR_ENDIAN_BIG:
-				value = BIG_STR; 
+				value = BIG_STR;
 				break;
 			case PR_ENDIAN_LITTLE:
-				value = LITTLE_STR; 
+				value = LITTLE_STR;
 				break;
 			case PR_ENDIAN_PPC_LITTLE:
 				value = "PowerPC pseudo little endian";
@@ -1907,7 +1907,7 @@ linux_kernel_version (int major, int minor, int revision)
 	/* We need something to compare against */
 	assert (ret && actual_major != -1);
 
-	requested_version |= (0xFF0000 & (major << 16)); 
+	requested_version |= (0xFF0000 & (major << 16));
 
 	if (minor != -1) {
 		requested_version |= (0x00FF00 & (minor << 8));
@@ -1924,7 +1924,7 @@ linux_kernel_version (int major, int minor, int revision)
 		actual_version |= (0x00FF00 & (actual_minor << 8));
 
 	if (actual_major != -1)
-		actual_version |= (0xFF0000 & (actual_major << 16)); 
+		actual_version |= (0xFF0000 & (actual_major << 16));
 
 
 	if (actual_version >= requested_version)
@@ -1946,6 +1946,17 @@ get_capability_by_flag_type (cap_t cap_p, cap_flag_t type, cap_value_t cap)
 
     return ret < 0 ? ret : result;
 }
+
+static int
+get_ambient_capability (cap_value_t cap)
+{
+	if (!LINUX_KERNEL_MMR (4, 3, 0)) {
+		return false;
+	}
+
+	return prctl (PR_CAP_AMBIENT, PR_CAP_AMBIENT_IS_SET, cap) == 1;
+}
+
 #endif /* HAVE_SYS_CAPABILITY_H */
 
 #if defined (HAVE_SYS_CAPABILITY_H)

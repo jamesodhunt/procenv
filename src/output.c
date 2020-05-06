@@ -285,7 +285,7 @@ object_open (int retain)
 		 * the state table to lose track of the previous element
 		 * since it is actually the previous-previous element
 		 * (as the pointless object is the previous element).
-		 * 
+		 *
 		 * As such, ignore them.
 		 */
 	}
@@ -340,7 +340,7 @@ object_close (int retain)
 		 * the state table to lose track of the previous element
 		 * since it is actually the previous-previous element
 		 * (as the pointless object is the previous element).
-		 * 
+		 *
 		 * As such, ignore them.
 		 */
 	}
