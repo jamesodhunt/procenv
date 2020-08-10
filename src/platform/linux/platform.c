@@ -1263,12 +1263,12 @@ handle_proc_branch_linux (void)
 
 			if ((p=strstr (buffer, "Name:")) == buffer) {
 				p += 1+strlen ("Name:"); /* jump over tab char */
-				sprintf (name, "%s", p);
+				sprintf (name, "%.15s", p);
 			}
 
 			if ((p=strstr (buffer, "PPid:")) == buffer) {
 				p += 1+strlen ("PPid:"); /* jump over tab char */
-				sprintf (ppid, "%s", p);
+				sprintf (ppid, "%.15s", p);
 
 				/* got all we need now */
 				break;
