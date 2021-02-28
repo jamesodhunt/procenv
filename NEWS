@@ -1,3 +1,9 @@
+0.52	2021-02-28
+
+	* Fix GCC-10 build when used with `-Werror=format-overflow`
+	  (thanks Lukas Maerdian).
+	* Fix FreeBSD capabilities/capsicum build (thanks Li-Wen Hsu).
+
 0.51	2019-08-02
 
 	* Fixed failure scenario identified by `scan-build(1)`.

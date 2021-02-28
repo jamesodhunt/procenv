@@ -1,12 +1,12 @@
 Name:           procenv
-Version:        0.51
+Version:        0.52
 Release:        1%{?dist}
 Summary:        Utility to show process environment
 
 Group:          Applications/System
 License:        GPLv3+
 URL:            https://github.com/jamesodhunt/procenv
-Source0:        https://github.com/jamesodhunt/procenv/archive/0.51.tar.gz
+Source0:        https://github.com/jamesodhunt/procenv/archive/0.52.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 # fixme: should be autoconf >= 2.68, but Fedora packages or alien'ed dpkg
