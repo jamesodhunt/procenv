@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2016 James Hunt <jamesodhunt@ubuntu.com>.
+ * Copyright © 2016-2021 James Hunt <jamesodhunt@gmail.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,15 @@
 #include "platform.h"
 #include "util.h"
 
-#if defined (HAVE_SYS_CAPABILITY_H)
-#include <sys/capsicum.h>
+#if defined (HAVE_SYS_CAPSICUM_H)
+    #include <sys/capsicum.h>
+#else /* !HAVE_SYS_CAPSICUM_H */
+    #if defined (HAVE_SYS_CAPABILITY_H)
+        #include <sys/capability.h>
+    #endif /* HAVE_SYS_CAPABILITY_H */
+#endif /* HAVE_SYS_CAPSICUM_H */
+
+#if defined (HAVE_SYS_CAPSICUM_H) || defined (HAVE_SYS_CAPABILITY_H)
 
 #if __FreeBSD__ == 9
 
@@ -38,6 +45,6 @@
 
 #define show_capsicum_cap(rights, cap) \
 	entry (#cap, "%s", cap_rights_is_set ((&rights), cap) ? YES_STR : NO_STR)
-#endif /* HAVE_SYS_CAPABILITY_H */
+#endif /* HAVE_SYS_CAPSICUM_H || HAVE_SYS_CAPSICUM_H */
 
 #endif /* _PROCENV_PLATFORM_FREEBSD_H */
