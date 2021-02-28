@@ -27,6 +27,23 @@
 
 #define ROOT_PATH                    "/proc/self/root"
 
+/* Maximum length of a process name as shown by ps(1),
+ * /proc/$pid/comm, etc. Requires since there appears to be
+ * no standard userspace define for the TASK_COMM_LEN
+ * kernel define.
+ *
+ * See:
+ *
+ * - PR_SET_NAME in prctl(2).
+ * - pthread_setname_np(3).
+ */
+#define _PROCENV_TASK_COMM_LEN          16
+
+/* The usable amount of space for a process name
+ * (1 byte required for terminating '\0')
+ */
+#define PROCENV_TASK_COMM_NAME_LEN     (_PROCENV_TASK_COMM_LEN-1)
+
 #if defined (HAVE_NUMA_H)
 
 #include <numa.h>
