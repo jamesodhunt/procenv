@@ -193,7 +193,7 @@ See http://ifdeflinux.blogspot.com/2012/10/procenv-and-process-environment.html
 Author
 ------
 
-``procenv`` was written by James Hunt <jamesodhunt@ubuntu.com>.
+``procenv`` was written by James Hunt <jamesodhunt@gmail.com>.
 
 Home Page
 ---------

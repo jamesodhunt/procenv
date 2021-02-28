@@ -3,9 +3,9 @@
 
 m4_define([procenv_version], [0.51])
 
-AC_INIT(procenv,[procenv_version],[jamesodhunt@ubuntu.com],,[https://github.com/jamesodhunt/procenv])
+AC_INIT(procenv,[procenv_version],[jamesodhunt@gmail.com],,[https://github.com/jamesodhunt/procenv])
 
-AC_COPYRIGHT([Copyright (C) 2012-2019 James Hunt <jamesodhunt@ubuntu.com> and Kees Cook <kees@ubuntu.com>])
+AC_COPYRIGHT([Copyright (C) 2012-2021 James Hunt <jamesodhunt@gmail.com> and Kees Cook <kees@ubuntu.com>])
 
 AC_CONFIG_SRCDIR([src/procenv.c])
 AC_CONFIG_MACRO_DIR([m4])
