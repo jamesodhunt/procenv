@@ -724,7 +724,7 @@ procenv_getcpu (void)
 
 	field = fields[41];
 	assert (field);
-	
+
 	cpu = atoi (field);
 
 cleanup:

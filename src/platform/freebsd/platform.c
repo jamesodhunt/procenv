@@ -503,7 +503,7 @@ show_clocks_freebsd (void)
 	show_clock_res (CLOCK_VIRTUAL);
 	show_clock_res (CLOCK_PROF);
 }
-	
+
 struct procenv_ops platform_ops =
 {
 	.driver                        = PROCENV_SET_DRIVER (freebsd),
