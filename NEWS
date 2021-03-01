@@ -1,3 +1,7 @@
+0.53	2021-03-01
+
+	* Really fix FreeBSD capabilities/capsicum build.
+
 0.52	2021-02-28
 
 	* Fix GCC-10 build when used with `-Werror=format-overflow`
