@@ -58,7 +58,7 @@ AC_CHECK_HEADERS([numa.h])
 # FreeBSD 9+ with appropriately configured kernel
 # (enabled by default in FreeBSD 10)
 AC_SEARCH_LIBS([cap_getmode], [c])
-AC_CHECK_HEADERS([sys/capability.h])
+AC_CHECK_HEADERS([sys/capability.h sys/capsicum.h])
 
 AC_SEARCH_LIBS([cap_init], [cap],
                [HAVE_LIBCAP=yes],
