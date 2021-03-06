@@ -68,9 +68,6 @@ show_clocks_generic (void)
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
-#ifdef CLOCK_MONOTONIC_RAW
-	show_clock_res (CLOCK_MONOTONIC_RAW);
-#endif
 	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
 	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
 #if defined CLOCK_BOOTTIME
@@ -78,6 +75,11 @@ show_clocks_generic (void)
 #endif
 
 #endif
+
+#if defined CLOCK_TAI
+	show_clock_res (CLOCK_TAI);
+#endif
+
 }
 
 #endif
