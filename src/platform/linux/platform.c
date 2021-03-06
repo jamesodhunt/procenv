@@ -2219,5 +2219,4 @@ struct procenv_ops platform_ops =
 	.handle_numa_memory            = handle_numa_memory_linux,
 	.handle_proc_branch            = handle_proc_branch_linux,
 	.handle_scheduler_type         = handle_scheduler_type_linux,
-
 };
