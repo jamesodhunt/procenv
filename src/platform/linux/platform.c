@@ -444,7 +444,7 @@ show_cgroups_linux (void)
 	const  char  *delim = ":";
 	char         *file = "/proc/self/cgroup";
 	FILE         *f;
-	char          buffer[1024];
+	char          buffer[PROCENV_BUFFER];
 	size_t        len;
 
 	f = fopen (file, "r");
@@ -698,7 +698,7 @@ procenv_getcpu (void)
 	FILE        *f;
 	char       **fields;
 	const char  *field;
-	char         buffer[1024];
+	char         buffer[PROCENV_BUFFER];
 	size_t       len;
 	size_t       count;
 
@@ -1235,7 +1235,7 @@ show_prctl_linux (void)
 static void
 handle_proc_branch_linux (void)
 {
-	char    buffer[1024];
+	char    buffer[PROCENV_BUFFER];
 	char    path[PATH_MAX];
 	char    name[16];
 	char    pid[16];
@@ -2146,7 +2146,7 @@ in_vm_linux (void)
 	bool result = false;
 	const char *cpuinfo = "/proc/cpuinfo";
 	FILE *f = NULL;
-	char buffer[1024];
+	char buffer[PROCENV_BUFFER];
 
 	f = fopen (cpuinfo, "r");
 	if (! f) {
