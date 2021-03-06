@@ -355,6 +355,24 @@ show_capabilities_linux (void)
 	}
 #endif /* CAP_AUDIT_READ */
 
+#ifdef CAP_PERFMON
+	if (LINUX_KERNEL_MM (5, 8)) {
+		show_capability (caps, CAP_PERFMON);
+	}
+#endif /* CAP_PERFMON */
+
+#ifdef CAP_BPF
+	if (LINUX_KERNEL_MM (5, 8)) {
+		show_capability (caps, CAP_BPF);
+	}
+#endif /* CAP_BPF */
+
+#ifdef CAP_CHECKPOINT_RESTORE
+	if (LINUX_KERNEL_MM (5, 9)) {
+		show_capability (caps, CAP_CHECKPOINT_RESTORE);
+	}
+#endif /* CAP_CHECKPOINT_RESTORE */
+
 	section_close ();
 
 	/* It's possible that procenv is running on a system which has
