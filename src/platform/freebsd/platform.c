@@ -320,24 +320,18 @@ show_cpu_freebsd (void)
 	entry ("number", "%u of %lu", cpu, max);
 }
 
-/* Who would have thought handling PIDs was so tricky? */
 static void
 handle_proc_branch_freebsd (void)
 {
 	int                  count = 0;
-	int                  i;
 	char                 errors[_POSIX2_LINE_MAX];
 	kvm_t               *kvm;
 	struct kinfo_proc   *procs;
 	struct kinfo_proc   *p;
-	pid_t                current;
-	int                  done = false;
 	char                *str = NULL;
 	pid_t                ultimate_parent = 0;
 
 	common_assert ();
-
-	current = getpid ();
 
 	kvm = kvm_openfiles (NULL, _PATH_DEVNULL, NULL, O_RDONLY, errors);
 	if (! kvm)
@@ -347,89 +341,123 @@ handle_proc_branch_freebsd (void)
 	if (! procs)
 		die ("failed to get process info");
 
-	/* Calculate the lowest PID number which gives us the ultimate
-	 * parent of all processes.
+	/* Walk up the process tree looking for the "ultimate parent process".
+	 *
+	 * Every PID has a parent PID, which has a parent PID, which has a parent
+	 * PID, _et cetera_. Hence, this should be easy. The difficulty is knowing
+	 * when to stop, but even then the results may appear confusing to
+	 * users...
 	 *
 	 * On FreeBSD systems, PID 0 ('[kernel]') is the ultimate
-	 * parent rather than PID 1 ('init').
+	 * parent rather than PID 1 ('init'). And this kernel PID appears in the
+	 * process table... unless you're confined in a jail. But FreeBSD also
+	 * offers a few sysctl kernel options that the admin can set:
 	 *
-	 * However, this doesn't work in a FreeBSD jail since in that
-	 * environment:
+	 * - sysctl security.bsd.see_other_uids=0
+	 * - sysctl security.bsd.see_other_gids=0
 	 *
-	 * - there is no init process visible.
-	 * - there is no kernel thread visible.
-	 * - the ultimate parent PID will either by 1 (the "invisible"
+	 * If these security otions are set to zero, a process cannot see it's
+	 * ultimate parent, unless that process is running as the super-user. But
+	 * if those options are set and the process is running inside a jail, it
+	 * can only see direct ancestor parent processes running with its UID/GID,
+	 * unless running as root.
+	 *
+	 * Summary of jail PID visibility:
+	 *
+	 * - There is no init process visible.
+	 * - There is no kernel thread visible.
+	 * - The ultimate parent PID will either by 1 (the "invisible"
 	 *   init process) or 'n' where 'n' is a PID>1 which is also
 	 *   "invisible" (since it lives outside the jail in the host
 	 *   environment).
 	 *
+	 * Further note that if kern.randompid=1 is set, you cannot make
+	 * assumptions about PID/PPID relationships (where PID >1 atleast).
+	 *
 	 * Confused yet?
+	 *
+	 * Notes:
+	 *
+	 * - kvm_getprocs() doesn't return details of the kernel "pid" (0).
+	 *
+	 * Summary:
+	 *
+	 *                              +------------+
+	 *                              | ultimate   |
+	 * +---------+-------+----------+-----+------+-------+
+	 * | secure? | jail? | user     | pid | ppid | notes |
+	 * |---------+-------+----------+-----+------+-------|
+	 * | n       | n     | non-root | 1   |    0 |       |
+	 * | n       | n     | root     | 1   |    0 |       |
+	 * |---------+-------+----------+-----+------+-------|
+	 * | n       | y     | non-root | any |    1 |       |
+	 * | n       | y     | root     | any |    1 |       |
+	 * |---------+-------+----------+-----+------+-------|
+	 * | y       | n     | non-root | any |    1 |       |
+	 * | y       | n     | root     | 1   |    0 |       |
+	 * |---------+-------+----------+-----+------+-------|
+	 * | y       | y     | non-root | any |  any | (1)   |
+	 * | y       | y     | root     | any |    1 |       |
+	 * +---------+-------+----------+-----+------+-------+
+	 *
+	 * Key:
+	 *
+	 * (1) - This scenario appears awkward to determine.
+
+	 * The solution to determine the "full" process ancestry for any PID for
+	 * all cases in the table is thankfully simple:
+	 *
+	 * - Iterate the list of entries returned by kvm_getprocs()
+	 * - Find the entry corresponding to the current process and determine the
+	 *   parent PID.
+	 * - Re-scan the list looking for the parent PID. If it isn't in the
+	 *   table, the ancestry is complete. This works:
+	 *
+	 *   - In a "normal" system:
+	 *
+	 *     Since kvm_getprocs() doesn't return details for PID 0, it's only
+	 *      "mentioned in passing" by being referred to as a PPID for PID 1.
+	 *
+	 *   - In a jail environment:
+	 *
+	 *     Since the jail hides PID 1 (and PID 0).
+	 *   - In a secure system where security.bsd.see_other_uids=0 and/or
+	 *     security.bsd.see_other_gids=0:
+	 *
+	 *     Since those options hide part of the process hierarchy.
 	 */
 
-	p = &procs[0];
-	ultimate_parent = p->ki_pid;
+	/* Start by finding ourself ;) */
+	pid_t pid_to_find = getpid ();
 
-	for (i = 1; i < count; i++) {
-		p = &procs[i];
-		if (p->ki_pid < ultimate_parent)
-			ultimate_parent = p->ki_pid;
-	}
+	bool found_pid;
 
-	while (! done) {
-		for (i = 0; i < count && !done; i++) {
+	while (true) {
+		found_pid = false;
+
+		for (int i=0; i < count; i++) {
 			p = &procs[i];
 
-			if (p->ki_pid == current) {
-				if (misc.in_jail) {
-					struct kinfo_proc   *p2;
-					int                  ppid_found = false;
-					int                  j;
+			if (p->ki_pid == pid_to_find) {
+				appendf (&str, "%s%d ('%s')",
+						(pid_to_find == getpid () ? "" : ", "),
+						(int)p->ki_pid,
+						p->ki_comm);
 
-					/* Determine if the parent PID
-					 * actually exists within the
-					 * jail.
-					 */
-					for (j = 0; j < count; j++) {
-						p2 =  &procs[j];
-
-						if (p2->ki_pid == p->ki_ppid) {
-							ppid_found = true;
-							break;
-						}
-					}
-
-					if (p->ki_ppid == 1 || (p->ki_ppid && ! ppid_found)) {
-						/* Found the "last" PID (whose parent is either
-						 * the "invisible init" or which exists outside the jail)
-						 * so record it and hop out.
-						 */
-						appendf (&str, "%d ('%s') %d (%s)",
-								(int)current, p->ki_comm,
-								p->ki_ppid, UNKNOWN_STR);
-						done = true;
-						break;
-					} else {
-						/* Found a valid parent pid */
-						appendf (&str, "%d ('%s'), ",
-								(int)current, p->ki_comm);
-					}
-
-				} else if (! ultimate_parent && current == ultimate_parent) {
-
-					/* Found the "last" PID so record it and hop out */
-					appendf (&str, "%d ('%s')",
-							(int)current, p->ki_comm);
-					done = true;
-					break;
-				} else {
-					/* Found a valid parent pid */
-					appendf (&str, "%d ('%s'), ",
-							(int)current, p->ki_comm);
-				}
-
-				/* Move on */
-				current = p->ki_ppid;
+				ultimate_parent = p->ki_ppid;
+				pid_to_find = ultimate_parent;
+				found_pid = true;
 			}
+		}
+
+		/* If the pid wasn't found, we're either in a secure or jailed
+		 * environment (where only a subset of pids is visible to us),
+		 * or we tried to look for details of kernel "pseudo pid" (pid 0).
+		 *
+		 * Either way, we can't go any further up the process tree.
+		 */
+		if ((! found_pid) || pid_to_find == 0) {
+			break;
 		}
 	}
 
