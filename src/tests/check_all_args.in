@@ -103,7 +103,7 @@ _run_command()
 	if [ "$expected_outcome" = success ]
 	then
 		[ "$ret" -ne 0 ] && failed=1
-	else 
+	else
 		[ "$ret" -eq 0 ] && failed=1
 	fi
 
@@ -133,7 +133,7 @@ get_man_options()
 init()
 {
 	[ -n "$PROCENV_TEST_DISABLE" ] && msg "Tests disabled" && exit 0
-    
+
 	[ -f "$procenv" ] || die "cannot find binary: $procenv"
 
 	command -v "$json_checker" >/dev/null 2>&1 && \
@@ -141,7 +141,7 @@ init()
 
 	command -v "$xml_checker" >/dev/null 2>&1 && \
 		xml_tests=1 || warn "no $xml_checker - XML tests disabled"
-    
+
 	env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
 	# Always test the default locales
@@ -736,7 +736,7 @@ EOT
 		# XXX: specifying a non-display option _after_
 		# specifing a display option used to be a NOP, but
 		# is now disallowed as it is non-sensical and
-		# the result could be surprising to the user. 
+		# the result could be surprising to the user.
 		#
 		# We select '--meta' as a random display option.
 		msg "Ensure non-display option ('$arg') disallowed after display option ('--meta')"
