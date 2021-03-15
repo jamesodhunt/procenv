@@ -12,7 +12,7 @@
 	  - `security.bsd.see_other_uids=0`
 	  - `security.bsd.see_other_gids=0`
 	  - `kern.randompid=1`
-	  * Fix compiler flag checking in the configure script.
+	* Fix compiler flag checking in the configure script.
 
 0.53	2021-03-01
 
