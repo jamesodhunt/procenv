@@ -1897,7 +1897,7 @@ show_stat (void)
 	modestr = format_perms (st.st_mode);
 	if (! modestr)
 		die ("failed to allocate space for permissions string");
-	perms = (st.st_mode &= ~S_IFMT);
+	perms = (st.st_mode & ~S_IFMT);
 
 	if (perms & S_ISUID)
 		modestr[3] = 's';
@@ -4380,7 +4380,7 @@ format_perms (mode_t mode)
 	modestr[i++] = (perms & S_IWOTH) ? 'w' : '-';
 	modestr[i++] = (perms & S_IXOTH) ? 'x' : '-';
 
-	perms = (mode &= ~S_IFMT);
+	perms = (mode & ~S_IFMT);
 	if (perms & S_ISUID)
 		modestr[3] = 's';
 	if (perms & S_ISGID)
