@@ -27,8 +27,6 @@
 - LSM
   - add details for SMACK and TOMOYO (available in Centos 7).
   - move into a new --security section?
-- --memory: show physical RAM:
-	bytes = (_SC_PHYS_PAGES * _SC_PAGESIZE)
 - FreeBSD:
   - MAC: mac_get_file(3), mac(3,4)
 - --stat:
