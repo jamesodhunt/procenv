@@ -1,3 +1,19 @@
+0.54	2021-03-15
+
+	* --capabilities: Added new capabilities:
+	  - `CAP_BPF`
+	  - `CAP_CHECKPOINT_RESTORE`
+	  - `CAP_PERFMON`
+	* --clocks: Add CLOCK_TAI.
+	* --memory: Add details of total and available memory and swap.
+	  Requires the `libsysinfo` package on *BSD.
+	* --process: Fixed nasty bug (infinite loop) on *BSD if any of
+	  the following sysconf's are set:
+	  - `security.bsd.see_other_uids=0`
+	  - `security.bsd.see_other_gids=0`
+	  - `kern.randompid=1`
+	  * Fix compiler flag checking in the configure script.
+
 0.53	2021-03-01
 
 	* Really fix FreeBSD capabilities/capsicum build.
