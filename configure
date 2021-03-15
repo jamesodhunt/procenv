@@ -645,7 +645,6 @@ PROCENV_PLATFORM_FREEBSD_FALSE
 PROCENV_PLATFORM_FREEBSD_TRUE
 PROCENV_PLATFORM_DARWIN_FALSE
 PROCENV_PLATFORM_DARWIN_TRUE
-AM_CFLAGS
 AM_BACKSLASH
 AM_DEFAULT_VERBOSITY
 AM_DEFAULT_V
@@ -6235,11 +6234,17 @@ END
 fi
 
 
-original_cflags="$CFLAGS"
-CFLAGS=-Werror=format-security
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CC supports -Werror=format-security" >&5
-$as_echo_n "checking whether CC supports -Werror=format-security... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+# Check available compiler flags
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -fstack-protector" >&5
+$as_echo_n "checking whether C compiler accepts -fstack-protector... " >&6; }
+if ${ax_cv_check_cflags___fstack_protector+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ax_check_save_flags=$CFLAGS
+  CFLAGS="$CFLAGS  -fstack-protector"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 int
@@ -6251,15 +6256,90 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-        AM_CFLAGS=-Werror=format-security
+  ax_cv_check_cflags___fstack_protector=yes
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+  ax_cv_check_cflags___fstack_protector=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-CFLAGS="$original_cflags"
+  CFLAGS=$ax_check_save_flags
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cflags___fstack_protector" >&5
+$as_echo "$ax_cv_check_cflags___fstack_protector" >&6; }
+if test "x$ax_cv_check_cflags___fstack_protector" = xyes; then :
+  CFLAGS="$CFLAGS -fstack-protector"
+else
+  :
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -Wformat" >&5
+$as_echo_n "checking whether C compiler accepts -Wformat... " >&6; }
+if ${ax_cv_check_cflags___Wformat+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ax_check_save_flags=$CFLAGS
+  CFLAGS="$CFLAGS  -Wformat"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ax_cv_check_cflags___Wformat=yes
+else
+  ax_cv_check_cflags___Wformat=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS=$ax_check_save_flags
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cflags___Wformat" >&5
+$as_echo "$ax_cv_check_cflags___Wformat" >&6; }
+if test "x$ax_cv_check_cflags___Wformat" = xyes; then :
+  CFLAGS="$CFLAGS -Wformat"
+else
+  :
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -Wformat-security" >&5
+$as_echo_n "checking whether C compiler accepts -Wformat-security... " >&6; }
+if ${ax_cv_check_cflags___Wformat_security+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+  ax_check_save_flags=$CFLAGS
+  CFLAGS="$CFLAGS  -Wformat-security"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ax_cv_check_cflags___Wformat_security=yes
+else
+  ax_cv_check_cflags___Wformat_security=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS=$ax_check_save_flags
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cflags___Wformat_security" >&5
+$as_echo "$ax_cv_check_cflags___Wformat_security" >&6; }
+if test "x$ax_cv_check_cflags___Wformat_security" = xyes; then :
+  CFLAGS="$CFLAGS -Wformat-security"
+else
+  :
+fi
 
 
 # Check whether --enable-compiler-optimisations was given.

@@ -131,7 +131,8 @@ bin_PROGRAMS = procenv$(EXEEXT)
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	check_pr_list$(EXEEXT)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -284,10 +285,6 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/config/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-
-# keep it tight
-AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused -fstack-protector \
-	-Wformat $(am__append_1) $(am__append_2) -Werror
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -393,6 +390,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
+
+# keep it tight
+AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused $(am__append_1) \
+	$(am__append_2) -Werror
 procenv_SOURCES = procenv.c procenv.h pr_list.c pr_list.h pstring.c \
 	pstring.h string-util.c string-util.h output.c output.h util.c \
 	util.h types.h messages.h platform.h platform-headers.h \

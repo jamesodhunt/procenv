@@ -3,9 +3,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 AM_CFLAGS = \
 	-pedantic \
 	-std=gnu99 \
-	-Wall -Wunused \
-	-fstack-protector \
-	-Wformat
+	-Wall -Wunused
 
 
 # XXX: magic option that will remove all unused symbols

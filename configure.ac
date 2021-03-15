@@ -112,15 +112,11 @@ AM_INIT_AUTOMAKE(m4_esyscmd([
 	fi
 ]))
 
-original_cflags="$CFLAGS"
-CFLAGS=-Werror=format-security
-AC_MSG_CHECKING([whether CC supports -Werror=format-security])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-        [AM_CFLAGS=-Werror=format-security],
-	    [AC_MSG_RESULT([no])])
-CFLAGS="$original_cflags"
-AC_SUBST([AM_CFLAGS])
+# Check available compiler flags
+
+AX_CHECK_COMPILE_FLAG([-fstack-protector], [CFLAGS="$CFLAGS -fstack-protector"])
+AX_CHECK_COMPILE_FLAG([-Wformat], [CFLAGS="$CFLAGS -Wformat"])
+AX_CHECK_COMPILE_FLAG([-Wformat-security], [CFLAGS="$CFLAGS -Wformat-security"])
 
 AC_ARG_ENABLE([compiler-optimisations],
 	AS_HELP_STRING([--disable-compiler-optimisations],
