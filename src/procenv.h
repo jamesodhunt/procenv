@@ -166,7 +166,7 @@
  * VERSION 18:
  *   - Added 'ambient' to --capabilities output.
  * VERSION 19:
-+ *  - Added more details to --memory and new capabilities to --capabilities.
+ *  - Added more details to --memory and new capabilities to --capabilities.
  **/
 #define PROCENV_FORMAT_VERSION 19
 
