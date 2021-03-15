@@ -165,8 +165,10 @@
  *   - Added 'vm' to --misc output.
  * VERSION 18:
  *   - Added 'ambient' to --capabilities output.
+ * VERSION 19:
++ *  - Added more details to --memory and new capabilities to --capabilities.
  **/
-#define PROCENV_FORMAT_VERSION 18
+#define PROCENV_FORMAT_VERSION 19
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
