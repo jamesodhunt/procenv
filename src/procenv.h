@@ -77,6 +77,7 @@
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/sysinfo.h>
 
 #include "util.h"
 #include "string-util.h"

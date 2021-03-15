@@ -50,6 +50,10 @@ AC_SEARCH_LIBS([kvm_openfiles], [kvm],
                [HAVE_KVM=yes],
                [HAVE_KVM=no])
 
+AC_SEARCH_LIBS([sysinfo], [sysinfo],
+               [HAVE_SYSINFO=yes],
+               [HAVE_SYSINFO=no])
+
 AC_SEARCH_LIBS([numa_available], [numa],
                [HAVE_NUMA=yes],
                [HAVE_NUMA=no])
@@ -222,4 +226,5 @@ AC_MSG_RESULT([
     libnuma                     : ${HAVE_NUMA}
     libpthread                  : ${HAVE_PTHREAD}
     libkvm                      : ${HAVE_KVM}
+    libsysinfo / sysinfo        : ${HAVE_SYSINFO}
               ])

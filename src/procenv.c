@@ -1440,6 +1440,9 @@ show_memory (void)
 
 	entry ("page size", "%d bytes", getpagesize ());
 
+	if (ops->handle_memory)
+		ops->handle_memory ();
+
 	if (ops->handle_numa_memory)
 		ops->handle_numa_memory ();
 

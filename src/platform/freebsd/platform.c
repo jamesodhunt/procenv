@@ -556,5 +556,6 @@ struct procenv_ops platform_ops =
 	.show_mounts                   = show_mounts_freebsd,
 	.show_rlimits                  = show_rlimits_generic,
 
+	.handle_memory                 = show_memory_generic,
 	.handle_proc_branch            = handle_proc_branch_freebsd,
 };

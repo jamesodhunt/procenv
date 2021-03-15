@@ -2234,6 +2234,7 @@ struct procenv_ops platform_ops =
 	.show_shared_mem               = show_shared_mem_linux,
 	.show_timezone                 = show_timezone_linux,
 
+	.handle_memory                 = show_memory_generic,
 	.handle_numa_memory            = handle_numa_memory_linux,
 	.handle_proc_branch            = handle_proc_branch_linux,
 	.handle_scheduler_type         = handle_scheduler_type_linux,

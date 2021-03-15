@@ -538,6 +538,88 @@ show_cpu_affinities_generic (void)
 	free (cpu_list);
 }
 
+#define PROCENV_KB (1024)
+#define PROCENV_MB (1024*PROCENV_KB)
+#define PROCENV_GB (1024*PROCENV_MB)
+
+static
+void
+show_human_size_entry (size_t value)
+{
+	double result;
+	char *units;
+
+	if (value > PROCENV_GB) {
+		result = ((double)value/PROCENV_GB);
+		units = "GB";
+	} else if (value > PROCENV_MB) {
+		result = ((double)value/PROCENV_MB);
+		units = "MB";
+	} else if (value > PROCENV_KB) {
+		result = ((double)value/PROCENV_KB);
+		units = "KB";
+	} else {
+		result = (double)value;
+		units = "bytes";
+	}
+
+	entry ("human", "%2.2f %s",
+			result,
+			units);
+}
+
+#define mk_mem_section(name, value) \
+{ \
+	section_open (name); \
+	entry ("bytes", "%lu", value); \
+	show_human_size_entry (value); \
+	section_close (); \
+}
+
+void
+show_memory_generic (void)
+{
+	struct sysinfo info;
+
+	int ret = sysinfo (&info);
+
+	if (ret < 0) {
+		return;
+	}
+
+	int multiplier = info.mem_unit;
+
+	unsigned long total_ram  = info.totalram * multiplier;
+	unsigned long free_ram   = info.freeram * multiplier;
+	unsigned long shared_ram = info.sharedram * multiplier;
+	unsigned long buffer_ram = info.bufferram * multiplier;
+
+	unsigned long total_swap = info.totalswap * multiplier;
+	unsigned long free_swap  = info.freeswap * multiplier;
+
+	/*------------------------------*/
+
+	section_open ("ram");
+
+	mk_mem_section ("total", total_ram);
+	mk_mem_section ("free", free_ram);
+	mk_mem_section ("shared", shared_ram);
+	mk_mem_section ("buffer", buffer_ram);
+
+	section_close ();
+
+	/*------------------------------*/
+
+	section_open ("swap");
+
+	mk_mem_section ("total", total_swap);
+	mk_mem_section ("free", free_swap);
+
+	section_close ();
+
+	/*------------------------------*/
+}
+
 #endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
 
 #if defined (PROCENV_PLATFORM_LINUX) || \
