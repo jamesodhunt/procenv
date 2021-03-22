@@ -261,6 +261,7 @@ typedef struct statfs procenv_mnt_type;
 #include <sys/statvfs.h>
 #include <net/if.h>
 #include <link.h>
+#include <sys/sysmacros.h>
 
 #if defined (HAVE_SYS_CAPABILITY_H)
 #include <sys/capability.h>

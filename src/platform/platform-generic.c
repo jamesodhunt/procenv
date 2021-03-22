@@ -542,6 +542,8 @@ show_cpu_affinities_generic (void)
 #define PROCENV_MB (1024*PROCENV_KB)
 #define PROCENV_GB (1024*PROCENV_MB)
 
+#if !defined (PROCENV_PLATFORM_HURD)
+
 static
 void
 show_human_size_entry (size_t value)
@@ -575,6 +577,17 @@ show_human_size_entry (size_t value)
 	show_human_size_entry (value); \
 	section_close (); \
 }
+
+#endif /* !PROCENV_PLATFORM_HURD */
+
+#if defined (PROCENV_PLATFORM_HURD)
+
+/* Although hurd has the "sys/sysinfo.h" header, it doesn't contain a
+ * prototype for sysinfo(2) since the kernel doesn't provide this system call.
+ */
+void show_memory_generic (void) {}
+
+#else /* !PROCENV_PLATFORM_HURD */
 
 void
 show_memory_generic (void)
@@ -619,6 +632,8 @@ show_memory_generic (void)
 
 	/*------------------------------*/
 }
+
+#endif /* PROCENV_PLATFORM_HURD */
 
 #endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_FREEBSD || PROCENV_PLATFORM_HURD */
 
