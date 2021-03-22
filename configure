@@ -6471,7 +6471,7 @@ case "$target_to_consider" in
     *linux*) procenv_platform=linux;;
 
     # XXX: must come *AFTER* linux test
-    *hurd*|*-gnu) procenv_platform=hurd;;
+    *hurd*|*gnu*) procenv_platform=hurd;;
 
     *minix*) procenv_platform=minix;;
     *netbsd*) procenv_platform=netbsd;;
