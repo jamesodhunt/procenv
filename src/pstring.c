@@ -32,7 +32,11 @@ char_to_wchar (const char *str)
 
 	assert (str);
 
-	len = mbsrtowcs (NULL, &str, 0, NULL);
+	mbstate_t ps;
+
+	memset(&ps, 0, sizeof (ps));
+
+	len = mbsrtowcs (NULL, &str, 0, &ps);
 	if (len <= 0)
 		return NULL;
 
@@ -45,7 +49,9 @@ char_to_wchar (const char *str)
 
 	p = str;
 
-	if (mbsrtowcs (wstr, &p, len, NULL) != len)
+	memset(&ps, 0, sizeof (ps));
+
+	if (mbsrtowcs (wstr, &p, len, &ps) != len)
 		goto error;
 
 	/* ensure it's terminated */
