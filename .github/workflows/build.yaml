@@ -10,16 +10,16 @@ jobs:
     steps:
       - name: Install dependencies
       - run: |
-        sudo apt update -qq
-        sudo apt install -y \
-          automake \
-          autopoint \
-          check \
-          expat \
-          libapparmor-dev \
-          libcap-dev \
-          libnuma-dev \
-          libselinux1-dev
+          sudo apt update -qq
+          sudo apt install -y \
+            automake \
+            autopoint \
+            check \
+            expat \
+            libapparmor-dev \
+            libcap-dev \
+            libnuma-dev \
+            libselinux1-dev
 
       - name: Checkout code
         uses: actions/checkout@v2
