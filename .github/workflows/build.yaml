@@ -1,8 +1,6 @@
 name: Build procenv in GitHub Actions build environment
 
-on:
-  pull_request
-  push
+on: [push, pull_request]
 
 jobs:
   build:
