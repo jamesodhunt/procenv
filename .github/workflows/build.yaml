@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
-      - run: |
+        run: |
           sudo apt update -qq
           sudo apt install -y \
             automake \
