@@ -1,0 +1,32 @@
+name: Build procenv in GitHub Actions build environment
+
+on:
+  pull_request
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+      - run: |
+        sudo apt update -qq
+        sudo apt install -y \
+          automake \
+          autopoint \
+          check \
+          expat \
+          libapparmor-dev \
+          libcap-dev \
+          libnuma-dev \
+          libselinux1-dev
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          autoreconf -fi
+          ./configure
+          make -j4
+          make check
