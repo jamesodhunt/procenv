@@ -1,3 +1,11 @@
+0.55	2021-04-08
+
+	* Documentation improvements.
+	* Hurd build fixes:
+	  - Disable detailed memory reporting as `sysinfo()` not available).
+	  - Fixed detection for modern versions of Hurd.
+	* Nits.
+
 0.54	2021-03-15
 
 	* --capabilities: Added new capabilities:
