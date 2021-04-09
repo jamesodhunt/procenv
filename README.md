@@ -6,6 +6,33 @@
 
 # `procenv`
 
+* [Demo](#demo)
+* [Overview](#overview)
+* [Install](#install)
+    * [CentOS](#centos)
+    * [Debian and Ubuntu](#debian-and-ubuntu)
+    * [Fedora](#fedora)
+    * [FreeBSD](#freebsd)
+    * [Gentoo](#gentoo)
+    * [SUSE](#suse)
+    * [Build from source](#build-from-source)
+* [Results](#results)
+    * [Debian build environment](#debian-build-environment)
+        * [`buildd` environment](#buildd-environment)
+        * [Debian `autopkgtest` (DEP-8) environment](#debian-autopkgtest-dep-8-environment)
+    * [Fedora build environment](#fedora-build-environment)
+    * [Gentoo build environment](#gentoo-build-environment)
+    * [Open Build Service (OBS) build environment](#open-build-service-obs-build-environment)
+    * [Semaphore-CI build environment](#semaphore-ci-build-environment)
+    * [Travis-CI build environment](#travis-ci-build-environment)
+    * [Ubuntu build environment](#ubuntu-build-environment)
+* [Porting](#porting)
+* [References](#references)
+* [Author](#author)
+* [Home Page](#home-page)
+
+## Demo
+
 [![demo](https://asciinema.org/a/118278.svg)](https://asciinema.org/a/118278?autoplay=1)
 
 ## Overview
@@ -42,6 +69,94 @@ program (by default). Also, the line of demarcation between "process",
 `procenv` shows these too since they are obviously meant to be queryable by
 applications.
 
+## Install
+
+### CentOS
+
+- Enable EPEL repository.
+- Install:
+
+  ```bash
+  $ sudo dnf -y install procenv
+  ```
+
+### Debian and Ubuntu
+
+```bash
+$ sudo apt -y install procenv
+```
+
+### Fedora
+
+```bash
+$ sudo dnf -y install procenv
+```
+
+### FreeBSD
+
+To install the binary package:
+
+```bash
+$ sudo pkg -y install procenv
+```
+
+To install the port:
+
+```bash
+$ cd /usr/ports/sysutils/procenv
+$ sudo make install clean
+```
+
+### Gentoo
+
+```bash
+$ sudo emerge sys-process/procenv
+```
+
+### SUSE
+
+```bash
+$ sudo zypper install -y procenv
+```
+
+### Build from source
+
+1. Install dependencies
+
+   | Platform | Usage | Required? | Dependency | Rationale |
+   |-|-|-|-|-|
+   | common | build | yes | GCC or Clang compiler | For building the code |
+   | common | build | yes | GNU Autoconf  | For configuring the source package |
+   | common | build | yes | GNU Automake | For generating makefiles |
+   | common | build | yes | GNU Make | For building the code |
+   | common | test | optional | Check | For running unit tests |
+   | common | test | optional | Expat | For validating XML output |
+   | common | test | optional | GNU Groff | For checking man page documentation |
+   | Linux | build | optional | `libapparmor` development package | For capabilities details |
+   | Linux | build | optional | `libcap` development package | For capabilities details |
+   | Linux | build | optional | `libnuma` development package | For NUMA memory details |
+   | Linux | build | optional | `libselinux` development package | For SELinux details |
+   | BSD | build | optional | `libsysinfo` package or port | For general memory details |
+
+1. Checkout the source code:
+
+   ```bash
+   $ git clone https://github.com/jamesodhunt/procenv
+   $ cd procenv
+   ```
+
+1. Configure and build:
+
+   ```bash
+   $ autoreconf -fi && ./configure
+   $ make && make check && sudo make install
+   ```
+
+   > **Note:**
+   >
+   > For BSD systems, replace `make` with `gmake` above to ensure you run using
+   > GNU Make (BSD make will hang at the test stage!)
+
 ## Results
 
 `procenv` is extremely useful for learning about the environment
@@ -53,16 +168,25 @@ captured in the build logs themselves.
 Select a link below and drill down to the build log to see the `procenv`
 output:
 
-### Semaphore-CI
+### Debian build environment
 
-- https://semaphoreci.com/jamesodhunt/procenv
-  (Click "Passed", "Job #", then "`make check`" to see output).
+#### `buildd` environment
 
-### Travis-CI
+- https://buildd.debian.org/status/package.php?p=procenv&suite=sid
 
-- https://travis-ci.org/jamesodhunt/procenv
+#### Debian `autopkgtest` (DEP-8) environment
 
-### Open Build Service (OBS)
+- https://ci.debian.net/packages/p/procenv/
+
+### Fedora build environment
+
+- https://src.fedoraproject.org/rpms/procenv/
+
+### Gentoo build environment
+
+- https://packages.gentoo.org/packages/sys-process/procenv
+
+### Open Build Service (OBS) build environment
 
 - https://build.opensuse.org/package/show/home:jamesodhunt:procenv/procenv
 
@@ -76,25 +200,16 @@ Click on your icon for your distro and follow the instructions.
 
 Note that these packages are "bleeding edge" (generated directly from the GitHub repository).
 
-### Debian
+### Semaphore-CI build environment
 
-#### `buildd` environment
+- https://semaphoreci.com/jamesodhunt/procenv
+  (Click "Passed", "Job #", then "`make check`" to see output).
 
-- https://buildd.debian.org/status/package.php?p=procenv&suite=sid
+### Travis-CI build environment
 
-#### Debian `autopkgtest` (DEP-8) environment
+- https://travis-ci.org/jamesodhunt/procenv
 
-- https://ci.debian.net/packages/p/procenv/
-
-### Fedora
-
-- https://src.fedoraproject.org/rpms/procenv/
-
-### Gentoo
-
-- https://packages.gentoo.org/packages/sys-process/procenv
-
-### Ubuntu
+### Ubuntu build environment
 
 - https://launchpad.net/ubuntu/+source/procenv
 
