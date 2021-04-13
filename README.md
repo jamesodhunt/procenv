@@ -129,6 +129,7 @@ $ sudo zypper install -y procenv
    | common | build | yes | GNU Autoconf  | For configuring the source package |
    | common | build | yes | GNU Automake | For generating makefiles |
    | common | build | yes | GNU Make | For building the code |
+   | common | build | yes | `pkgconf` / `pkg-config` | For configuring build dependencies |
    | common | test | optional | Check | For running unit tests |
    | common | test | optional | Expat | For validating XML output |
    | common | test | optional | GNU Groff | For checking man page documentation |
