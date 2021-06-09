@@ -77,7 +77,10 @@
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#if !defined (PROCENV_PLATFORM_DARWIN)
 #include <sys/sysinfo.h>
+#endif
 
 #include "util.h"
 #include "string-util.h"

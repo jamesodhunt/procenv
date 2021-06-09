@@ -538,48 +538,6 @@ show_cpu_affinities_generic (void)
 	free (cpu_list);
 }
 
-#define PROCENV_KB (1024)
-#define PROCENV_MB (1024*PROCENV_KB)
-#define PROCENV_GB (1024*PROCENV_MB)
-
-#if !defined (PROCENV_PLATFORM_HURD)
-
-static
-void
-show_human_size_entry (size_t value)
-{
-	double result;
-	char *units;
-
-	if (value > PROCENV_GB) {
-		result = ((double)value/PROCENV_GB);
-		units = "GB";
-	} else if (value > PROCENV_MB) {
-		result = ((double)value/PROCENV_MB);
-		units = "MB";
-	} else if (value > PROCENV_KB) {
-		result = ((double)value/PROCENV_KB);
-		units = "KB";
-	} else {
-		result = (double)value;
-		units = "bytes";
-	}
-
-	entry ("human", "%2.2f %s",
-			result,
-			units);
-}
-
-#define mk_mem_section(name, value) \
-{ \
-	section_open (name); \
-	entry ("bytes", "%lu", value); \
-	show_human_size_entry (value); \
-	section_close (); \
-}
-
-#endif /* !PROCENV_PLATFORM_HURD */
-
 #if defined (PROCENV_PLATFORM_HURD)
 
 /* Although hurd has the "sys/sysinfo.h" header, it doesn't contain a
@@ -743,6 +701,39 @@ show_pathconfs (ShowMountType what,
 }
 
 #endif
+
+#if !defined (PROCENV_PLATFORM_HURD)
+
+#define PROCENV_KB (1024)
+#define PROCENV_MB (1024*PROCENV_KB)
+#define PROCENV_GB (1024*PROCENV_MB)
+
+void
+show_human_size_entry (size_t value)
+{
+	double result;
+	char *units;
+
+	if (value > PROCENV_GB) {
+		result = ((double)value/PROCENV_GB);
+		units = "GB";
+	} else if (value > PROCENV_MB) {
+		result = ((double)value/PROCENV_MB);
+		units = "MB";
+	} else if (value > PROCENV_KB) {
+		result = ((double)value/PROCENV_KB);
+		units = "KB";
+	} else {
+		result = (double)value;
+		units = "bytes";
+	}
+
+	entry ("human", "%2.2f %s",
+			result,
+			units);
+}
+
+#endif /* !PROCENV_PLATFORM_HURD */
 
 #if defined (PROCENV_PLATFORM_BSD)   || \
     defined (PROCENV_PLATFORM_MINIX) || \

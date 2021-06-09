@@ -25,6 +25,7 @@ void show_fds_generic (void);
 void show_rlimits_generic (void);
 void show_confstrs_generic (void);
 long get_kernel_bits_generic (void);
+void show_human_size_entry (size_t value);
 
 #if !defined (PROCENV_PLATFORM_MINIX)
 int get_mtu_generic (const struct ifaddrs *ifaddr);

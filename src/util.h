@@ -56,4 +56,16 @@ int fd_valid (int fd);
 int is_console (int fd);
 #endif
 
+#if !defined (PROCENV_PLATFORM_HURD)
+
+#define mk_mem_section(name, value) \
+{ \
+	section_open (name); \
+	entry ("bytes", "%lu", value); \
+	show_human_size_entry (value); \
+	section_close (); \
+}
+
+#endif /* !PROCENV_PLATFORM_HURD */
+
 #endif /* _PROCENV_UTIL_H */

@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2016 James Hunt <jamesodhunt@gmail.com>.
+ * Copyright © 2016-2021 James Hunt <jamesodhunt@gmail.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 
 #include "platform.h"
 #include "util.h"
+
+#include <mach/mach.h>
 
 #define mib_len(mib) ((sizeof (mib) / sizeof(*mib)) - 1)
 

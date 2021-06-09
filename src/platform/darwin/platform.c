@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- * Copyright © 2016 James Hunt <jamesodhunt@gmail.com>.
+ * Copyright © 2016-2021 James Hunt <jamesodhunt@gmail.com>.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -118,22 +118,22 @@ show_cpu_darwin (void)
 static bool
 get_time_darwin (struct timespec *ts)
 {
-    clock_serv_t     cs;
-    mach_timespec_t  mts;
+	clock_serv_t     cs;
+	mach_timespec_t  mts;
 
-    // FIXME: can this fail?
-    host_get_clock_service (mach_host_self(), CALENDAR_CLOCK, &cs);
+	// FIXME: can this fail?
+	host_get_clock_service (mach_host_self(), CALENDAR_CLOCK, &cs);
 
-    // FIXME: can this fail?
-    clock_get_time (cs, &mts);
+	// FIXME: can this fail?
+	clock_get_time (cs, &mts);
 
-    // FIXME: can this fail?
-    mach_port_deallocate (mach_task_self(), cs);
+	// FIXME: can this fail?
+	mach_port_deallocate (mach_task_self(), cs);
 
-    ts->tv_sec = mts.tv_sec;
-    ts->tv_nsec = mts.tv_nsec;
+	ts->tv_sec = mts.tv_sec;
+	ts->tv_nsec = mts.tv_nsec;
 
-    return 0;
+	return 0;
 }
 
 static void
@@ -250,27 +250,104 @@ show_mounts_darwin (ShowMountType what)
 	show_mounts_generic_bsd (what, mntopt_map_darwin);
 }
 
+static void
+show_memory_darwin (void)
+{
+	size_t bytes;
+	size_t len = sizeof(bytes);
+	int ret;
+
+	size_t vm_page_size;
+	size_t total_ram;
+	size_t used_ram;
+	size_t free_ram;
+
+	bytes = 0;
+	ret = sysctlbyname("hw.memsize", &bytes, &len, NULL, 0);
+	if (ret < 0) {
+		return;
+	}
+
+	total_ram = bytes;
+
+	/*------------------------------*/
+
+	bytes = 0;
+	ret = sysctlbyname("vm.pagesize", &bytes, &len, NULL, 0);
+	if (ret < 0) {
+		return;
+	}
+
+	vm_page_size = bytes;
+
+	/*------------------------------*/
+
+	bytes = 0;
+	ret = sysctlbyname("vm.page_free_count", &bytes, &len, NULL, 0);
+	if (ret < 0) {
+		return;
+	}
+
+	used_ram = (bytes * vm_page_size);
+	free_ram = total_ram - used_ram;
+
+	/*------------------------------*/
+
+	mach_msg_type_number_t count;
+	vm_statistics_data_t stats = { 0 };
+
+	count = HOST_VM_INFO_COUNT;
+	ret = host_statistics(mach_host_self(),
+			HOST_VM_INFO,
+			(host_info_t)&stats,
+			&count);
+	if (ret != KERN_SUCCESS) {
+		return;
+	}
+
+	size_t unused_vm_bytes = stats.free_count * vm_page_size;
+	size_t active_bytes = stats.active_count * vm_page_size;
+	size_t inactive_bytes = stats.inactive_count * vm_page_size;
+	size_t wired_bytes = stats.wire_count * vm_page_size;
+
+	/*------------------------------*/
+
+	section_open ("ram");
+
+	mk_mem_section ("total", total_ram);
+	mk_mem_section ("free", free_ram);
+	mk_mem_section ("wired", wired_bytes);
+	mk_mem_section ("unused", unused_vm_bytes);
+	mk_mem_section ("active", active_bytes);
+	mk_mem_section ("inactive", inactive_bytes);
+
+	section_close ();
+
+	/*------------------------------*/
+}
+
 /* Darwin lacks:
  *
  * - cpusets and cpu affinities.
- *
  */
 struct procenv_ops platform_ops =
 {
-    .driver                        = PROCENV_SET_DRIVER (darwin),
+	.driver                        = PROCENV_SET_DRIVER (darwin),
 
-    .signal_map                    = signal_map_darwin,
-    .if_flag_map                   = if_flag_map_darwin,
+	.signal_map                    = signal_map_darwin,
+	.if_flag_map                   = if_flag_map_darwin,
 
-    .get_time                      = get_time_darwin,
-    .get_kernel_bits               = get_kernel_bits_generic,
-    .get_mtu                       = get_mtu_generic,
+	.get_time                      = get_time_darwin,
+	.get_kernel_bits               = get_kernel_bits_generic,
+	.get_mtu                       = get_mtu_generic,
 
-    .handle_proc_branch            = handle_proc_branch_darwin,
+	.handle_proc_branch            = handle_proc_branch_darwin,
 
-    .show_confstrs                 = show_confstrs_generic,
-    .show_cpu                      = show_cpu_darwin,
-    .show_fds                      = show_fds_generic,
-    .show_mounts                   = show_mounts_darwin,
-    .show_rlimits                  = show_rlimits_generic,
+	.show_confstrs                 = show_confstrs_generic,
+	.show_cpu                      = show_cpu_darwin,
+	.show_fds                      = show_fds_generic,
+	.show_mounts                   = show_mounts_darwin,
+	.show_rlimits                  = show_rlimits_generic,
+
+	.handle_memory                 = show_memory_darwin,
 };
