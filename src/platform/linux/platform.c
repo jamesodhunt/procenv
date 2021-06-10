@@ -29,7 +29,7 @@ static struct procenv_map scheduler_map[] = {
 	mk_map_entry (SCHED_IDLE),
 #endif
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static struct procenv_map signal_map_linux[] = {
@@ -38,7 +38,7 @@ static struct procenv_map signal_map_linux[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{"SIGCHLD|SIGCLD", SIGCHLD},
 
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
@@ -60,7 +60,7 @@ static struct procenv_map signal_map_linux[] = {
 	mk_map_entry (SIGIO),
 	mk_map_entry (SIGIOT),
 
-	{SIGPOLL, "SIGPOLL|SIGIO" },
+	{"SIGPOLL|SIGIO", SIGPOLL},
 
 	mk_map_entry (SIGPROF),
 
@@ -80,7 +80,7 @@ static struct procenv_map signal_map_linux[] = {
 	mk_map_entry (SIGXCPU),
 	mk_map_entry (SIGXFSZ),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 static struct procenv_map if_flag_map_linux[] = {
@@ -106,7 +106,7 @@ static struct procenv_map if_flag_map_linux[] = {
 	mk_map_entry (IFF_ECHO),
 #endif
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static struct procenv_map if_extended_flag_map_linux[] = {
@@ -134,7 +134,7 @@ static struct procenv_map if_extended_flag_map_linux[] = {
 #if defined (IFF_ISATAP)
 	mk_map_entry (IFF_ISATAP),
 #endif
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static struct procenv_map personality_map_linux[] = {
@@ -164,7 +164,7 @@ static struct procenv_map personality_map_linux[] = {
 	mk_map_entry (PER_OSF4),
 	mk_map_entry (PER_HPUX),
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static struct procenv_map personality_flag_map_linux[] = {
@@ -196,7 +196,7 @@ static struct procenv_map personality_flag_map_linux[] = {
 	mk_map_entry (WHOLE_SECONDS),
 #endif
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 /* lifted from include/linux/ioprio.h since not available in libc */
@@ -226,7 +226,7 @@ static struct procenv_map io_priorities_class_map[] = {
 	mk_map_entry (IOPRIO_CLASS_IDLE),
 	mk_map_entry (IOPRIO_CLASS_NORMAL),
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static char *

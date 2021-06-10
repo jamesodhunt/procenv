@@ -91,32 +91,32 @@ static const char *text_separator = PROCENV_DEFAULT_TEXT_SEPARATOR;
 int output_fd = -1;
 
 static struct procenv_map output_map[] = {
-	{ OUTPUT_FILE   , "file"     },
-	{ OUTPUT_STDERR , "stderr"   },
-	{ OUTPUT_STDOUT , "stdout"   },
-	{ OUTPUT_SYSLOG , "syslog"   },
-	{ OUTPUT_TERM   , "terminal" },
+	{ "file"     , OUTPUT_FILE   },
+	{ "stderr"   , OUTPUT_STDERR },
+	{ "stdout"   , OUTPUT_STDOUT },
+	{ "syslog"   , OUTPUT_SYSLOG },
+	{ "terminal" , OUTPUT_TERM   },
 
-	{ 0             , NULL       }
+	{ NULL                , 0       }
 };
 
 static struct procenv_map output_format_map[] = {
-	{ OUTPUT_FORMAT_TEXT  , "text"  },
-	{ OUTPUT_FORMAT_CRUMB , "crumb" },
-	{ OUTPUT_FORMAT_JSON  , "json"  },
-	{ OUTPUT_FORMAT_XML   , "xml"   },
+	{ "text"  , OUTPUT_FORMAT_TEXT  },
+	{ "crumb" , OUTPUT_FORMAT_CRUMB },
+	{ "json"  , OUTPUT_FORMAT_JSON  },
+	{ "xml"   , OUTPUT_FORMAT_XML   },
 
-	{ 0                   , NULL    }
+	{ NULL                , 0       }
 };
 
 typedef struct translate_map_entry {
-	wchar_t   from;
 	wchar_t  *to;
+	wchar_t   from;
 } TranslateMapEntry;
 
 typedef struct translate_table {
-	OutputFormat output_format;
 	TranslateMapEntry map[TRANSLATE_MAP_ENTRIES];
+	OutputFormat output_format;
 } TranslateTable;
 
 /*
@@ -124,32 +124,32 @@ typedef struct translate_table {
  */
 static TranslateTable translate_table[] = {
 	{
-		OUTPUT_FORMAT_XML,
 		{
-			{ L'\'', L"&apos;" },
-			{ L'"', L"&quot;"  },
-			{ L'&', L"&amp;"   },
-			{ L'<', L"&lt;"    },
-			{ L'>', L"&gt;"    },
+			{ L"&apos;" , L'\'' },
+			{ L"&quot;" , L'"'  },
+			{ L"&amp;"  , L'&'  },
+			{ L"&lt;"   , L'<'  },
+			{ L"&gt;"   , L'>'  },
 
 			/* terminator */
-			{ L'\0', NULL      }
-		}
+			{ NULL      , L'\0' }
+		},
+		OUTPUT_FORMAT_XML
 	},
 	{
-		OUTPUT_FORMAT_JSON,
 		{
-			{ L'"', L"\\\""    },
-			{ L'\\', L"\\\\"   },
+			{ L"\\\"", L'"'  },
+			{ L"\\\\", L'\\' },
 
 			/* XXX: the hack! */
-			{ L'\0', NULL      },
-			{ L'\0', NULL      },
-			{ L'\0', NULL      },
+			{ NULL, L'\0' },
+			{ NULL, L'\0' },
+			{ NULL, L'\0' },
 
 			/* terminator */
-			{ L'\0', NULL      }
-		}
+			{ NULL      , L'\0' }
+		},
+		OUTPUT_FORMAT_JSON
 	},
 };
 

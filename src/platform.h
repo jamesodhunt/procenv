@@ -62,28 +62,29 @@ struct procenv_priority {
 };
 
 struct procenv_user {
+	struct passwd passwd;
+	char proc_name[PROCENV_PR_GET_NAME_LEN];
+	char  ctrl_terminal[L_ctermid];
+
+	char __padding[3];
+
 	pid_t pid;
 	pid_t ppid;
 	pid_t sid;
 
-	char proc_name[PROCENV_PR_GET_NAME_LEN];
+	char *login;
 
 	pid_t pgroup;
 	pid_t fg_pgroup;
-	char  ctrl_terminal[L_ctermid];
 	int   tty_fd;
 
 	uid_t uid;
 	uid_t euid;
 	uid_t suid;
 
-	char *login;
-
 	gid_t gid;
 	gid_t egid;
 	gid_t sgid;
-
-	struct passwd passwd;
 };
 
 struct procenv_misc {

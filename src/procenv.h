@@ -170,8 +170,10 @@
  *   - Added 'ambient' to --capabilities output.
  * VERSION 19:
  *  - Added more details to --memory and new capabilities to --capabilities.
+ * VERSION 20:
+ *  - More --memory details for Darwin.
  **/
-#define PROCENV_FORMAT_VERSION 19
+#define PROCENV_FORMAT_VERSION 20
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
@@ -263,10 +265,10 @@
 }
 
 #define SPEED(s) \
-	{s, #s }
+	{#s, s}
 
 #define mk_map_entry(s) \
-	{s, #s }
+	{#s, s}
 
 #define show_confstr(s) \
 { \
@@ -337,7 +339,7 @@
  	sysconf (s)
 
 #define mk_sysconf_map_entry(name) \
-	{name, #name }
+	{#name, name }
 
 #define show_sizeof_type(type) \
 	entry (#type, "%lu byte%s", \

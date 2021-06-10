@@ -24,7 +24,7 @@ static struct procenv_map signal_map_generic[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
 
 	mk_map_entry (SIGCONT),
 
@@ -76,7 +76,7 @@ static struct procenv_map signal_map_generic[] = {
 	mk_map_entry (SIGXCPU),
 	mk_map_entry (SIGXFSZ),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 struct procenv_ops platform_ops =

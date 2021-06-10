@@ -25,7 +25,7 @@ static struct procenv_map signal_map_openbsd[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
 
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
@@ -56,26 +56,27 @@ static struct procenv_map signal_map_openbsd[] = {
 	mk_map_entry (SIGTHR),
 	mk_map_entry (SIGTTOU),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 static struct procenv_map64 mntopt_map[] = {
 
-	{ MNT_ASYNC        , "asynchronous" },
-	{ MNT_EXPORTED     , "NFS-exported" },
-	{ MNT_LOCAL        , "local" },
-	{ MNT_NOATIME      , "noatime" },
-	{ MNT_NOEXEC       , "noexec" },
-	{ MNT_NOSUID       , "nosuid" },
-	{ MNT_QUOTA        , "with quotas" },
-	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SOFTDEP      , "soft-updates" },
-#if defined (MNT_SUJ)
-	{ MNT_SUJ          , "journaled soft-updates" },
-#endif
-	{ MNT_SYNCHRONOUS  , "synchronous" },
+	{ "asynchronous" , MNT_ASYNC },
+	{ "NFS-exported" , MNT_EXPORTED },
+	{ "local"        , MNT_LOCAL },
+	{ "noatime"      , MNT_NOATIME },
+	{ "noexec"       , MNT_NOEXEC },
+	{ "nosuid"       , MNT_NOSUID },
+	{ "with-quotas"  , MNT_QUOTA },
+	{ "read-only"    , MNT_RDONLY },
+	{ "synchronous"  , MNT_SYNCHRONOUS },
 
-	{ 0, NULL }
+#if defined (MNT_SUJ)
+	{ "journaled-soft-updates", MNT_SUJ },
+#endif
+	{ "synchronous", MNT_SYNCHRONOUS },
+
+	{ NULL, 0 }
 };
 
 static struct procenv_map if_flag_map_openbsd[] = {
@@ -91,7 +92,7 @@ static struct procenv_map if_flag_map_openbsd[] = {
 	mk_map_entry (IFF_SIMPLEX),
 	mk_map_entry (IFF_MULTICAST),
 
-	{ 0, NULL }
+	{ NULL, 0 }
 };
 
 static void

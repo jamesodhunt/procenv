@@ -24,7 +24,7 @@ static struct procenv_map signal_map_hurd[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
 
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
@@ -55,7 +55,7 @@ static struct procenv_map signal_map_hurd[] = {
 	mk_map_entry (SIGINFO),
 	mk_map_entry (SIGLOST),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 static struct procenv_map if_flag_map_hurd[] = {
@@ -70,7 +70,7 @@ static struct procenv_map if_flag_map_hurd[] = {
 	mk_map_entry (IFF_ALLMULTI),
 	mk_map_entry (IFF_MULTICAST),
 
-	{ 0, NULL }
+	{ NULL, 0 },
 };
 
 struct procenv_ops platform_ops =

@@ -27,8 +27,8 @@ extern struct procenv_misc misc;
 
 struct baud_speed
 {
-	speed_t  speed;
 	char    *name;
+	speed_t  speed;
 };
 
 /**
@@ -276,7 +276,7 @@ static struct baud_speed baud_speeds[] = {
     SPEED (B230400),
 
     /* terminator */
-    { 0, NULL }
+    { NULL, 0 }
 };
 
 const char *

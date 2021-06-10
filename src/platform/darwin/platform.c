@@ -60,32 +60,32 @@ static struct procenv_map signal_map_darwin[] = {
 #endif
 
 #if defined (SIGPOLL)
-	{ SIGPOLL, "SIGPOLL|SIGEMT" },
+	{ "SIGPOLL|SIGEMT" , SIGPOLL },
 #elif defined (SIGEMT)
-	{ SIGEMT, "SIGPOLL|SIGEMT" },
+	{ "SIGPOLL|SIGEMT", SIGEMT },
 #endif
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
-	{ SIGABRT, "SIGABRT|SIGIOT" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
+	{ "SIGABRT|SIGIOT", SIGABRT },
 
-	{ 0, NULL },
+	{ NULL , 0 },
 };
 
 static struct procenv_map64 mntopt_map_darwin[] = {
 
-	{ MNT_ASYNC        , "asynchronous" },
-	{ MNT_EXPORTED     , "NFS-exported" },
-	{ MNT_LOCAL        , "local" },
-	{ MNT_MULTILABEL   , "multilabel" },
-	{ MNT_NOATIME      , "noatime" },
-	{ MNT_NOEXEC       , "noexec" },
-	{ MNT_NOSUID       , "nosuid" },
-	{ MNT_QUOTA        , "with quotas" },
-	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SYNCHRONOUS  , "synchronous" },
-	{ MNT_UNION        , "union" },
+	{ "asynchronous" , MNT_ASYNC },
+	{ "NFS-exported" , MNT_EXPORTED },
+	{ "local"        , MNT_LOCAL },
+	{ "multilabel"   , MNT_MULTILABEL },
+	{ "noatime"      , MNT_NOATIME },
+	{ "noexec"       , MNT_NOEXEC },
+	{ "nosuid"       , MNT_NOSUID },
+	{ "with-quotas"  , MNT_QUOTA },
+	{ "read-only"    , MNT_RDONLY },
+	{ "synchronous"  , MNT_SYNCHRONOUS },
+	{ "union"        , MNT_UNION },
 
-	{ 0, NULL }
+	{ NULL , 0}
 };
 
 static struct procenv_map if_flag_map_darwin[] = {
@@ -101,7 +101,7 @@ static struct procenv_map if_flag_map_darwin[] = {
 	mk_map_entry (IFF_SIMPLEX),
 	mk_map_entry (IFF_MULTICAST),
 
-	{ 0, NULL }
+	{ NULL , 0 }
 };
 
 static void
@@ -121,13 +121,18 @@ get_time_darwin (struct timespec *ts)
 	clock_serv_t     cs;
 	mach_timespec_t  mts;
 
-	// FIXME: can this fail?
-	host_get_clock_service (mach_host_self(), CALENDAR_CLOCK, &cs);
+	kern_return_t    ret;
 
-	// FIXME: can this fail?
-	clock_get_time (cs, &mts);
+	ret = host_get_clock_service (mach_host_self(), CALENDAR_CLOCK, &cs);
+	if (ret != KERN_SUCCESS) {
+		return 1;
+	}
 
-	// FIXME: can this fail?
+	ret = clock_get_time (cs, &mts);
+	if (ret != KERN_SUCCESS) {
+		return 1;
+	}
+
 	mach_port_deallocate (mach_task_self(), cs);
 
 	ts->tv_sec = mts.tv_sec;

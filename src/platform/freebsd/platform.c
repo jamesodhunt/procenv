@@ -24,7 +24,7 @@ static struct procenv_map signal_map_freebsd[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
 
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
@@ -56,35 +56,35 @@ static struct procenv_map signal_map_freebsd[] = {
 	mk_map_entry (SIGTHR),
 	mk_map_entry (SIGLIBRT),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 static struct procenv_map64 mntopt_map_freebsd[] = {
 
-	{ MNT_ACLS         , "acls" },
-	{ MNT_ASYNC        , "asynchronous" },
-	{ MNT_EXPORTED     , "NFS-exported" },
-	{ MNT_GJOURNAL     , "gjournal" },
-	{ MNT_LOCAL        , "local" },
-	{ MNT_MULTILABEL   , "multilabel" },
-	{ MNT_NFS4ACLS     , "nfsv4acls" },
-	{ MNT_NOATIME      , "noatime" },
-	{ MNT_NOCLUSTERR   , "noclusterr" },
-	{ MNT_NOCLUSTERW   , "noclusterw" },
-	{ MNT_NOEXEC       , "noexec" },
-	{ MNT_NOSUID       , "nosuid" },
-	{ MNT_NOSYMFOLLOW  , "nosymfollow" },
-	{ MNT_QUOTA        , "with quotas" },
-	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SOFTDEP      , "soft-updates" },
-	{ MNT_SUIDDIR      , "suiddir" },
+	{ "acls" , MNT_ACLS },
+	{ "asynchronous" , MNT_ASYNC },
+	{ "NFS-exported" , MNT_EXPORTED },
+	{ "gjournal" , MNT_GJOURNAL },
+	{ "local" , MNT_LOCAL },
+	{ "multilabel" , MNT_MULTILABEL },
+	{ "nfsv4acls" , MNT_NFS4ACLS },
+	{ "noatime" , MNT_NOATIME },
+	{ "noclusterr" , MNT_NOCLUSTERR },
+	{ "noclusterw" , MNT_NOCLUSTERW },
+	{ "noexec" , MNT_NOEXEC },
+	{ "nosuid" , MNT_NOSUID },
+	{ "nosymfollow" , MNT_NOSYMFOLLOW },
+	{ "with-quotas" , MNT_QUOTA },
+	{ "read-only" , MNT_RDONLY },
+	{ "soft-updates" , MNT_SOFTDEP },
+	{ "suiddir" , MNT_SUIDDIR },
 #if defined (MNT_SUJ)
-	{ MNT_SUJ          , "journaled soft-updates" },
+	{ "journaled-soft-updates" , MNT_SUJ },
 #endif
-	{ MNT_SYNCHRONOUS  , "synchronous" },
-	{ MNT_UNION        , "union" },
+	{ "synchronous" , MNT_SYNCHRONOUS },
+	{ "union" , MNT_UNION },
 
-	{ 0, NULL }
+	{ NULL, 0 },
 };
 
 static struct procenv_map if_flag_map_freebsd[] = {
@@ -100,7 +100,7 @@ static struct procenv_map if_flag_map_freebsd[] = {
 	mk_map_entry (IFF_SIMPLEX),
 	mk_map_entry (IFF_MULTICAST),
 
-	{ 0, NULL }
+	{ NULL, 0 },
 };
 
 static void

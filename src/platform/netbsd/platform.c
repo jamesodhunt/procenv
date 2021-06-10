@@ -24,7 +24,7 @@ static struct procenv_map signal_map_netbsd[] = {
 	mk_map_entry (SIGALRM),
 	mk_map_entry (SIGBUS),
 
-	{ SIGCHLD, "SIGCHLD|SIGCLD" },
+	{ "SIGCHLD|SIGCLD", SIGCHLD },
 
 	mk_map_entry (SIGCONT),
 	mk_map_entry (SIGFPE),
@@ -54,27 +54,27 @@ static struct procenv_map signal_map_netbsd[] = {
 	mk_map_entry (SIGINFO),
 	mk_map_entry (SIGPWR),
 
-	{ 0, NULL },
+	{ NULL, 0 },
 };
 
 static struct procenv_map64 mntopt_map[] = {
 
-	{ MNT_ASYNC        , "asynchronous" },
-	{ MNT_EXPORTED     , "NFS-exported" },
-	{ MNT_LOCAL        , "local" },
-	{ MNT_NOATIME      , "noatime" },
-	{ MNT_NOEXEC       , "noexec" },
-	{ MNT_NOSUID       , "nosuid" },
-	{ MNT_QUOTA        , "with quotas" },
-	{ MNT_RDONLY       , "read-only" },
-	{ MNT_SOFTDEP      , "soft-updates" },
+	{ "asynchronous" , MNT_ASYNC },
+	{ "NFS-exported" , MNT_EXPORTED },
+	{ "local"        , MNT_LOCAL },
+	{ "noatime"      , MNT_NOATIME },
+	{ "noexec"       , MNT_NOEXEC },
+	{ "nosuid"       , MNT_NOSUID },
+	{ "with-quotas"  , MNT_QUOTA },
+	{ "read-only"    , MNT_RDONLY },
+	{ "soft-updates", MNT_SOFTDEP },
 #if defined (MNT_SUJ)
-	{ MNT_SUJ          , "journaled soft-updates" },
+	{ "journaled-soft-updates", MNT_SUJ },
 #endif
-	{ MNT_SYNCHRONOUS  , "synchronous" },
-	{ MNT_UNION        , "union" },
+	{ "synchronous", MNT_SYNCHRONOUS },
+	{ "union", MNT_UNION },
 
-	{ 0, NULL }
+	{ NULL, 0 },
 };
 
 static struct procenv_map if_flag_map_netbsd[] = {
@@ -90,7 +90,7 @@ static struct procenv_map if_flag_map_netbsd[] = {
 	mk_map_entry (IFF_SIMPLEX),
 	mk_map_entry (IFF_MULTICAST),
 
-	{ 0, NULL }
+	{ NULL, 0 },
 };
 
 static void

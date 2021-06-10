@@ -22,13 +22,13 @@
 #include <stdint.h>
 
 struct procenv_map {
-	unsigned int   num;
 	const char    *name;
+	unsigned int   num;
 };
 
 struct procenv_map64 {
-	uint64_t       num;
 	const char    *name;
+	uint64_t       num;
 };
 
 #endif /* _PROCENV_TYPES_H */

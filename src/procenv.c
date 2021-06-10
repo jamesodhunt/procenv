@@ -945,7 +945,7 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_XOPEN_XCU_VERSION),
 #endif
 
-	{ 0, NULL }
+	{ NULL , 0 }
 };
 
 struct procenv_map locale_map[] = {
@@ -976,7 +976,7 @@ struct procenv_map locale_map[] = {
 #endif
 	mk_map_entry (LC_TIME),
 
-	{ 0, NULL }
+	{ NULL , 0 }
 };
 
 struct procenv_map thread_sched_policy_map[] = {
@@ -1088,7 +1088,6 @@ usage (void)
 	show ("    the data in a flattened format with each value on a separate line");
 	show ("    preceded by all appropriate headings which are separated by the");
 	show ("    current separator.");
-	show ("");
 }
 
 /**
