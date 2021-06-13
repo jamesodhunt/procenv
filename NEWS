@@ -1,3 +1,10 @@
+0.56	2021-06-13
+
+	* tidy: compact and align structs for memory size and performance.
+	* darwin: Add memory details (total, free, wired, unused, active and
+	  inactive memory).
+	* doc improvements.
+
 0.55	2021-04-08
 
 	* Documentation improvements.
