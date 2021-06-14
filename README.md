@@ -14,6 +14,7 @@
     * [Fedora](#fedora)
     * [FreeBSD](#freebsd)
     * [Gentoo](#gentoo)
+    * [macOS](#macos)
     * [SUSE](#suse)
     * [Build from source](#build-from-source)
 * [Results](#results)
@@ -22,6 +23,7 @@
         * [Debian `autopkgtest` (DEP-8) environment](#debian-autopkgtest-dep-8-environment)
     * [Fedora build environment](#fedora-build-environment)
     * [Gentoo build environment](#gentoo-build-environment)
+    * [MacPorts build environment](#macports-build-environment)
     * [Open Build Service (OBS) build environment](#open-build-service-obs-build-environment)
     * [Semaphore-CI build environment](#semaphore-ci-build-environment)
     * [Travis-CI build environment](#travis-ci-build-environment)
@@ -56,9 +58,9 @@ runs in and for system comparison.
 - GNU Hurd
 - GNU Linux
 - Minix 3
+- macOS
 - NetBSD
 - OpenBSD
-- OSX
 
 It unashamedly emulates a number of existing system utilities as it is
 attempting to be all-encompassing: I wrote it with the aim of being able to
@@ -111,6 +113,14 @@ $ sudo make install clean
 
 ```bash
 $ sudo emerge sys-process/procenv
+```
+
+### macOS
+
+Install via [MacPorts](https://ports.macports.org/port/procenv/summary):
+
+```bash
+$ sudo port install procenv
 ```
 
 ### SUSE
@@ -186,6 +196,10 @@ output:
 ### Gentoo build environment
 
 - https://packages.gentoo.org/packages/sys-process/procenv
+
+### MacPorts build environment
+
+- https://ports.macports.org/port/procenv/
 
 ### Open Build Service (OBS) build environment
 
