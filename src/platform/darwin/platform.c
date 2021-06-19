@@ -161,7 +161,7 @@ handle_proc_branch_darwin (void)
 
 	current = getpid ();
 
-	/* XXX: This system interface seems horribly racy - what if the numbe of pids
+	/* XXX: This system interface seems horribly racy - what if the number of pids
 	 * XXX: changes between the 1st and 2nd call to sysctl() ???
 	 */
 	while (! done) {
