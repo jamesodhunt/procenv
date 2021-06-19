@@ -1622,17 +1622,6 @@ out:
     return;
 }
 
-static void
-show_timezone_linux (void)
-{
-	tzset ();
-
-	entry ("tzname[0]", "'%s'", tzname[0]);
-	entry ("tzname[1]", "'%s'", tzname[1]);
-	entry ("timezone", "%ld", timezone);
-	entry ("daylight", "%d", daylight);
-}	
-
 static const char *
 get_ioprio_class_name (int ioprio)
 {
@@ -2232,7 +2221,7 @@ struct procenv_ops platform_ops =
 	.show_security_module          = show_security_module_linux,
 	.show_semaphores               = show_semaphores_linux,
 	.show_shared_mem               = show_shared_mem_linux,
-	.show_timezone                 = show_timezone_linux,
+	.show_timezone                 = show_timezone_generic,
 
 	.handle_memory                 = show_memory_generic,
 	.handle_numa_memory            = handle_numa_memory_linux,

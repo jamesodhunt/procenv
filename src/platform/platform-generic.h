@@ -74,4 +74,10 @@ void show_memory_generic (void);
 
 void show_clocks_generic (void);
 
+#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
+
+void show_timezone_generic (void);
+
+#endif
+
 #endif /* _PROCENV_PLATFORM_GENERIC_H */

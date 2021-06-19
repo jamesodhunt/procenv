@@ -1086,3 +1086,22 @@ show_mounts_generic_linux (ShowMountType what)
 }
 
 #endif /* PROCENV_PLATFORM_LINUX || PROCENV_PLATFORM_HURD */
+
+#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
+
+void
+show_timezone_generic (void)
+{
+	tzset ();
+
+	entry ("tzname[0]", "'%s'", tzname[0]);
+	entry ("tzname[1]", "'%s'", tzname[1]);
+
+	entry ("timezone", "%ld", timezone);
+
+#ifndef PROCENV_PLATFORM_BSD
+	entry ("daylight", "%d", daylight);
+#endif
+}
+
+#endif

@@ -234,6 +234,7 @@ struct procenv_ops platform_ops =
 	.show_fds                      = show_fds_generic,
 	.show_mounts                   = show_mounts_netbsd,
 	.show_rlimits                  = show_rlimits_generic,
+	.show_timezone                 = show_timezone_generic,
 
 	.handle_proc_branch            = handle_proc_branch_netbsd,
 };
