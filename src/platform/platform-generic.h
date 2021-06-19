@@ -69,8 +69,9 @@ int get_canonical_generic_linux (const char *path, char *canonical, size_t len);
 
 #if !defined (PROCENV_PLATFORM_DARWIN)
 bool get_time_generic (struct timespec *ts);
-void show_clocks_generic (void);
 void show_memory_generic (void);
 #endif
+
+void show_clocks_generic (void);
 
 #endif /* _PROCENV_PLATFORM_GENERIC_H */

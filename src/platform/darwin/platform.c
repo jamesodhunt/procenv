@@ -350,6 +350,7 @@ struct procenv_ops platform_ops =
 
 	.show_confstrs                 = show_confstrs_generic,
 	.show_cpu                      = show_cpu_darwin,
+	.show_clocks                   = show_clocks_generic,
 	.show_fds                      = show_fds_generic,
 	.show_mounts                   = show_mounts_darwin,
 	.show_rlimits                  = show_rlimits_generic,

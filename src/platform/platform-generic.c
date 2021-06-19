@@ -41,48 +41,73 @@ show_rlimits_generic (void)
 	show_limit (RLIMIT_STACK);
 }
 
-#if !defined (PROCENV_PLATFORM_DARWIN)
-
 void
 show_clocks_generic (void)
 {
-	show_clock_res (CLOCK_REALTIME);
-
-#if defined CLOCK_REALTIME_COARSE
-	show_clock_res (CLOCK_REALTIME_COARSE);
-#endif
-
-#if defined CLOCK_REALTIME_HR
-	show_clock_res (CLOCK_REALTIME_HR);
-#endif
-
-	show_clock_res (CLOCK_MONOTONIC);
-
-#if defined CLOCK_MONOTONIC_COARSE
-	show_clock_res (CLOCK_MONOTONIC_COARSE);
-#endif
-
-#if defined CLOCK_MONOTONIC_RAW
-	show_clock_res (CLOCK_MONOTONIC_RAW);
-#endif
-
-#if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
-
-	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
-	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
-#if defined CLOCK_BOOTTIME
+#ifdef CLOCK_BOOTTIME
 	show_clock_res (CLOCK_BOOTTIME);
 #endif
 
+#ifdef CLOCK_BOOTTIME_ALARM
+	show_clock_res (CLOCK_BOOTTIME_ALARM);
 #endif
 
-#if defined CLOCK_TAI
+#ifdef CLOCK_MONOTONIC
+	show_clock_res (CLOCK_MONOTONIC);
+#endif
+
+#ifdef CLOCK_MONOTONIC_COARSE
+	show_clock_res (CLOCK_MONOTONIC_COARSE);
+#endif
+
+#ifdef CLOCK_MONOTONIC_RAW
+	show_clock_res (CLOCK_MONOTONIC_RAW);
+#endif
+
+#ifdef CLOCK_MONOTONIC_RAW_APPROX
+	show_clock_res (CLOCK_MONOTONIC_RAW_APPROX);
+#endif
+
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
+#endif
+
+#ifdef CLOCK_REALTIME
+	show_clock_res (CLOCK_REALTIME);
+#endif
+
+#ifdef CLOCK_REALTIME_ALARM
+	show_clock_res (CLOCK_REALTIME_ALARM);
+#endif
+
+#ifdef CLOCK_REALTIME_COARSE
+	show_clock_res (CLOCK_REALTIME_COARSE);
+#endif
+
+#ifdef CLOCK_REALTIME_HR
+	show_clock_res (CLOCK_REALTIME_HR);
+#endif
+
+#ifdef CLOCK_TAI
 	show_clock_res (CLOCK_TAI);
 #endif
 
-}
-
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+	show_clock_res (CLOCK_PROCESS_CPUTIME_ID);
 #endif
+
+#ifdef CLOCK_THREAD_CPUTIME_ID
+	show_clock_res (CLOCK_THREAD_CPUTIME_ID);
+#endif
+
+#ifdef CLOCK_UPTIME_RAW
+	show_clock_res (CLOCK_UPTIME_RAW);
+#endif
+
+#ifdef CLOCK_UPTIME_RAW_APPROX
+	show_clock_res (CLOCK_UPTIME_RAW_APPROX);
+#endif
+}
 
 long
 get_kernel_bits_generic (void)
