@@ -6,33 +6,6 @@
 
 # `procenv`
 
-* [Demo](#demo)
-* [Overview](#overview)
-* [Install](#install)
-    * [CentOS](#centos)
-    * [Debian and Ubuntu](#debian-and-ubuntu)
-    * [Fedora](#fedora)
-    * [FreeBSD](#freebsd)
-    * [Gentoo](#gentoo)
-    * [macOS](#macos)
-    * [SUSE](#suse)
-    * [Build from source](#build-from-source)
-* [Results](#results)
-    * [Debian build environment](#debian-build-environment)
-        * [`buildd` environment](#buildd-environment)
-        * [Debian `autopkgtest` (DEP-8) environment](#debian-autopkgtest-dep-8-environment)
-    * [Fedora build environment](#fedora-build-environment)
-    * [Gentoo build environment](#gentoo-build-environment)
-    * [MacPorts build environment](#macports-build-environment)
-    * [Open Build Service (OBS) build environment](#open-build-service-obs-build-environment)
-    * [Semaphore-CI build environment](#semaphore-ci-build-environment)
-    * [Travis-CI build environment](#travis-ci-build-environment)
-    * [Ubuntu build environment](#ubuntu-build-environment)
-* [Porting](#porting)
-* [References](#references)
-* [Author](#author)
-* [Home Page](#home-page)
-
 ## Demo
 
 [![demo](https://asciinema.org/a/118278.svg)](https://asciinema.org/a/118278?autoplay=1)
