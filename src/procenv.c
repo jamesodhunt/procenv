@@ -2234,7 +2234,7 @@ get_net_family_name (sa_family_t family)
 		break;
 #endif
 
-#if defined (PROCENV_PLATFORM_BSD)
+#if defined (PROCENV_PLATFORM_BSD) || defined (PROCENV_PLATFORM_DARWIN)
 	case AF_LINK:
 		return "AF_LINK";
 		break;
