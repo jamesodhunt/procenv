@@ -178,7 +178,7 @@ handle_proc_branch_openbsd (void)
 /* XXX:Notes:
  *
  * - show_cpu : it doesn't appear you can query the CPU of the
- *   current process on NetBSD :-(
+ *   current process on OpenBSD :-(
  */
 struct procenv_ops platform_ops =
 {
