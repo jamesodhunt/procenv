@@ -90,4 +90,5 @@ struct procenv_ops platform_ops =
 	.show_fds                      = show_fds_generic,
 	.show_mounts                   = show_mounts_generic_linux,
 	.show_rlimits                  = show_rlimits_generic,
+	.show_libs                     = show_libs_generic,
 };

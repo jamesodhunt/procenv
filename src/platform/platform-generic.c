@@ -1105,3 +1105,51 @@ show_timezone_generic (void)
 }
 
 #endif
+
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
+
+static int
+libs_callback (struct dl_phdr_info *info, size_t size, void *data)
+{
+	const char *name;
+	const char *path;
+
+	assert (info);
+
+	if (! info->dlpi_name || ! *info->dlpi_name)
+		return 0;
+
+	path = info->dlpi_name;
+	assert (path);
+
+	name = strrchr (path, '/');
+
+	if (name) {
+		/* Jump over slash */
+		name++;
+	} else {
+		/* BSD libraries don't show the path */
+		name = path;
+	}
+
+	object_open (false);
+
+	section_open (name);
+
+	entry ("path", "%s", path);
+	entry ("address", "%p", (void *)info->dlpi_addr);
+
+	section_close ();
+
+	object_close (false);
+
+	return 0;
+}
+
+void
+show_libs_generic(void)
+{
+	dl_iterate_phdr (libs_callback, NULL);
+}
+
+#endif

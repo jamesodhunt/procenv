@@ -2222,6 +2222,7 @@ struct procenv_ops platform_ops =
 	.show_semaphores               = show_semaphores_linux,
 	.show_shared_mem               = show_shared_mem_linux,
 	.show_timezone                 = show_timezone_generic,
+	.show_libs                     = show_libs_generic,
 
 	.handle_memory                 = show_memory_generic,
 	.handle_numa_memory            = handle_numa_memory_linux,

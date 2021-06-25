@@ -331,6 +331,143 @@ show_memory_darwin (void)
 	/*------------------------------*/
 }
 
+static char *
+get_macho_version(uint32_t version)
+{
+	char *str = NULL;
+
+	if (version == (uint32_t)-1) {
+		appendf(&str, "(%s)", UNKNOWN_STR);
+	} else {
+		/* Top 2 bytes (bits 16-31) */
+		uint32_t major = version >> 16;
+
+		/* 2nd byte (bits 9-15) */
+		uint32_t minor = (version >> 8) & 0xff;
+
+		/* 1st byte (bits 0->8) */
+		uint32_t patch = version & 0xff;
+
+		appendf(&str, "%u.%u.%u", major, minor, patch);
+	}
+
+	return str;
+}
+
+static void
+handle_load_cmds(const struct mach_header *header)
+{
+	if (! header) return;
+
+	uint32_t cmds = header->ncmds;
+
+	if (cmds == 0) return;
+
+	/* The commands immediately follow the mach header,
+	 * but the size of the header varies depending on the platform!
+	 */
+	uintptr_t cmds_addr = (uintptr_t)header + mach_header_size(header);
+
+	uintptr_t p = cmds_addr;
+
+	for (uint32_t i = 0; i < cmds; i++)
+	{
+		struct load_command *lc = (struct load_command *)p;
+
+		/* We only need to consider a subset of load commands
+		 * to determine which shared libraries are loaded.
+		 */
+		bool consider = lc->cmd == LC_ID_DYLIB ||
+			lc->cmd == LC_LOAD_DYLIB ||
+			lc->cmd == LC_LOAD_WEAK_DYLIB ||
+			lc->cmd == LC_REEXPORT_DYLIB ||
+			lc->cmd == LC_LOAD_UPWARD_DYLIB ||
+			lc->cmd == LC_LAZY_LOAD_DYLIB;
+
+		if (consider) {
+			struct dylib_command *dl = (struct dylib_command *)lc;
+
+			struct dylib dylib = dl->dylib;
+
+			// Determine shared library path
+			char *path = (char *)lc + dylib.name.offset;
+
+			char *tmp = strdup (path);
+			char *name = basename (tmp);
+
+			object_open (false);
+			section_open (name);
+
+			free (tmp);
+
+			void *addr = dlopen(path, RTLD_LAZY);
+			if (addr) {
+				entry ("address", "%p", addr);
+				dlclose (addr);
+			}
+
+			entry ("path", "%s", path);
+
+			/*------------------------------*/
+
+			section_open ("versions");
+
+			char *current_version = get_macho_version(dylib.current_version);
+			char *compat_version  = get_macho_version(dylib.compatibility_version);
+
+			if (current_version) {
+				entry ("current", "%s", current_version);
+				free (current_version);
+			}
+
+			if (compat_version) {
+				entry ("compatibility", "%s", compat_version);
+				free (compat_version);
+			}
+
+			section_close ();
+
+			/*------------------------------*/
+
+			section_close ();
+			object_close (false);
+		}
+
+		p += lc->cmdsize;
+	}
+}
+
+static void
+show_libs_darwin(void)
+{
+	/* First, determine the OSX name for this binary */
+	int ret;
+	char path[PATH_MAX];
+	uint32_t size = (uint32_t)sizeof(path);
+
+	ret = _NSGetExecutablePath(path, &size);
+	if (ret != 0) return;
+
+	int count = _dyld_image_count();
+
+	/* Now, look for the image relating to this program */
+	for (int i = 0; i < count; i++) {
+		const char *name = _dyld_get_image_name(i);
+
+		if (!name) {
+			continue;
+		}
+
+		/* Only show dependencies for _ourself_ */
+		if (! strcmp(name, path)) {
+			const struct mach_header *header = _dyld_get_image_header(i);
+
+			handle_load_cmds(header);
+			break;
+		}
+	}
+}
+
 /* Darwin lacks:
  *
  * - cpusets and cpu affinities.
@@ -355,6 +492,7 @@ struct procenv_ops platform_ops =
 	.show_mounts                   = show_mounts_darwin,
 	.show_rlimits                  = show_rlimits_generic,
 	.show_timezone                 = show_timezone_generic,
+	.show_libs                     = show_libs_darwin,
 
 	.handle_memory                 = show_memory_darwin,
 };

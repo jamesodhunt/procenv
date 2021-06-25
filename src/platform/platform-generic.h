@@ -80,4 +80,10 @@ void show_timezone_generic (void);
 
 #endif
 
+#if ! defined (PROCENV_PLATFORM_ANDROID) && ! defined (PROCENV_PLATFORM_DARWIN)
+
+void show_libs_generic(void);
+
+#endif
+
 #endif /* _PROCENV_PLATFORM_GENERIC_H */

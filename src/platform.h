@@ -156,6 +156,7 @@ struct procenv_ops
 	void (*show_semaphores) (void);
 	void (*show_shared_mem) (void);
 	void (*show_timezone) (void);
+	void (*show_libs) (void);
 
 	void (*handle_memory) (void);
 	void (*handle_numa_memory) (void);
