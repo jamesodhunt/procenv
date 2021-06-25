@@ -172,8 +172,14 @@
  *  - Added more details to --memory and new capabilities to --capabilities.
  * VERSION 20:
  *  - More --memory details for Darwin.
+ * VERSION 21:
+ *  - Added `CLOCK_BOOTTIME_ALARM`, `CLOCK_PROCESS_CPUTIME_ID`
+ *    and `CLOCK_REALTIME_ALARM` to --clocks output and supported --timezone
+ *    on Darwin.
+ * VERSION 22:
+ *  - Supported --libs on Darwin.
  **/
-#define PROCENV_FORMAT_VERSION 20
+#define PROCENV_FORMAT_VERSION 22
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
