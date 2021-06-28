@@ -356,7 +356,7 @@ handle_proc_branch_freebsd (void)
 	 * - sysctl security.bsd.see_other_uids=0
 	 * - sysctl security.bsd.see_other_gids=0
 	 *
-	 * If these security otions are set to zero, a process cannot see it's
+	 * If these security options are set to zero, a process cannot see it's
 	 * ultimate parent, unless that process is running as the super-user. But
 	 * if those options are set and the process is running inside a jail, it
 	 * can only see direct ancestor parent processes running with its UID/GID,
@@ -372,7 +372,7 @@ handle_proc_branch_freebsd (void)
 	 *   environment).
 	 *
 	 * Further note that if kern.randompid=1 is set, you cannot make
-	 * assumptions about PID/PPID relationships (where PID >1 atleast).
+	 * assumptions about PID/PPID relationships (where PID >1 at least).
 	 *
 	 * Confused yet?
 	 *

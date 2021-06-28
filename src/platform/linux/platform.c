@@ -482,7 +482,7 @@ show_cgroups_linux (void)
 
 		buf = b = strdup (buffer);
 		if (! buf)
-			die ("failed to alloate storage");
+			die ("failed to allocate storage");
 
 		hierarchy = strsep (&b, delim);
 		if (! hierarchy)
@@ -1888,7 +1888,7 @@ out:
  * has been specified as -1, subsequent parameters are ignored
  * (treated as -1 too).
  *
- * Returns: true if running Linux kernel is atleast at version
+ * Returns: true if running Linux kernel is at least at version
  * specified by (@major, @minor, @revision), else false.
  **/
 static bool

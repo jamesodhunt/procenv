@@ -221,7 +221,7 @@ pstring_chomp (pstring *str)
  *
  * This is required specifically for '--output=text' which in some
  * scenarios generates lines comprising pure whitespace. This is
- * unecessary and results from the fact that when an
+ * unnecessary and results from the fact that when an
  * ELEMENT_TYPE_OBJECT_* is encountered, formatting is applied for the
  * previously seen element, but sometimes such "objects" should be
  * invisible.

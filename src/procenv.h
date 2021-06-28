@@ -159,7 +159,7 @@
  *   - Added I/O priority to --cpu.
  * VERSION 14:
  *   - Added driver to --meta.
- * VERION 15:
+ * VERSION 15:
  *   - Renamed "linux security module" to "security" module in --misc.
  *   - Added procenv driver details to --meta.
  * VERSION 16:

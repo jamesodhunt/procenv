@@ -107,7 +107,7 @@ struct procenv_driver
  * - get_*() functions obtain information.
  * - show_*() functions display entries for a particular category of
  *   information.
- * - handle_*() fuctions are similar to show_*() ones, except that they
+ * - handle_*() functions are similar to show_*() ones, except that they
  *   also emit the appropriate heading/section/container entries and
  *   corresponding footers.
  */

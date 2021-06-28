@@ -542,7 +542,7 @@ EOT
     output=$(cat "$test_log")
 
     [ "$output" = "$expected" ] || \
-        die "incorect output from script (expected '$expected', got '$output')"
+        die "incorrect output from script (expected '$expected', got '$output')"
 
 	[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
@@ -734,7 +734,7 @@ EOT
 	for arg in $non_display_options
 	do
 		# XXX: specifying a non-display option _after_
-		# specifing a display option used to be a NOP, but
+		# specifying a display option used to be a NOP, but
 		# is now disallowed as it is non-sensical and
 		# the result could be surprising to the user.
 		#
