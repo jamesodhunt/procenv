@@ -139,7 +139,7 @@ wappendn (pstring **dest, const wchar_t *src, size_t len)
 
 	p = realloc ((*dest)->buf, bytes);
 
-	/* FIXME: turn into die() [all occurences!] */
+	/* FIXME: turn into die() [all occurrences!] */
 	assert (p);
 
 	(*dest)->buf = p;
@@ -460,7 +460,7 @@ pappend (pstring **dest, const pstring *src)
 
 	p = realloc ((*dest)->buf, bytes);
 
-	/* FIXME: turn into die() [all occurences!] */
+	/* FIXME: turn into die() [all occurrences!] */
 	assert (p);
 
 	(*dest)->buf = p;

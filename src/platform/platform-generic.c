@@ -924,10 +924,10 @@ show_mounts_generic_bsd (ShowMountType what,
  *
  * @path: path to convert to canonical form,
  * @canonical [out]: canonical version of @path,
- * @len: Size of @canonical (should be atleast PATH_MAX).
+ * @len: Size of @canonical (should be at least PATH_MAX).
  *
  * FIXME: this should fully resolve not just sym links but replace all
- * occurences of '../' by the appropriate direcotry!
+ * occurrences of '../' by the appropriate directory!
  **/
 int
 get_canonical_generic_linux (const char *path, char *canonical, size_t len)

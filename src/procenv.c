@@ -1112,7 +1112,7 @@ usage (void)
  * In additional to the classical semantics, by careful use of clone(2),
  * it is possible for a child to inherit its parents dispositions
  * (using clone's CLONE_SIGHAND+CLONE_VM flags). This is possible since
- * the child then shares the parents signal handlers, which inherantly
+ * the child then shares the parents signal handlers, which inherently 
  * therefore provide access to the dispositions).
  **/
 void
@@ -1145,7 +1145,7 @@ show_signals (void)
 		; /* NOP */
 	}
 
-	/* Note that we don't interate the signal map directly in case the
+	/* Note that we don't iterate the signal map directly in case the
 	 * entries are out of order. Instead, present the signals in numeric
 	 * order.
 	 */
@@ -1488,13 +1488,13 @@ show_env (void)
 
 	copy = calloc (1+max, sizeof (char *));
 	if (! copy)
-		die ("failed to alloate storage");
+		die ("failed to allocate storage");
 
 	/* Copy the environ array since modification is not allowed */
 	for (i=0; i < max; i++) {
 		copy[i] = calloc (1, 1+strlen (env[i]));
 		if (! copy[i])
-			die ("failed to alloate storage");
+			die ("failed to allocate storage");
 		strcpy (copy[i], env[i]);
 	}
 
@@ -3574,7 +3574,7 @@ check_envvars (void)
 			die ("invalid command");
 		}
 
-		/* there must be atleast an no-arg command to run */
+		/* there must be at least an no-arg command to run */
 		count = 1;
 
 		/* establish number of fields required for program arguments */
@@ -4182,7 +4182,7 @@ main (int    argc,
 	output_init ();
 
 	if (reexec && ! exec_args && optind >= argc)
-		die ("must specify atleast one argument with '--exec'");
+		die ("must specify at least one argument with '--exec'");
 
 	/* Prepare for re-exec */
 	if (reexec) {
@@ -4389,7 +4389,7 @@ format_perms (mode_t mode)
  */
 #ifdef PROCENV_PLATFORM_ANDROID
 
-// FIXME: split out to platfom
+// FIXME: split out to platform
 void
 show_network (void)
 {

@@ -60,7 +60,7 @@
  * LINUX_KERNEL_M:
  * @major: Linux major kernel version number.
  *
- * Returns: true if running Linux kernel is atleast at version
+ * Returns: true if running Linux kernel is at least at version
  * specified by @major else false.
  **/
 #define LINUX_KERNEL_M(major) \
@@ -71,7 +71,7 @@
  * @major: Linux major kernel version number,
  * @minor: Linux minor kernel version number.
  *
- * Returns: true if running Linux kernel is atleast at version
+ * Returns: true if running Linux kernel is at least at version
  * specified by (@major, @minor) else false.
  **/
 #define LINUX_KERNEL_MM(major, minor) \
@@ -83,7 +83,7 @@
  * @minor: Linux minor kernel version number,
  * @revision: kernel revision version.
  *
- * Returns: true if running Linux kernel is atleast at version
+ * Returns: true if running Linux kernel is at least at version
  * specified by (@major, @minor, @revision) else false.
  **/
 #define LINUX_KERNEL_MMR(major, minor, revision) \
