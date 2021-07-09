@@ -596,7 +596,12 @@ show_namespaces_linux (void)
 	DIR            *dir;
 	struct dirent  *ent;
 	char           *prefix_path = "/proc/self/ns";
-	char            path[MAXPATHLEN];
+
+	/* worst case, we will write to full paths to this buffer, plus a space
+	 * sparator and a terminator.
+	 */
+	char            path[(MAXPATHLEN*2) + 1 + 1];
+
 	char            link[MAXPATHLEN];
 	ssize_t         len;
 	PRList         *list = NULL;
@@ -624,7 +629,10 @@ show_namespaces_linux (void)
 		assert (len);
 		link[len] = '\0';
 
-		entry = pr_list_new (strdup (link));
+		memset (path, '\0', sizeof (path));
+		sprintf (path, "%s %s", ent->d_name, link);
+
+		entry = pr_list_new (strdup (path));
 		assert (entry);
 
 		assert (pr_list_prepend_str_sorted (list, entry));
@@ -641,17 +649,13 @@ show_namespaces_linux (void)
 
 		tmp = iter->data;
 
-		name = strsep (&tmp, ":");
+		name = strsep (&tmp, " ");
 		if (! name)
 			goto give_up;
 
-		value = strsep (&tmp, "]");
+		value = tmp;
 		if (! value)
 			goto give_up;
-
-		if (*value == '[' && *(value+1)) {
-			value++;
-		}
 
 		object_open (false);
 		entry (name, "%s", value);
