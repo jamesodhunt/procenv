@@ -1252,6 +1252,47 @@ show_prctl_linux (void)
 	else
 		entry ("clear child tid address", "%p", arg2);
 #endif
+
+#ifdef PR_GET_SPECULATION_CTRL
+	arg2 = PR_SPEC_STORE_BYPASS;
+	rc = prctl (PR_GET_SPECULATION_CTRL, arg2, 0, 0, 0);
+	if (rc < 0)
+		entry ("speculation", "%s", UNKNOWN_STR);
+	else
+		entry ("speculation", "0x%x", rc);
+#endif
+
+#ifdef PR_GET_TAGGED_ADDR_CTRL
+	rc = prctl (PR_GET_TAGGED_ADDR_CTRL, 0, 0, 0, 0);
+	if (rc < 0)
+		entry ("tagged address mode", "%s", UNKNOWN_STR);
+	else
+		entry ("tagged address mode", "%d", rc);
+#endif
+
+#ifdef PR_GET_FP_MODE
+	rc = prctl (PR_GET_FP_MODE, 0, 0, 0, 0);
+	if (rc < 0)
+		entry ("floating-point mode", "%s", UNKNOWN_STR);
+	else
+		entry ("floating-point mode", "0x%x", rc);
+#endif
+
+#ifdef PR_GET_IO_FLUSHER
+	rc = prctl (PR_GET_IO_FLUSHER, 0, 0, 0, 0);
+	if (rc < 0)
+		entry ("I/O flusher state", "%s", UNKNOWN_STR);
+	else
+		entry ("I/O flusher state", "%d", rc);
+#endif
+
+#ifdef PR_GET_THP_DISABLE
+	rc = prctl (PR_GET_THP_DISABLE, 0, 0, 0, 0);
+	if (rc < 0)
+		entry ("THP disable flag", "%s", UNKNOWN_STR);
+	else
+		entry ("THP disable flag", "%d", rc);
+#endif
 }
 
 static void
