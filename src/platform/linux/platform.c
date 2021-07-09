@@ -1150,11 +1150,11 @@ show_prctl_linux (void)
 	}
 #endif
 
-#ifdef PR_GET_UNALIGNED
+#ifdef PR_GET_UNALIGN
 	if (LINUX_KERNEL_MMR (2, 3, 48)) {
 		const char *value;
 
-		rc = prctl (PR_GET_UNALIGNED, &arg2, 0, 0, 0);
+		rc = prctl (PR_GET_UNALIGN, &arg2, 0, 0, 0);
 		if (rc < 0)
 			value = UNKNOWN_STR;
 		else {
