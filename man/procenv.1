@@ -484,9 +484,10 @@ the values are queryable, there is no documented method to do so.
 \& exec procenv \-\-file=/tmp/procenv.log \-\-exec \-\- mycmd \-\-arg1 \-\-foo=bar
 \&
 \& # The following kernel command-line snippet will cause procenv to
-\& # write output to first serial tty device and then execute init(8)
-\& # in debug mode to allow early boot environment to be examined.
-\& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-debug"
+\& # run as PID 1 and write output to the first serial tty device. It will then
+\& # execute the init daemon (specifying some arguments to show how this is possible).
+\& # Note that since procenv re-executes, the init daemon will (also) be run as PID 1.
+\& init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init \-\-foo\-bar \-\-baz"
 \&
 \& # Display all data in JSON format using an indent of 4 spaces
 \& procenv \-\-format=json \-\-indent=4
