@@ -4,25 +4,11 @@
  *
  * Date: 24 October 2012.
  *
- * Author: James Hunt <jamesodhunt@gmail.com>.
+ * Author: James O. D. Hunt <jamesodhunt@gmail.com>.
  *
- * Licence: GPLv3. See below...
- *--------------------------------------------------------------------
+ * Copyright © 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
  *
- * Copyright © 2012-2016 James Hunt <jamesodhunt@gmail.com>.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *--------------------------------------------------------------------
  */
 
@@ -135,6 +121,10 @@ struct procenv_map sysconf_map[] = {
 
 #if defined (_SC_2_PBS_ACCOUNTING)
 	mk_sysconf_map_entry (_SC_2_PBS_ACCOUNTING),
+#endif
+
+#if defined (_SC_2_PBS_CHECKPOINT)
+	mk_sysconf_map_entry (_SC_2_PBS_CHECKPOINT),
 #endif
 
 #if defined (_SC_2_PBS_LOCATE)
@@ -501,12 +491,12 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_OPEN_MAX),
 #endif
 
-#if defined (_SC_PAGESIZE)
-	mk_sysconf_map_entry (_SC_PAGESIZE),
-#endif
-
 #if defined (_SC_PAGE_SIZE)
 	mk_sysconf_map_entry (_SC_PAGE_SIZE),
+#endif
+
+#if defined (_SC_PAGESIZE)
+	mk_sysconf_map_entry (_SC_PAGESIZE),
 #endif
 
 #if defined (_SC_PASS_MAX)
@@ -565,144 +555,8 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_POLL),
 #endif
 
-#if defined (_SC_SINGLE_PROCESS)
-	mk_sysconf_map_entry (_SC_SINGLE_PROCESS),
-#endif
-
-#if defined (_SC_SYSTEM_DATABASE)
-	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE),
-#endif
-
-#if defined (_SC_SYSTEM_DATABASE_R)
-	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE_R),
-#endif
-
-#if defined (_SC_THREAD_KEYS_MAX)
-	mk_sysconf_map_entry (_SC_THREAD_KEYS_MAX),
-#endif
-
-#if defined (_SC_THREAD_DESTRUCTOR_ITERATIONS)
-	mk_sysconf_map_entry (_SC_THREAD_DESTRUCTOR_ITERATIONS),
-#endif
-
-#if defined (_SC_THREAD_THREADS_MAX)
-	mk_sysconf_map_entry (_SC_THREAD_THREADS_MAX),
-#endif
-
-#if defined (_SC_STREAM_MAX)
-	mk_sysconf_map_entry (_SC_STREAM_MAX),
-#endif
-
-#if defined (_SC_SYMLOOP_MAX)
-	mk_sysconf_map_entry (_SC_SYMLOOP_MAX),
-#endif
-
-#if defined (_SC_TTY_NAME_MAX)
-	mk_sysconf_map_entry (_SC_TTY_NAME_MAX),
-#endif
-
-#if defined (_SC_TZNAME_MAX)
-	mk_sysconf_map_entry (_SC_TZNAME_MAX),
-#endif
-
-#if defined (_SC_TYPED_MEMORY_OBJECTS)
-	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECTS),
-#endif
-
-#if defined (_SC_USER_GROUPS)
-	mk_sysconf_map_entry (_SC_USER_GROUPS),
-#endif
-
-#if defined (_SC_USER_GROUPS_R)
-	mk_sysconf_map_entry (_SC_USER_GROUPS_R),
-#endif
-
-#if defined (_SC_VERSION)
-	mk_sysconf_map_entry (_SC_VERSION),
-#endif
-
 #if defined (_SC_POSIX2_C_DEV)
 	mk_sysconf_map_entry (_SC_POSIX2_C_DEV),
-#endif
-
-#if defined (_SC_SIGQUEUE_MAX)
-	mk_sysconf_map_entry (_SC_SIGQUEUE_MAX),
-#endif
-
-#if defined (_SC_T_IOV_MAX)
-	mk_sysconf_map_entry (_SC_T_IOV_MAX),
-#endif
-
-#if defined (_SC_THREAD_STACK_MIN)
-	mk_sysconf_map_entry (_SC_THREAD_STACK_MIN),
-#endif
-
-#if defined (_SC_SSIZE_MAX)
-	mk_sysconf_map_entry (_SC_SSIZE_MAX),
-#endif
-
-#if defined (_SC_TIMER_MAX)
-	mk_sysconf_map_entry (_SC_TIMER_MAX),
-#endif
-
-#if defined (_SC_UCHAR_MAX)
-	mk_sysconf_map_entry (_SC_UCHAR_MAX),
-#endif
-
-#if defined (_SC_UINT_MAX)
-	mk_sysconf_map_entry (_SC_UINT_MAX),
-#endif
-
-#if defined (_SC_UIO_MAXIOV)
-	mk_sysconf_map_entry (_SC_UIO_MAXIOV),
-#endif
-
-#if defined (_SC_ULONG_MAX)
-	mk_sysconf_map_entry (_SC_ULONG_MAX),
-#endif
-
-#if defined (_SC_USHRT_MAX)
-	mk_sysconf_map_entry (_SC_USHRT_MAX),
-#endif
-
-#if defined (_SC_V6_LPBIG_OFFBIG)
-	mk_sysconf_map_entry (_SC_V6_LPBIG_OFFBIG),
-#endif
-
-#if defined (_SC_WORD_BIT)
-	mk_sysconf_map_entry (_SC_WORD_BIT),
-#endif
-
-#if defined (_SC_EXPR_NEST_MAX)
-	mk_sysconf_map_entry (_SC_EXPR_NEST_MAX),
-#endif
-
-#if defined (_SC_V6_ILP32_OFF32)
-	mk_sysconf_map_entry (_SC_V6_ILP32_OFF32),
-#endif
-
-#if defined (_SC_V6_ILP32_OFFBIG)
-	mk_sysconf_map_entry (_SC_V6_ILP32_OFFBIG),
-#endif
-
-#if defined (_SC_V6_LP64_OFF64)
-	mk_sysconf_map_entry (_SC_V6_LP64_OFF64),
-#endif
-
-#if defined (_SC_V7_ILP32_OFF32)
-	mk_sysconf_map_entry (_SC_V7_ILP32_OFF32),
-#endif
-
-#if defined (_SC_V7_ILP32_OFFBIG)
-	mk_sysconf_map_entry (_SC_V7_ILP32_OFFBIG),
-#endif
-
-#if defined (_SC_V7_LPBIG_OFFBIG)
-	mk_sysconf_map_entry (_SC_V7_LPBIG_OFFBIG),
-#endif
-
-#if defined (_SC_V7_LP64_OFF64)
-	mk_sysconf_map_entry (_SC_V7_LP64_OFF64),
 #endif
 
 #if defined (_SC_PRIORITIZED_IO)
@@ -789,6 +643,14 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_SIGNALS),
 #endif
 
+#if defined (_SC_SIGQUEUE_MAX)
+	mk_sysconf_map_entry (_SC_SIGQUEUE_MAX),
+#endif
+
+#if defined (_SC_SINGLE_PROCESS)
+	mk_sysconf_map_entry (_SC_SINGLE_PROCESS),
+#endif
+
 #if defined (_SC_SPAWN)
 	mk_sysconf_map_entry (_SC_SPAWN),
 #endif
@@ -801,8 +663,36 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_SPORADIC_SERVER),
 #endif
 
+#if defined (_SC_SSIZE_MAX)
+	mk_sysconf_map_entry (_SC_SSIZE_MAX),
+#endif
+
+#if defined (_SC_SS_REPL_MAX)
+	mk_sysconf_map_entry (_SC_SS_REPL_MAX),
+#endif
+
+#if defined (_SC_STREAM_MAX)
+	mk_sysconf_map_entry (_SC_STREAM_MAX),
+#endif
+
+#if defined (_SC_STREAMS)
+	mk_sysconf_map_entry (_SC_STREAMS),
+#endif
+
+#if defined (_SC_SYMLOOP_MAX)
+	mk_sysconf_map_entry (_SC_SYMLOOP_MAX),
+#endif
+
 #if defined (_SC_SYNCHRONIZED_IO)
 	mk_sysconf_map_entry (_SC_SYNCHRONIZED_IO),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE),
+#endif
+
+#if defined (_SC_SYSTEM_DATABASE_R)
+	mk_sysconf_map_entry (_SC_SYSTEM_DATABASE_R),
 #endif
 
 #if defined (_SC_THREAD_ATTR_STACKADDR)
@@ -815,6 +705,14 @@ struct procenv_map sysconf_map[] = {
 
 #if defined (_SC_THREAD_CPUTIME)
 	mk_sysconf_map_entry (_SC_THREAD_CPUTIME),
+#endif
+
+#if defined (_SC_THREAD_DESTRUCTOR_ITERATIONS)
+	mk_sysconf_map_entry (_SC_THREAD_DESTRUCTOR_ITERATIONS),
+#endif
+
+#if defined (_SC_THREAD_KEYS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_KEYS_MAX),
 #endif
 
 #if defined (_SC_THREAD_PRIO_INHERIT)
@@ -841,6 +739,10 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_THREAD_ROBUST_PRIO_PROTECT),
 #endif
 
+#if defined (_SC_THREADS)
+	mk_sysconf_map_entry (_SC_THREADS),
+#endif
+
 #if defined (_SC_THREAD_SAFE_FUNCTIONS)
 	mk_sysconf_map_entry (_SC_THREAD_SAFE_FUNCTIONS),
 #endif
@@ -849,16 +751,28 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_THREAD_SPORADIC_SERVER),
 #endif
 
-#if defined (_SC_THREADS)
-	mk_sysconf_map_entry (_SC_THREADS),
+#if defined (_SC_THREAD_STACK_MIN)
+	mk_sysconf_map_entry (_SC_THREAD_STACK_MIN),
+#endif
+
+#if defined (_SC_THREAD_THREADS_MAX)
+	mk_sysconf_map_entry (_SC_THREAD_THREADS_MAX),
 #endif
 
 #if defined (_SC_TIMEOUTS)
 	mk_sysconf_map_entry (_SC_TIMEOUTS),
 #endif
 
+#if defined (_SC_TIMER_MAX)
+	mk_sysconf_map_entry (_SC_TIMER_MAX),
+#endif
+
 #if defined (_SC_TIMERS)
 	mk_sysconf_map_entry (_SC_TIMERS),
+#endif
+
+#if defined (_SC_T_IOV_MAX)
+	mk_sysconf_map_entry (_SC_T_IOV_MAX),
 #endif
 
 #if defined (_SC_TRACE)
@@ -869,6 +783,10 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_TRACE_EVENT_FILTER),
 #endif
 
+#if defined (_SC_TRACE_EVENT_NAME_MAX)
+	mk_sysconf_map_entry (_SC_TRACE_EVENT_NAME_MAX),
+#endif
+
 #if defined (_SC_TRACE_INHERIT)
 	mk_sysconf_map_entry (_SC_TRACE_INHERIT),
 #endif
@@ -877,8 +795,96 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_TRACE_LOG),
 #endif
 
-#if defined (_SC_TYPED_MEMORY_OBJECT)
-	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECT),
+#if defined (_SC_TRACE_NAME_MAX)
+	mk_sysconf_map_entry (_SC_TRACE_NAME_MAX),
+#endif
+
+#if defined (_SC_TRACE_SYS_MAX)
+	mk_sysconf_map_entry (_SC_TRACE_SYS_MAX),
+#endif
+
+#if defined (_SC_TRACE_USER_EVENT_MAX)
+	mk_sysconf_map_entry (_SC_TRACE_USER_EVENT_MAX),
+#endif
+
+#if defined (_SC_TTY_NAME_MAX)
+	mk_sysconf_map_entry (_SC_TTY_NAME_MAX),
+#endif
+
+#if defined (_SC_TYPED_MEMORY_OBJECTS)
+	mk_sysconf_map_entry (_SC_TYPED_MEMORY_OBJECTS),
+#endif
+
+#if defined (_SC_TZNAME_MAX)
+	mk_sysconf_map_entry (_SC_TZNAME_MAX),
+#endif
+
+#if defined (_SC_UCHAR_MAX)
+	mk_sysconf_map_entry (_SC_UCHAR_MAX),
+#endif
+
+#if defined (_SC_UINT_MAX)
+	mk_sysconf_map_entry (_SC_UINT_MAX),
+#endif
+
+#if defined (_SC_UIO_MAXIOV)
+	mk_sysconf_map_entry (_SC_UIO_MAXIOV),
+#endif
+
+#if defined (_SC_ULONG_MAX)
+	mk_sysconf_map_entry (_SC_ULONG_MAX),
+#endif
+
+#if defined (_SC_USER_GROUPS)
+	mk_sysconf_map_entry (_SC_USER_GROUPS),
+#endif
+
+#if defined (_SC_USER_GROUPS_R)
+	mk_sysconf_map_entry (_SC_USER_GROUPS_R),
+#endif
+
+#if defined (_SC_USHRT_MAX)
+	mk_sysconf_map_entry (_SC_USHRT_MAX),
+#endif
+
+#if defined (_SC_V6_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V6_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V6_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V6_LP64_OFF64),
+#endif
+
+#if defined (_SC_V6_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V6_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_V7_ILP32_OFF32)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFF32),
+#endif
+
+#if defined (_SC_V7_ILP32_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_ILP32_OFFBIG),
+#endif
+
+#if defined (_SC_V7_LP64_OFF64)
+	mk_sysconf_map_entry (_SC_V7_LP64_OFF64),
+#endif
+
+#if defined (_SC_V7_LPBIG_OFFBIG)
+	mk_sysconf_map_entry (_SC_V7_LPBIG_OFFBIG),
+#endif
+
+#if defined (_SC_VERSION)
+	mk_sysconf_map_entry (_SC_VERSION),
+#endif
+
+#if defined (_SC_WORD_BIT)
+	mk_sysconf_map_entry (_SC_WORD_BIT),
 #endif
 
 #if defined (_SC_XBS5_ILP32_OFF32)
@@ -921,8 +927,20 @@ struct procenv_map sysconf_map[] = {
 	mk_sysconf_map_entry (_SC_XOPEN_SHM),
 #endif
 
+#if defined (_SC_XOPEN_STREAMS)
+	mk_sysconf_map_entry (_SC_XOPEN_STREAMS),
+#endif
+
 #if defined (_SC_XOPEN_UNIX)
 	mk_sysconf_map_entry (_SC_XOPEN_UNIX),
+#endif
+
+#if defined (_SC_XOPEN_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_VERSION),
+#endif
+
+#if defined (_SC_XOPEN_XCU_VERSION)
+	mk_sysconf_map_entry (_SC_XOPEN_XCU_VERSION),
 #endif
 
 #if defined (_SC_XOPEN_XPG2)
@@ -935,14 +953,6 @@ struct procenv_map sysconf_map[] = {
 
 #if defined (_SC_XOPEN_XPG4)
 	mk_sysconf_map_entry (_SC_XOPEN_XPG4),
-#endif
-
-#if defined (_SC_XOPEN_VERSION)
-	mk_sysconf_map_entry (_SC_XOPEN_VERSION),
-#endif
-
-#if defined (_SC_XOPEN_XCU_VERSION)
-	mk_sysconf_map_entry (_SC_XOPEN_XCU_VERSION),
 #endif
 
 	{ NULL , 0 }
