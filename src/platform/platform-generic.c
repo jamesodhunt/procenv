@@ -256,6 +256,10 @@ show_confstrs_generic (void)
 	show_confstr (_CS_PATH);
 #endif
 
+#if defined (_CS_POSIX_V5_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_POSIX_V5_WIDTH_RESTRICTED_ENVS);
+#endif
+
 #if defined (_CS_POSIX_V6_ILP32_OFF32)
 	show_confstr (_CS_POSIX_V6_ILP32_OFF32);
 #endif
@@ -324,6 +328,10 @@ show_confstrs_generic (void)
 	show_confstr (_CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS);
 #endif
 
+#if defined (_CS_POSIX_V6_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_POSIX_V6_WIDTH_RESTRICTED_ENVS);
+#endif
+
 #if defined (_CS_POSIX_V7_ILP32_OFF32_CFLAGS)
 	show_confstr (_CS_POSIX_V7_ILP32_OFF32_CFLAGS);
 #endif
@@ -388,6 +396,10 @@ show_confstrs_generic (void)
 	show_confstr (_CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS);
 #endif
 
+#if defined (_CS_POSIX_V7_WIDTH_RESTRICTED_ENVS)
+	show_confstr (_CS_POSIX_V7_WIDTH_RESTRICTED_ENVS);
+#endif
+
 #if defined (_CS_V5_WIDTH_RESTRICTED_ENVS)
 	show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS);
 #endif
@@ -400,12 +412,20 @@ show_confstrs_generic (void)
 	_show_confstr (_CS_V5_WIDTH_RESTRICTED_ENVS, "XBS5_WIDTH_RESTRICTED_ENVS");
 #endif
 
+#if defined (_CS_V6_ENV)
+	show_confstr (_CS_V6_ENV);
+#endif
+
 #if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
 	show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS);
 #endif
 
 #if defined (_CS_V6_WIDTH_RESTRICTED_ENVS)
 	_show_confstr (_CS_V6_WIDTH_RESTRICTED_ENVS, "POSIX_V6_WIDTH_RESTRICTED_ENVS,_POSIX_V6_WIDTH_RESTRICTED_ENVS");
+#endif
+
+#if defined (_CS_V7_ENV)
+	show_confstr (_CS_V7_ENV);
 #endif
 
 #if defined (_CS_V7_WIDTH_RESTRICTED_ENVS)
@@ -638,6 +658,10 @@ show_pathconfs (ShowMountType what,
 		header ("pathconf");
 	}
 
+#if defined (_PC_2_SYMLINKS)
+	show_pathconf (what, dir, _PC_2_SYMLINKS);
+#endif
+
 #if defined (_PC_ALLOC_SIZE_MIN)
 	show_pathconf (what, dir, _PC_ALLOC_SIZE_MIN);
 #endif
@@ -708,10 +732,6 @@ show_pathconfs (ShowMountType what,
 
 #if defined (_PC_SYMLINK_MAX)
 	show_pathconf (what, dir, _PC_SYMLINK_MAX);
-#endif
-
-#if defined (_PC_2_SYMLINKS)
-	show_pathconf (what, dir, _PC_2_SYMLINKS);
 #endif
 
 #if defined (_PC_SYNC_IO)
