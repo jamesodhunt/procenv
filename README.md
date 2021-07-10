@@ -102,7 +102,17 @@ $ sudo port install procenv
 $ sudo zypper install -y procenv
 ```
 
-### Build from source
+## Build
+
+## Build snap package
+
+```bash
+$ git clone https://github.com/jamesodhunt/procenv
+$ cd procenv
+$ snapcraft
+```
+
+## Build from source
 
 1. Install dependencies
 

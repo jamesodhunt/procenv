@@ -1,0 +1,57 @@
+name: procenv
+adopt-info: procenv
+base: core18
+license: GPL-3.0
+summary: Utility to show process environment
+description: |
+  Command-line tool that displays as much detail about itself and its
+  environment as possible. It can be used as a test tool, to understand the
+  type of environment a process runs in, and for comparing system
+  environments.
+grade: stable
+type: app
+confinement: strict
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+  - build-on: armhf
+  - build-on: i386
+  - build-on: ppc64el
+  - build-on: s390x
+
+environment:
+  CFLAGS: '-fstack-protector-strong -Wformat -Werror=format-security'
+  LDFLAGS: Wl,-z,relro
+
+parts:
+  procenv:
+    plugin: autotools
+    source: https://github.com/jamesodhunt/procenv
+    source-type: git
+    build-environment:
+      - CC: "$CC"
+    build-packages:
+      - autoconf
+      - automake
+      - libapparmor-dev
+      - libcap-dev
+      - libnuma-dev
+      - libselinux1-dev
+      - pkg-config
+    override-build: |
+      autoreconf -fi
+      ./configure --prefix="${SNAPCRAFT_PART_INSTALL}/usr"
+      make
+      sudo make install
+    stage-packages:
+      - libnuma1
+    override-pull: |
+      snapcraftctl pull
+      version=$(git describe @ --tags)
+      snapcraftctl set-version "$version"
+
+apps:
+  procenv:
+    plugs: [hardware-observe, mount-observe, network-observe, system-observe]
+    command: usr/bin/procenv
