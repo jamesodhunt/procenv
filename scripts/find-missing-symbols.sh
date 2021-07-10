@@ -352,6 +352,8 @@ run_checks()
 
         check_symbols "$check" "$func"
     done
+
+    info "Checks complete"
 }
 
 handle_args()
