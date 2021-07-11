@@ -23,8 +23,10 @@ runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 
 ## Why?
 
-When you first read what this tool does, you tend to think, "huh?" Why would
-anyone want a tool like that? How is that useful? Here are a few examples:
+When you first read what this tool does, you tend to think, "huh?", or "Why
+would anyone want a tool like that?" or "How is that useful?"
+
+Here are a few examples to help explain...
 
 - To learn about the Unix/Linux environment
 
