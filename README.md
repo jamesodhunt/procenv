@@ -21,19 +21,76 @@ runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 > If you find anything missing from the `procenv` output, please either raise
 > an issue or send a patch :)
 
-It is useful as a test tool, to understand what environment a process
-runs in and for system comparison.
+## Why?
+
+When you first read what this tool does, you tend to think, "huh?" Why would
+anyone want a tool like that? How is that useful? Here are a few examples:
+
+- To learn about the Unix/Linux environment
+
+  For example, compare these output files:
+
+  ```bash
+  $ procenv > /tmp/1
+  $ sudo procenv > /tmp/2
+  $ nohup procenv >/tmp/3 &
+  ```
+
+- To help debug weird CI failures
+
+  Even scratched your head wondering why your code works perfectly on your
+  local machine, but explodes in flames in your CI system? `procenv` can help:
+  run it on your CI system and run it locally and diff the output!
+
+- System comparison
+
+   More generally, just run procenv on two systems and `diff(1)` the output to
+   see what's different (different O/S versions or different distro versions,
+   different Unix systems entirely).
+
+- To learn about the packaging environment:
+
+  These commands show interesting details of compiler and libc used to build
+  the package:
+
+  ```bash
+  $ procenv --compiler
+  $ procenv --libc
+  ```
+
+- To see what changes on each run
+
+  Can you predict what might be different?
+  ```bash
+  $ diff <(procenv) <(procenv)
+  ```
+
+### Party trick
+
+Since `procenv` can re-exec itself, you can do sneaky things like run
+`procenv` _before_ the init daemon runs on your system! But wait, init systems
+like `systemd` run as PID 1 I hear you cry! Correct, but using a command like
+the following, you can run procenv as PID 1, which will dump it's output and
+then launch `systemd` as the _same_ PID and boot the system as normal!
+
+```grub
+init=/usr/bin/procenv PROCENV_FILE=/dev/ttyS0 PROCENV_EXEC="/sbin/init --foo-bar --baz"
+```
+
+> **Note:** Further details about this and more examples are listed in the
+> manual page, `procenv(1)`.
+
+## Platforms
 
 `procenv` runs on the following operating systems:
 
 - Android
-- FreeBSD
+- *BSD
+- [FreeBSD](#freebsd)
 - GNU Hurd
 - GNU Linux
-- Minix 3
 - macOS
-- NetBSD
-- OpenBSD
+- [Minix 3](README-BUILD.md)
 
 It unashamedly emulates a number of existing system utilities as it is
 attempting to be all-encompassing: I wrote it with the aim of being able to
@@ -81,6 +138,8 @@ To install the port:
 $ cd /usr/ports/sysutils/procenv
 $ sudo make install clean
 ```
+
+> **Note:** See also the [build document](README-BUILD.md).
 
 ### Gentoo
 
