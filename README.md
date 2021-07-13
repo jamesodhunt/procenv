@@ -135,6 +135,16 @@ applications.
 
 ## Install
 
+### Snap
+
+To install the [snap package](https://snapcraft.io/procenv):
+
+```bash
+$ sudo snap install procenv
+```
+
+> **Note:** Alternatively, you can [build your own snap](#build-snap-package).
+
 ### CentOS
 
 - Enable EPEL repository.
