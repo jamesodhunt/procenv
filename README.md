@@ -23,10 +23,10 @@ runs, in well-structured plain ASCII, JSON (YAML), XML or CSV.
 
 ## Why?
 
-When you first read what this tool does, you tend to think, "huh?", or "Why
-would anyone want a tool like that?" or "How is that useful?"
+When you first read what this tool does, you tend to think, _"Huh?"_,
+or _"Why would anyone want a tool like that?"_ or _"How is that useful?"_
 
-Here are a few examples to help explain...
+Here are a few examples to help explain. `procenv` can help...
 
 - To learn about the Unix/Linux environment
 
@@ -38,17 +38,46 @@ Here are a few examples to help explain...
   $ nohup procenv >/tmp/3 &
   ```
 
-- To help debug weird CI failures
+- To debug weird CI failures
 
   Even scratched your head wondering why your code works perfectly on your
-  local machine, but explodes in flames in your CI system? `procenv` can help:
-  run it on your CI system and run it locally and diff the output!
+  local machine, but explodes in flames in your CI system?
 
-- System comparison
+  Maybe you've had to hack your build to run a bunch of shell commands like
+  the following to help your debug wtf is going wrong?:
+
+  ```bash
+  echo "FIXME: environment variables"
+  env
+
+  echo "FIXME: mounts"
+  mount
+
+  echo "FIXME: time"
+  date
+
+  echo "FIXME: umask"
+  umask
+  ```
+
+  Look familiar? There is a simpler way: just run `procenv` in your CI, run
+  it locally and `diff(1)` the output!
+
+- To compare build environments
+
+  When you run `make check` as part of the `procenv` build, the `procenv`
+  binary runs. This is useful because if you can access the build logs for a
+  particular build system, you can see the environment _of_ that build system
+  by looking at the procenv logs.
+
+  > **Note:** See the [results](#results) section for links to some common
+  > build environments.
+
+- To compare systems
 
    More generally, just run procenv on two systems and `diff(1)` the output to
-   see what's different (different O/S versions or different distro versions,
-   different Unix systems entirely).
+   see what's different (different O/S versions, different distro versions,
+   different Unix variants).
 
 - To learn about the packaging environment:
 
@@ -60,9 +89,10 @@ Here are a few examples to help explain...
   $ procenv --libc
   ```
 
-- To see what changes on each run
+- To see what changes for a process on each run
 
-  Can you predict what might be different?
+  Every new process creates gets a new process ID. But what else changes?
+
   ```bash
   $ diff <(procenv) <(procenv)
   ```
