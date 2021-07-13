@@ -45,7 +45,10 @@ parts:
       make
       sudo make install
     stage-packages:
+      - libapparmor1
+      - libcap2
       - libnuma1
+      - libselinux1
     override-pull: |
       snapcraftctl pull
       version=$(git describe @ --tags)
