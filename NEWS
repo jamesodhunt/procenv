@@ -1,3 +1,24 @@
+0.59	2021-07-13
+
+	* doc improvements (README and man page).
+	* snap: Add snapcraft config file
+	* `--sysconf`:
+	  - Display output in order.
+	  - Removed duplicate entry for `_SC_EXPR_NEST_MAX`.
+	  - Added new entries for:
+	    - `_SC_2_PBS_CHECKPOINT`
+	    - `_SC_SS_REPL_MAX`
+	    - `_SC_STREAMS`
+	    - `_SC_TRACE_EVENT_NAME_MAX`
+	    - `_SC_TRACE_NAME_MAX`
+	    - `_SC_TRACE_SYS_MAX`
+	    - `_SC_TRACE_USER_EVENT_MAX`
+	    - `_SC_XOPEN_STREAMS`
+	* `--misc`: BUG fix: Check for `PR_GET_UNALIGN` `prctl`, **not**
+	  `PR_GET_UNALIGNED`.
+	* `--namespaces`: BUG fix: Don't fully resolve namespace links to handle
+	  new `pid_for_children` and `time_for_children` namespaces.
+
 0.58	2021-06-25
 
 	* darwin: Support `--libs`.
