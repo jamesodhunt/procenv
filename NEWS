@@ -1,3 +1,13 @@
+0.60	2021-07-13
+
+	* Bump output format version (should have been done for 0.58).
+	* snap: Add missing staging packages.
+	* autoconf: Fix AppArmor and SELinux detection
+	  Bug fix that necessitated a new release: previously, the security
+	  context displayed with `--misc` could show as "unknown" due to a
+	  bug in `configure.ac`'s detection code.
+	* docs: Add snap details to README.
+
 0.59	2021-07-13
 
 	* doc improvements (README and man page).
