@@ -178,8 +178,11 @@
  *    on Darwin.
  * VERSION 22:
  *  - Supported --libs on Darwin.
+ * VERSION 23:
+ *  - Changed output order of --sysconf and --confstr, added various new
+ *    sysconf values, plus changed output format of --namespaces.
  **/
-#define PROCENV_FORMAT_VERSION 22
+#define PROCENV_FORMAT_VERSION 23
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
