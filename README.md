@@ -232,7 +232,7 @@ $ snapcraft
    | common | test | optional | Check | For running unit tests |
    | common | test | optional | Expat | For validating XML output |
    | common | test | optional | GNU Groff | For checking man page documentation |
-   | Linux | build | optional | `libapparmor` development package | For capabilities details |
+   | Linux | build | optional | `libapparmor` development package | For AppArmor details |
    | Linux | build | optional | `libcap` development package | For capabilities details |
    | Linux | build | optional | `libnuma` development package | For NUMA memory details |
    | Linux | build | optional | `libselinux` development package | For SELinux details |
