@@ -1,3 +1,9 @@
+#--------------------------------------------------------------------
+# Copyright (c) 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#--------------------------------------------------------------------
+
 AUTOMAKE_OPTIONS = subdir-objects
 
 AM_CFLAGS = \

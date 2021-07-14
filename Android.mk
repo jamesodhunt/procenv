@@ -1,3 +1,9 @@
+#---------------------------------------------------------------------
+# Copyright (c) 2013-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#---------------------------------------------------------------------
+
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 

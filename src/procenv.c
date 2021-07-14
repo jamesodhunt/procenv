@@ -5,8 +5,8 @@
  * Date: 24 October 2012.
  *
  * Author: James O. D. Hunt <jamesodhunt@gmail.com>.
- *
- * Copyright © 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
+ *--------------------------------------------------------------------
+ * Copyright (c) 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *--------------------------------------------------------------------

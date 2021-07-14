@@ -1,4 +1,9 @@
-#                                               -*- Autoconf -*-
+#---------------------------------------------------------------------
+# Copyright (c) 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#---------------------------------------------------------------------
+
 # Process this file with autoconf to produce a configure script.
 
 m4_define([procenv_version], [0.60])

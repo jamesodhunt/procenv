@@ -47,17 +47,20 @@ Here are a few examples to help explain. `procenv` can help...
   the following to help your debug wtf is going wrong?:
 
   ```bash
-  echo "FIXME: environment variables"
+  echo "INFO: environment variables"
   env
 
-  echo "FIXME: mounts"
+  echo "INFO: mounts"
   mount
 
-  echo "FIXME: time"
+  echo "INFO: time"
   date
 
-  echo "FIXME: umask"
+  echo "INFO: umask"
   umask
+
+  echo "INFO: locale"
+  locale
   ```
 
   Look familiar? There is a simpler way: just run `procenv` in your CI, run
@@ -136,6 +139,8 @@ applications.
 ## Install
 
 ### Snap
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/procenv)
 
 To install the [snap package](https://snapcraft.io/procenv):
 

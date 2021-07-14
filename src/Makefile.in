@@ -14,6 +14,12 @@
 
 @SET_MAKE@
 
+#--------------------------------------------------------------------
+# Copyright (c) 2012-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#--------------------------------------------------------------------
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
