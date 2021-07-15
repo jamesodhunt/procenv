@@ -1569,7 +1569,7 @@ get_user_info (void)
 #endif
 
 #ifdef HAVE_GETRESGID
-	getresgid (&user.gid, &user.egid, &user.sgid);
+	ret = getresgid (&user.gid, &user.egid, &user.sgid);
 	assert (! ret);
 #else
 	user.gid  = getgid ();
