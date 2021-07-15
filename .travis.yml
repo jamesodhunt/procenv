@@ -18,8 +18,7 @@ os:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install expat check perl; fi
+disable_homebrew: true
 script: autoreconf -fi && ./configure && make -j4 && make check
 notifications:
   email:
