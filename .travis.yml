@@ -16,11 +16,12 @@ os:
   - linux
   - osx
 before_install:
-  - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)" # Testing as a workaround
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y autopoint automake expat libnuma-dev libcap-dev check; fi
 disable_homebrew: true
-script: autoreconf -fi && ./configure && make -j4 && make check
+script: 
+- autoreconf -fi && ./configure && make -j4 && make check
+- sleep 3
 notifications:
   email:
     recipients:
