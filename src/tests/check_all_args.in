@@ -13,16 +13,22 @@ script_name=${0##*/}
 
 # Use full path to build binary
 procenv="@builddir@/procenv"
+
 man_path="@man_path@"
 driver="@procenv_platform@"
 
 template="/tmp/${script_name}.XXXXXXXXXX"
 
-json_tests=0
-xml_tests=0
+# List of commands that can be used to syntax check a JSON file
+json_checkers="json_pp jq python python3"
 
-xml_checker=xmlwf
-json_checker=json_pp
+# List of commands that can be used to syntax check an XML file
+xml_checkers="xmlwf xmllint"
+
+# Set by the check_*() functions, but can be set in the calling environment
+# to force a particular checker to be used.
+json_checker="${json_checker:-}"
+xml_checker="${xml_checker:-}"
 
 # XML disallows reliable encoding of control characters. Since the only
 # anticipated possible source of such literal control characters is
@@ -42,29 +48,32 @@ non_display_options="
 
 lang_list=
 
-die ()
+die()
 {
 	local str="$*"
+
 	echo "ERROR: $str" >&2
+
 	[ -n "$cmd" ] && echo "ERROR: (cmd='$cmd')" >&2
 	[ -e "$stdout" ] && echo "ERROR: stdout:\n$(cat $stdout)" >&2
 	[ -e "$stderr" ] && echo "ERROR: stderr:\n$(cat $stderr)" >&2
+
 	exit 1
 }
 
-warn ()
+warn()
 {
 	local str="$*"
 	echo "WARNING: $str"
 }
 
-debug ()
+debug()
 {
 	local str="$*"
 	[ -n "$PROCENV_TEST_DEBUG" ] && echo "DEBUG: $str" || :
 }
 
-msg ()
+msg()
 {
 	local str="$*"
 	echo "INFO:LANG=$LANG:LC_ALL=$LC_ALL: $str"
@@ -72,12 +81,12 @@ msg ()
 
 run_command()
 {
-	_run_command success "$1" "$2" "$3"
+	_run_command success "${1:-}"
 }
 
 run_command_expect_fail()
 {
-	_run_command failure "$1" "$2" "$3"
+	_run_command failure "${1:-}"
 }
 
 is_utf8()
@@ -89,19 +98,19 @@ is_utf8()
 
 _run_command()
 {
-	local expected_outcome="$1"
-	local cmdline="$2"
-	local stdout="$3"
-	local stderr="$4"
+	local expected_outcome="${1:-}"
+	local cmdline="${2:-}"
+
+	[ -z "$expected_outcome" ] && die "need expected outcome"
+	[ -z "$cmdline" ] && die "need command"
 
 	local failed=0
-
-	[ -z "$cmdline" ] && die "need command"
+	local ret
 
 	debug "Running: '$cmdline'"
 
-	# interestingly, all environment except OpenBSD allow the code below
-	# to run even if cmdline fail.s
+	# Interestingly, all environment except OpenBSD allow the code below
+	# to run even if cmdline fails.
 	set +e
 	{ eval "$cmdline"; ret=$?; } || :
 	set -e
@@ -142,12 +151,6 @@ init()
 
 	[ -f "$procenv" ] || die "cannot find binary: $procenv"
 
-	command -v "$json_checker" >/dev/null 2>&1 && \
-		json_tests=1 || warn "no $json_checker - JSON tests disabled"
-
-	command -v "$xml_checker" >/dev/null 2>&1 && \
-		xml_tests=1 || warn "no $xml_checker - XML tests disabled"
-
 	env | grep -q "[[:cntrl:]]" && control_chars_in_env=1
 
 	# Always test the default locales
@@ -159,6 +162,76 @@ init()
 	fi
 
 	msg "language list: '$lang_list'"
+
+	[ -n "$json_checker" ] && \
+		msg "Using JSON checker '$json_checker'" || true
+
+	[ -n "$xml_checker" ] && \
+		msg "Using XML checker '$xml_checker'" || true
+}
+
+check_json()
+{
+	local data="${1:-}"
+
+	[ -z "$data" ] && die "No JSON data"
+
+	local ret
+	local cmd
+
+	if [ -z "$json_checker" ]
+	then
+		for cmd in $json_checkers
+		do
+			command -v "$cmd" >/dev/null 2>&1 \
+				&& json_checker="$cmd" \
+				&& msg "Using JSON checker '$json_checker'" \
+				&& break
+		done
+	fi
+
+	[ -z "$json_checker" ] \
+		&& warn "No JSON checker available so JSON tests disabled" \
+		&& return 0
+
+	case "$json_checker" in
+		jq) run_command "jq -S . < \"$data\" >/dev/null" ;;
+		json_pp) run_command "json_pp < \"$data\" >/dev/null" ;;
+		python) run_command "python -mjson.tool < \"$data\" >/dev/null" ;;
+		python3) run_command "python3 -mjson.tool < \"$data\" >/dev/null" ;;
+		*) die "Unsupported JSON checker: '$json_checker'" ;;
+	esac
+}
+
+check_xml()
+{
+	local data="${1:-}"
+
+	[ -z "$data" ] && die "No XML data"
+
+	local ret
+	local cmd
+
+	if [ -z "$xml_checker" ]
+	then
+		for cmd in $xml_checkers
+		do
+			command -v "$cmd" >/dev/null 2>&1 \
+				&& xml_checker="$cmd" \
+				&& msg "Using XML checker '$xml_checker'" \
+				&& break
+		done
+	fi
+
+	[ -z "$xml_checker" ] \
+		&& warn "No XML checker available so XML tests disabled" \
+		&& return 0
+
+	case "$xml_checker" in
+		xmllint) run_command "xmllint - < \"$data\" >/dev/null" ;;
+		xmlwf) run_command "xmlwf < \"$data\" >/dev/null" ;;
+		*) die "Unsupported XML checker: '$xml_checker'" ;;
+	esac
 }
 
 run_tests()
@@ -263,38 +336,31 @@ run_tests()
 		rm -f "$stdout" "$stderr"
 
 		# JSON format
-		if [ "$json_tests" -eq 1 ]
-		then
-			cmd="$procenv --format=json $arg 1>\"$stdout\" 2>\"$stderr\""
-			msg "Running '$cmd'"
-			run_command "$cmd" "$stdout" "$stderr"
+		cmd="$procenv --format=json $arg 1>\"$stdout\" 2>\"$stderr\""
+		msg "Running '$cmd'"
+		run_command "$cmd" "$stdout" "$stderr"
 
-			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+		[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+		[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
 
-			run_command "$json_checker < \"$stdout\" >/dev/null" "" ""
-
-			rm -f "$stdout" "$stderr"
-		fi
+		check_json "$stdout"
+		rm -f "$stdout" "$stderr"
 
 		# XML format
-		if [ "$xml_tests" -eq 1 ]
+		cmd="$procenv --format=xml $arg"
+		if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
 		then
-			cmd="$procenv --format=xml $arg"
-			if [ "$section" = "environment:" -a "$control_chars_in_env" -eq 1 ]
-			then
-				warn "Skipping '$cmd' as control characters found in environment"
-			else
-				msg "Running '$cmd'"
-				cmd="$cmd 1>\"$stdout\" 2>\"$stderr\""
-				run_command "$cmd" "$stdout" "$stderr"
-				[ -z "$stdout" ] && die "No stdout output running '$cmd'"
-				[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
-				[ -z "$($xml_checker "$stdout")" ] || die "XML output not well-formed"
-			fi
-
-			rm -f "$stdout" "$stderr"
+			warn "Skipping '$cmd' as control characters found in environment"
+		else
+			msg "Running '$cmd'"
+			cmd="$cmd 1>\"$stdout\" 2>\"$stderr\""
+			run_command "$cmd" "$stdout" "$stderr"
+			[ -z "$stdout" ] && die "No stdout output running '$cmd'"
+			[ -s "$stderr" ] && die "Unexpected stderr output running '$cmd' ($stderr)"
+			check_xml "$stdout"
 		fi
+
+		rm -f "$stdout" "$stderr"
 	done
 
 	#---------------------------------------------------------------------
@@ -530,25 +596,25 @@ run_tests()
 	stdout=$(mktemp "$template")
 	stderr=$(mktemp "$template")
 
-    test_script=$(mktemp "$template")
-    test_log=$(mktemp "$template")
-    expected="foo"
-    cat <<EOT > "$test_script"
-    #!/bin/sh
+	test_script=$(mktemp "$template")
+	test_log=$(mktemp "$template")
+	expected="foo"
+	cat <<-EOT > "$test_script"
+	#!/bin/sh
 
-    echo "$expected" > "$test_log"
-EOT
-    chmod +x "$test_script"
+	echo "$expected" > "$test_log"
+	EOT
+	chmod +x "$test_script"
 
-    (PROCENV_FILE="$out" PROCENV_EXEC="$test_script" \
-        "$procenv" 1>"$stdout" 2>"$stderr")
+	(PROCENV_FILE="$out" PROCENV_EXEC="$test_script" \
+		"$procenv" 1>"$stdout" 2>"$stderr")
 
 	[ -s "$out" ] || die "Expected $procenv output in file $out"
 	[ -s "$test_log" ] || die "Expected output in test log file $test_log"
-    output=$(cat "$test_log")
+	output=$(cat "$test_log")
 
-    [ "$output" = "$expected" ] || \
-        die "incorrect output from script (expected '$expected', got '$output')"
+	[ "$output" = "$expected" ] || \
+		die "incorrect output from script (expected '$expected', got '$output')"
 
 	[ -s "$stdout" ] && die "Unexpected stdout output in file $stdout"
 	[ -s "$stderr" ] && die "Unexpected stderr output in file $stderr"
@@ -786,40 +852,41 @@ run_final_tests()
 	done
 }
 
-#---------------------------------------------------------------------
-# main
-#---------------------------------------------------------------------
+main()
+{
+	while getopts "o" opt
+	do
+		case "$opt" in
+			o)
+				# allow this useful function to be called independent of the tests.
+				get_procenv_options
+				exit 0
+				;;
+		esac
+	done
 
-while getopts "o" opt
-do
-	case "$opt" in
-		o)
-			# allow this useful function to be called independent of the tests.
-			get_procenv_options
-			exit 0
-			;;
-	esac
-done
+	init
 
-init
+	saved_lang="$LANG"
 
-saved_lang=$LANG
+	for lang in $lang_list
+	do
+		if ! locale -a|grep -q "^${lang}$"
+		then
+			msg "Not testing with locale language $lang"
+			continue
+		fi
 
-for lang in $lang_list
-do
-	if ! locale -a|grep -q "^${lang}$"
-	then
-		msg "Not testing with locale language $lang"
-		continue
-	fi
-	export LANG="$lang" LC_ALL="$lang"
-	run_tests
-done
+		export LANG="$lang" LC_ALL="$lang"
 
-run_final_tests
+		run_tests
+	done
 
-[ -n "$saved_lang" ] && export LANG="$saved_lang" LC_ALL="$saved_lang"
+	run_final_tests
 
-exit 0
+	[ -n "$saved_lang" ] && export LANG="$saved_lang" LC_ALL="$saved_lang"
 
-#---------------------------------------------------------------------
+	exit 0
+}
+
+main "$@"
