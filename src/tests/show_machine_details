@@ -6,60 +6,140 @@
 #---------------------------------------------------------------------
 
 #---------------------------------------------------------------------
-# Description: Script to dump machine details.
+# Description: Script to dump machine details, to help debug build
+#   errors.
 #---------------------------------------------------------------------
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: Memory details"
-echo
-cat /proc/meminfo
-echo
+export LANG=C
+export LC_ALL=C
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: ulimit details"
-echo
-ulimit -a
-echo
+readonly script_name=${0##*/}
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: CPU count"
-echo
-grep -c ^processor /proc/cpuinfo
+set -o errexit
 
-echo
+set -o nounset
+set -o pipefail
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: CPU details"
-echo
+[ -n "$BASH_VERSION" ] && set -o errtrace
+[ -n "${DEBUG:-}" ] && set -o xtrace
 
-# show first CPU only
-awk 'BEGIN { RS=""; } { printf ("%s\n", $0); exit (0); }' /proc/cpuinfo
-echo
+info()
+{
+    local msg="$*"
+    echo "INFO: $script_name: $msg"
+}
 
-kvm=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null || echo N)
+show_generic()
+{
+    info "# Generic system details"
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: Nested KVM support"
-echo
-echo "$kvm"
-echo
+    local file
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: uname"
-echo
-uname -a
-echo
+    for file in \
+        "/etc/issue" \
+        "/etc/lsb-release" \
+        "/etc/os-release"
+    do
+        [ ! -s "$file" ]  && continue
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: kernel modules"
-echo
-lsmod|sort
-echo
+        info "## File '$file'"
+        cat "$file" 2>/dev/null || true
+    done
 
-echo "XXX:--------------------------------------------------"
-echo "XXX: $0: distro details"
-echo
-cat /etc/os-release 2>/dev/null
-cat /etc/lsb-release 2>/dev/null
-cat /etc/issue 2>/dev/null
-echo
+    info "## uname"
+    uname -a
+
+    info "## ulimit"
+    ulimit -a
+}
+
+show_compiler()
+{
+    info "# Compiler details"
+
+    local cc
+
+    for cc in \
+        "clang" \
+        "gcc"
+    do
+        info "## '$cc' compiler"
+        $cc --version
+    done
+}
+
+show_linux()
+{
+    info "# Linux details"
+
+    info "## Memory details"
+    cat /proc/meminfo
+    echo
+
+    info "## CPU count"
+    grep -c ^processor /proc/cpuinfo
+    echo
+
+    info "## CPU details"
+
+    # show first CPU only
+    awk 'BEGIN { RS=""; } { printf ("%s\n", $0); exit (0); }' \
+        /proc/cpuinfo
+    echo
+
+    kvm=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
+        || echo N)
+
+    info "## Nested KVM support"
+    echo "$kvm"
+    echo
+
+    info "## Kernel modules"
+    lsmod | sort
+}
+
+show_darwin()
+{
+    info "# Darwin/Mac OSX details"
+
+    info "## Host information"
+    hostinfo
+}
+
+show_bsd()
+{
+    info "# *BSD details"
+
+    info "## File 'rc.conf'"
+    grep -Ev "^(#|$)" /etc/rc.conf | sort
+}
+
+show_hurd()
+{
+    info "# Hurd details"
+
+    # FIXME: What to do?
+    true
+}
+
+main()
+{
+    local system=$(uname -s|tr '[A-Z]' '[a-z]')
+
+    info "# System type: '$system'"
+
+    show_generic
+
+    show_compiler
+
+    case "$system" in
+
+        *bsd) show_bsd ;;
+        darwin) show_darwin ;;
+        gnu) show_hurd ;;
+        linux) show_linux ;;
+
+    esac
+}
+
+main "$@"
