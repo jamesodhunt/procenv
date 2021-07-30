@@ -1006,6 +1006,8 @@ struct network_map {
 void
 usage (void)
 {
+	set_indent_amount (0);
+
 	show ("Usage: %s [option]", PACKAGE_STRING);
 	show ("");
 	show ("Description: Display process environment.");
@@ -1098,6 +1100,8 @@ usage (void)
 	show ("    the data in a flattened format with each value on a separate line");
 	show ("    preceded by all appropriate headings which are separated by the");
 	show ("    current separator.");
+	show ("");
+	show ("Home page: %s", PACKAGE_URL);
 }
 
 /**
