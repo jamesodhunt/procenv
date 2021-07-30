@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env sh
 #---------------------------------------------------------------------
 # Copyright (c) 2016-2021 James O. D. Hunt <jamesodhunt@gmail.com>.
 #
@@ -16,11 +16,9 @@ export LC_ALL=C
 readonly script_name=${0##*/}
 
 set -o errexit
-
 set -o nounset
-set -o pipefail
 
-[ -n "$BASH_VERSION" ] && set -o errtrace
+[ -n "${BASH_VERSION:-}" ] && set -o errtrace
 [ -n "${DEBUG:-}" ] && set -o xtrace
 
 info()
@@ -63,6 +61,8 @@ show_compiler()
         "clang" \
         "gcc"
     do
+        command -v $cc >/dev/null 2>&1 || continue
+
         info "## '$cc' compiler"
         $cc --version
     done
