@@ -5613,7 +5613,7 @@ else
   HAVE_CHECK_FALSE=
 fi
 
- if "$PACKAGE_URL"; then
+ if test -n "$PACKAGE_URL"; then
   PACKAGE_URL_TRUE=
   PACKAGE_URL_FALSE='#'
 else

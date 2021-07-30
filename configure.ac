@@ -8,7 +8,7 @@
 
 m4_define([procenv_version], [0.60])
 
-AC_INIT(procenv,[procenv_version],[jamesodhunt@gmail.com],,[https://github.com/jamesodhunt/procenv])
+AC_INIT([procenv], [procenv_version], [jamesodhunt@gmail.com], [procenv], [https://github.com/jamesodhunt/procenv])
 
 AC_COPYRIGHT([Copyright (C) 2012-2021 James Hunt <jamesodhunt@gmail.com> and Kees Cook <kees@ubuntu.com>])
 
@@ -100,7 +100,7 @@ AC_ARG_ENABLE([tests],
 
 AM_CONDITIONAL([ENABLE_TESTS], test "$enable_tests" = yes)
 AM_CONDITIONAL([HAVE_CHECK], test "$HAVE_CHECK" = yes)
-AM_CONDITIONAL([PACKAGE_URL], "$PACKAGE_URL")
+AM_CONDITIONAL([PACKAGE_URL], test -n "$PACKAGE_URL")
 
 #---------------------------------------------------------------------
 # Other checks
