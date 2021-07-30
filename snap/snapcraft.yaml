@@ -40,6 +40,9 @@ parts:
     build-packages:
       - autoconf
       - automake
+      - check
+      - expat
+      - groff-base
       - libapparmor-dev
       - libcap-dev
       - libnuma-dev
@@ -49,6 +52,7 @@ parts:
       autoreconf -fi
       ./configure --prefix="${SNAPCRAFT_PART_INSTALL}/usr"
       make
+      make check
       sudo make install
     stage-packages:
       - libapparmor1
