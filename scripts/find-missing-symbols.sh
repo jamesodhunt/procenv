@@ -101,7 +101,7 @@ get_clocks()
         sort -u)
 
     # Merge
-	#
+    #
     # Note: CLOCK_SGI_CYCLE was removed according to "$file"
     symbols=$(echo "$man_symbols" "$include_symbols" |\
         tr ' ' '\n' |\
@@ -187,7 +187,7 @@ get_limits()
         sort -u)
 
     # Merge
-	#
+    #
     # Note: See $manpage for details of RLIMIT_OFILE
     symbols=$(echo "$man_symbols" "$include_symbols" |\
         tr ' ' '\n' |\
