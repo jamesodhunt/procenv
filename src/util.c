@@ -6,9 +6,7 @@
  */
 
 #include "util.h"
-#if __GLIBC__
 #include <sys/sysmacros.h>
-#endif
 
 // FIXME
 extern struct procenv_user user;

@@ -13,6 +13,8 @@
  */
 
 #include "procenv.h"
+/* major(3) / minor(3) */
+#include <sys/sysmacros.h>
 
 /**
  * doc:
