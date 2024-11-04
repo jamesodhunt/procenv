@@ -3399,6 +3399,10 @@ show_libc (void)
 	name = "bionic";
 #endif
 
+#if defined (_PICOLIBC__)
+	name = "pico";
+#endif
+
 	header ("libc");
 
 	entry ("name", "%s", name ? name : UNKNOWN_STR);
