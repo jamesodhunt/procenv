@@ -96,9 +96,6 @@
 #define PACKAGE_STRING PACKAGE_NAME
 #endif
 
-/* major(3) / minor(3) */
-#include <sys/sysmacros.h>
-
 #endif /* PROCENV_PLATFORM_ANDROID */
 
 /*********************************************************************/
