@@ -232,4 +232,7 @@ AC_MSG_RESULT([
     libpthread                  : ${HAVE_PTHREAD}
     libkvm                      : ${HAVE_KVM}
     libsysinfo / sysinfo        : ${HAVE_SYSINFO}
+
+    Initial CFLAGS              : ${CFLAGS}
+    Initial LDFLAGS             : ${LDFLAGS}
               ])
