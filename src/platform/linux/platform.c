@@ -567,9 +567,52 @@ show_fds_linux (void)
 		section_open (num);
 		free (num);
 
-		entry ("terminal", "%s", isatty (fd) ? YES_STR : NO_STR);
-		entry ("valid", "%s", fd_valid (fd) ? YES_STR : NO_STR);
-		entry ("device", "%s", link);
+		bool is_tty = isatty(fd);
+
+		entry("terminal", "%s", is_tty ? YES_STR : NO_STR);
+		entry("valid", "%s", fd_valid(fd) ? YES_STR : NO_STR);
+
+		section_open("device");
+		entry("name", "%s", link);
+
+		if (is_tty) {
+			char *modestr;
+			mode_t perms;
+			unsigned int major = 0;
+			unsigned int minor = 0;
+
+			modestr = format_perms(st.st_mode);
+			if (!modestr)
+				die("failed to allocate space for permissions string");
+			perms = (st.st_mode & ~S_IFMT);
+
+			if (perms & S_ISUID)
+				modestr[3] = 's';
+			if (perms & S_ISGID)
+				modestr[6] = 's';
+			if (perms & S_ISVTX)
+				modestr[9] = 't';
+
+			section_open("permissions");
+
+			entry("octal", "%4.4o", perms);
+			entry("symbolic", "%s", modestr);
+			free(modestr);
+
+			section_close();
+
+			(void)get_major_minor(link, &major, &minor);
+
+			entry("major", "%u", major);
+			entry("minor", "%u", minor);
+
+			section_open("owner");
+			entry("user (uid)", "%d ('%s')", st.st_uid, get_user_name(st.st_uid));
+			entry("group (gid)", "%d ('%s')", st.st_gid, get_group_name(st.st_uid));
+			section_close();
+		}
+
+		section_close();
 
 		section_close ();
 

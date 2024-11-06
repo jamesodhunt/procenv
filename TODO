@@ -79,5 +79,4 @@
 - Use dlopen to probe for apparmor/selinux. This avoids having to depend
   on the existence of the appropriate libs, but still allows security
   context information to be queried on systems that provide them.
-- Add in permissions for /dev/tty and fds 0-2 if they refer to devices.
 - ELF details.

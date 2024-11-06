@@ -167,8 +167,15 @@
  * VERSION 23:
  *  - Changed output order of --sysconf and --confstr, added various new
  *    sysconf values, plus changed output format of --namespaces.
+ * VERSION 24:
+ *  - Changed format of --fds.
+ *    Previously the 'device' value showed the path/name of the device
+ *    represented by the file descriptor.
+ *    Now, 'device' is a container showing the name, permissions,
+ *    major/minor numbers and owner of the file represented by the file
+ *    descriptor (assuming it isn't a pipe).
  **/
-#define PROCENV_FORMAT_VERSION 23
+#define PROCENV_FORMAT_VERSION 24
 
 #if defined (PROCENV_PLATFORM_LINUX) || defined (PROCENV_PLATFORM_HURD)
 
