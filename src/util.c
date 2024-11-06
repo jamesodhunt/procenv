@@ -6,7 +6,10 @@
  */
 
 #include "util.h"
+
+#if defined(PROCENV_PLATFORM_LINUX) || defined(PROCENV_PLATFORM_ANDROID)
 #include <sys/sysmacros.h>
+#endif
 
 // FIXME
 extern struct procenv_user user;

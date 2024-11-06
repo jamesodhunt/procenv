@@ -13,8 +13,11 @@
  */
 
 #include "procenv.h"
+
+#if defined(PROCENV_PLATFORM_LINUX) || defined(PROCENV_PLATFORM_ANDROID)
 /* major(3) / minor(3) */
 #include <sys/sysmacros.h>
+#endif
 
 /**
  * doc:
