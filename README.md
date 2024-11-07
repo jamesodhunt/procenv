@@ -225,7 +225,8 @@ $ snapcraft
    | Platform | Usage | Required? | Dependency | Rationale |
    |-|-|-|-|-|
    | common | build | yes | GCC or Clang compiler | For building the code |
-   | common | build | yes | GNU Autoconf  | For configuring the source package |
+   | common | build | yes | GNU Autoconf | For configuring the source package |
+   | common | build | yes | GNU Autoconf Archive | For configuring the source package |
    | common | build | yes | GNU Automake | For generating makefiles |
    | common | build | yes | GNU Make | For building the code |
    | common | build | yes | `pkgconf` / `pkg-config` | For configuring build dependencies |
