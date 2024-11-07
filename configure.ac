@@ -8,7 +8,7 @@
 
 m4_define([procenv_version], [0.60])
 
-AC_INIT([procenv], [procenv_version], [jamesodhunt@gmail.com], [procenv], [https://github.com/jamesodhunt/procenv])
+AC_INIT([procenv],[procenv_version],[jamesodhunt@gmail.com],[procenv],[https://github.com/jamesodhunt/procenv])
 
 AC_COPYRIGHT([Copyright (C) 2012-2021 James Hunt <jamesodhunt@gmail.com> and Kees Cook <kees@ubuntu.com>])
 
@@ -19,7 +19,7 @@ AC_CONFIG_AUX_DIR([config])
 
 AC_SUBST(PROCENV_VERSION, procenv_version)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 
 # expose $target
@@ -214,7 +214,8 @@ AS_BOX($msg)
 AS_IF([$t], [test_result=pass], [test_result=fail])
 AS_BOX([showing result of test '$t': $test_result])
 
-AC_OUTPUT(Makefile src/Makefile procenv.spec)
+AC_CONFIG_FILES([Makefile src/Makefile procenv.spec])
+AC_OUTPUT
 AC_MSG_RESULT([
     Configure settings for $PACKAGE_NAME version $VERSION
 
