@@ -7115,6 +7115,98 @@ fi
 
 
 #---------------------------------------------------------------------
+# Platform-specifics
+
+# Magic options that will remove all unused symbols (defined by 'platform-generic.c').
+if test $procenv_platform = darwin
+then :
+  # Handle darwin
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -flto" >&5
+printf %s "checking whether C compiler accepts -flto... " >&6; }
+if test ${ax_cv_check_cflags___flto+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+
+  ax_check_save_flags=$CFLAGS
+  CFLAGS="$CFLAGS  -flto"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  ax_cv_check_cflags___flto=yes
+else $as_nop
+  ax_cv_check_cflags___flto=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+  CFLAGS=$ax_check_save_flags
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cflags___flto" >&5
+printf "%s\n" "$ax_cv_check_cflags___flto" >&6; }
+if test "x$ax_cv_check_cflags___flto" = xyes
+then :
+  CFLAGS="$CFLAGS -flto"
+else $as_nop
+  :
+fi
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts -flto" >&5
+printf %s "checking whether the linker accepts -flto... " >&6; }
+if test ${ax_cv_check_ldflags___flto+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+
+  ax_check_save_flags=$LDFLAGS
+  LDFLAGS="$LDFLAGS  -flto"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  ax_cv_check_ldflags___flto=yes
+else $as_nop
+  ax_cv_check_ldflags___flto=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LDFLAGS=$ax_check_save_flags
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_ldflags___flto" >&5
+printf "%s\n" "$ax_cv_check_ldflags___flto" >&6; }
+if test "x$ax_cv_check_ldflags___flto" = xyes
+then :
+  LDFLAGS="$LDFLAGS -flto"
+else $as_nop
+  :
+fi
+
+
+else $as_nop
+  # Handle other platforms
+    CFLAGS="$CFLAGS -fdata-sections -ffunction-sections"; LDFLAGS="$LDFLAGS -Wl,--gc-sections"
+
+fi
+
+#---------------------------------------------------------------------
 # XXX: Dump details of the preprocess/compiler/linker *NOW* so that if
 # procenv fails to build later, the build logs will show details of the
 # environment that should aid remote debugging.
@@ -7139,6 +7231,12 @@ fi
 sed 'h;s/./-/g;s/^.../## /;s/...$/ ##/;p;x;p;x' <<_ASBOX
 ## showing result of test '$t': $test_result ##
 _ASBOX
+
+# Strip leading space. Note the mandatory use of double quadrigraphs
+# to specify the character class to sed(1). We can't use literal
+# square brackets as autoconf(1)/m4(1) get upset.
+CFLAGS=$(echo "$CFLAGS" | sed 's/^[[:space:]]*//')
+LDFLAGS=$(echo "$LDFLAGS" | sed 's/^[[:space:]]*//')
 
 ac_config_files="$ac_config_files Makefile src/Makefile procenv.spec"
 

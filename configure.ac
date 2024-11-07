@@ -198,6 +198,21 @@ AM_CONDITIONAL([PROCENV_PLATFORM_GENERIC], [test "$procenv_platform" = unknown])
 AC_SUBST([procenv_platform])
 
 #---------------------------------------------------------------------
+# Platform-specifics
+
+# Magic options that will remove all unused symbols (defined by 'platform-generic.c').
+AS_IF(
+    [test $procenv_platform = darwin],
+    # Handle darwin
+    [
+        AX_CHECK_COMPILE_FLAG([-flto], [CFLAGS="$CFLAGS -flto"])
+        AX_CHECK_LINK_FLAG([-flto], [LDFLAGS="$LDFLAGS -flto"])
+    ],
+    # Handle other platforms
+    [CFLAGS="$CFLAGS -fdata-sections -ffunction-sections"; LDFLAGS="$LDFLAGS -Wl,--gc-sections"]
+)
+
+#---------------------------------------------------------------------
 # XXX: Dump details of the preprocess/compiler/linker *NOW* so that if
 # procenv fails to build later, the build logs will show details of the
 # environment that should aid remote debugging.
@@ -213,6 +228,12 @@ EOT
 AS_BOX($msg)
 AS_IF([$t], [test_result=pass], [test_result=fail])
 AS_BOX([showing result of test '$t': $test_result])
+
+# Strip leading space. Note the mandatory use of double quadrigraphs
+# to specify the character class to sed(1). We can't use literal
+# square brackets as autoconf(1)/m4(1) get upset.
+CFLAGS=$(echo "$CFLAGS" | sed 's/^@<:@@<:@:space:@:>@@:>@*//')
+LDFLAGS=$(echo "$LDFLAGS" | sed 's/^@<:@@<:@:space:@:>@@:>@*//')
 
 AC_CONFIG_FILES([Makefile src/Makefile procenv.spec])
 AC_OUTPUT
