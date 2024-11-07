@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt update -qq
           sudo apt install -y \
+            autoconf autoconf-archive \
             automake \
             autopoint \
             check \

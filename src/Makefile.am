@@ -12,14 +12,6 @@ AM_CFLAGS = \
 	-Wall -Wunused
 
 
-# XXX: magic option that will remove all unused symbols
-# (defined by platform-generic.c).
-if PROCENV_PLATFORM_DARWIN
-AM_CFLAGS += -flto
-else
-AM_CFLAGS += -fdata-sections -ffunction-sections
-endif
-
 # keep it tight
 AM_CFLAGS += -Werror
 
@@ -36,13 +28,6 @@ procenv_SOURCES = \
 	messages.h \
 	platform.h platform-headers.h \
     platform/platform-generic.c platform/platform-generic.h
-
-# XXX: unused symbol removal magic - part 2
-if PROCENV_PLATFORM_DARWIN
-procenv_LDFLAGS = -flto
-else
-procenv_LDFLAGS = -Wl,--gc-sections
-endif
 
 # should really do this in configure.ac
 if PROCENV_PLATFORM_MINIX

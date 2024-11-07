@@ -95,44 +95,39 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-
-# XXX: magic option that will remove all unused symbols
-# (defined by platform-generic.c).
-@PROCENV_PLATFORM_DARWIN_TRUE@am__append_1 = -flto
-@PROCENV_PLATFORM_DARWIN_FALSE@am__append_2 = -fdata-sections -ffunction-sections
 bin_PROGRAMS = procenv$(EXEEXT)
-@PROCENV_PLATFORM_DARWIN_TRUE@am__append_3 = platform/darwin/platform.c platform/darwin/platform-darwin.h
-@PROCENV_PLATFORM_DARWIN_TRUE@am__append_4 = -I $(srcdir)/platform/darwin -D PROCENV_PLATFORM_DARWIN
-@PROCENV_PLATFORM_LINUX_TRUE@am__append_5 = platform/linux/platform.c platform/linux/platform-linux.h
-@PROCENV_PLATFORM_LINUX_TRUE@am__append_6 = -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
-@PROCENV_PLATFORM_MINIX_TRUE@am__append_7 = platform/minix/platform.c platform/minix/platform-minix.h
-@PROCENV_PLATFORM_MINIX_TRUE@am__append_8 = \
+@PROCENV_PLATFORM_DARWIN_TRUE@am__append_1 = platform/darwin/platform.c platform/darwin/platform-darwin.h
+@PROCENV_PLATFORM_DARWIN_TRUE@am__append_2 = -I $(srcdir)/platform/darwin -D PROCENV_PLATFORM_DARWIN
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_3 = platform/linux/platform.c platform/linux/platform-linux.h
+@PROCENV_PLATFORM_LINUX_TRUE@am__append_4 = -I $(srcdir)/platform/linux -D PROCENV_PLATFORM_LINUX
+@PROCENV_PLATFORM_MINIX_TRUE@am__append_5 = platform/minix/platform.c platform/minix/platform-minix.h
+@PROCENV_PLATFORM_MINIX_TRUE@am__append_6 = \
 @PROCENV_PLATFORM_MINIX_TRUE@	-I $(srcdir)/platform/minix -D PROCENV_PLATFORM_MINIX
 
-@PROCENV_PLATFORM_HURD_TRUE@am__append_9 = platform/hurd/platform.c platform/hurd/platform-hurd.h
-@PROCENV_PLATFORM_HURD_TRUE@am__append_10 = -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_11 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
-@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_12 = -I $(srcdir)/platform/freebsd \
+@PROCENV_PLATFORM_HURD_TRUE@am__append_7 = platform/hurd/platform.c platform/hurd/platform-hurd.h
+@PROCENV_PLATFORM_HURD_TRUE@am__append_8 = -I $(srcdir)/platform/hurd -D PROCENV_PLATFORM_HURD
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_9 = platform/freebsd/platform.c platform/freebsd/platform-freebsd.h
+@PROCENV_PLATFORM_FREEBSD_TRUE@am__append_10 = -I $(srcdir)/platform/freebsd \
 @PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_FREEBSD \
 @PROCENV_PLATFORM_FREEBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_NETBSD_TRUE@am__append_13 = platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
-@PROCENV_PLATFORM_NETBSD_TRUE@am__append_14 = -I $(srcdir)/platform/netbsd \
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_11 = platform/netbsd/platform.c platform/netbsd/platform-netbsd.h
+@PROCENV_PLATFORM_NETBSD_TRUE@am__append_12 = -I $(srcdir)/platform/netbsd \
 @PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_NETBSD \
 @PROCENV_PLATFORM_NETBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_15 = platform/openbsd/platform.c platform/openbsd/platform-openbsd.h
-@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_16 = -I $(srcdir)/platform/openbsd \
+@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_13 = platform/openbsd/platform.c platform/openbsd/platform-openbsd.h
+@PROCENV_PLATFORM_OPENBSD_TRUE@am__append_14 = -I $(srcdir)/platform/openbsd \
 @PROCENV_PLATFORM_OPENBSD_TRUE@				-D PROCENV_PLATFORM_OPENBSD \
 @PROCENV_PLATFORM_OPENBSD_TRUE@				-D PROCENV_PLATFORM_BSD
 
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_17 = platform/unknown/platform.c platform/unknown/platform-unknown.h
-@PROCENV_PLATFORM_GENERIC_TRUE@am__append_18 = -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
-@HAVE_SELINUX_TRUE@am__append_19 = -DHAVE_SELINUX
-@HAVE_APPARMOR_TRUE@am__append_20 = -DHAVE_APPARMOR
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_15 = platform/unknown/platform.c platform/unknown/platform-unknown.h
+@PROCENV_PLATFORM_GENERIC_TRUE@am__append_16 = -I $(srcdir)/platform/unknown -D PROCENV_PLATFORM_GENERIC
+@HAVE_SELINUX_TRUE@am__append_17 = -DHAVE_SELINUX
+@HAVE_APPARMOR_TRUE@am__append_18 = -DHAVE_APPARMOR
 @ENABLE_TESTS_TRUE@TESTS = tests/show_machine_details $(am__EXEEXT_1) \
 @ENABLE_TESTS_TRUE@	check_all_args procenv$(EXEEXT)
-@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_21 = check_pr_list
+@ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@am__append_19 = check_pr_list
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_PROGRAMS =  \
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@	check_pr_list$(EXEEXT)
 subdir = src
@@ -188,8 +183,6 @@ am_procenv_OBJECTS = procenv-procenv.$(OBJEXT) \
 	$(am__objects_8)
 procenv_OBJECTS = $(am_procenv_OBJECTS)
 procenv_DEPENDENCIES =
-procenv_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(procenv_LDFLAGS) \
-	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -397,26 +390,21 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
 
 # keep it tight
-AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused $(am__append_1) \
-	$(am__append_2) -Werror
+AM_CFLAGS = -pedantic -std=gnu99 -Wall -Wunused -Werror
 procenv_SOURCES = procenv.c procenv.h pr_list.c pr_list.h pstring.c \
 	pstring.h string-util.c string-util.h output.c output.h util.c \
 	util.h types.h messages.h platform.h platform-headers.h \
 	platform/platform-generic.c platform/platform-generic.h \
-	$(am__append_3) $(am__append_5) $(am__append_7) \
-	$(am__append_9) $(am__append_11) $(am__append_13) \
-	$(am__append_15) $(am__append_17)
-@PROCENV_PLATFORM_DARWIN_FALSE@procenv_LDFLAGS = -Wl,--gc-sections
-
-# XXX: unused symbol removal magic - part 2
-@PROCENV_PLATFORM_DARWIN_TRUE@procenv_LDFLAGS = -flto
+	$(am__append_1) $(am__append_3) $(am__append_5) \
+	$(am__append_7) $(am__append_9) $(am__append_11) \
+	$(am__append_13) $(am__append_15)
 
 # should really do this in configure.ac
 @PROCENV_PLATFORM_MINIX_TRUE@procenv_LDADD = -lc
-procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_4) \
-	$(am__append_6) $(am__append_8) $(am__append_10) \
-	$(am__append_12) $(am__append_14) $(am__append_16) \
-	$(am__append_18) $(am__append_19) $(am__append_20)
+procenv_CPPFLAGS = -I $(srcdir) -I $(srcdir)/platform $(am__append_2) \
+	$(am__append_4) $(am__append_6) $(am__append_8) \
+	$(am__append_10) $(am__append_12) $(am__append_14) \
+	$(am__append_16) $(am__append_17) $(am__append_18)
 @ENABLE_TESTS_TRUE@CLEANFILES = check_all_args
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_SOURCES = tests/check_pr_list.c pr_list.c
 @ENABLE_TESTS_TRUE@@HAVE_CHECK_TRUE@check_pr_list_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
@@ -600,7 +588,7 @@ platform/unknown/procenv-platform.$(OBJEXT):  \
 
 procenv$(EXEEXT): $(procenv_OBJECTS) $(procenv_DEPENDENCIES) $(EXTRA_procenv_DEPENDENCIES) 
 	@rm -f procenv$(EXEEXT)
-	$(AM_V_CCLD)$(procenv_LINK) $(procenv_OBJECTS) $(procenv_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(procenv_OBJECTS) $(procenv_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
