@@ -229,6 +229,12 @@ AS_BOX($msg)
 AS_IF([$t], [test_result=pass], [test_result=fail])
 AS_BOX([showing result of test '$t': $test_result])
 
+# Strip leading space. Note the mandatory use of double quadrigraphs
+# to specify the character class to sed(1). We can't use literal
+# square brackets as autoconf(1)/m4(1) get upset.
+CFLAGS=$(echo "$CFLAGS" | sed 's/^@<:@@<:@:space:@:>@@:>@*//')
+LDFLAGS=$(echo "$LDFLAGS" | sed 's/^@<:@@<:@:space:@:>@@:>@*//')
+
 AC_CONFIG_FILES([Makefile src/Makefile procenv.spec])
 AC_OUTPUT
 AC_MSG_RESULT([

@@ -7232,6 +7232,12 @@ sed 'h;s/./-/g;s/^.../## /;s/...$/ ##/;p;x;p;x' <<_ASBOX
 ## showing result of test '$t': $test_result ##
 _ASBOX
 
+# Strip leading space. Note the mandatory use of double quadrigraphs
+# to specify the character class to sed(1). We can't use literal
+# square brackets as autoconf(1)/m4(1) get upset.
+CFLAGS=$(echo "$CFLAGS" | sed 's/^[[:space:]]*//')
+LDFLAGS=$(echo "$LDFLAGS" | sed 's/^[[:space:]]*//')
+
 ac_config_files="$ac_config_files Makefile src/Makefile procenv.spec"
 
 cat >confcache <<\_ACEOF
