@@ -1920,13 +1920,6 @@ show_stat (void)
 		die ("failed to allocate space for permissions string");
 	perms = (st.st_mode & ~S_IFMT);
 
-	if (perms & S_ISUID)
-		modestr[3] = 's';
-	if (perms & S_ISGID)
-		modestr[6] = 's';
-	if (perms & S_ISVTX)
-		modestr[9] = 't';
-
 	section_open ("permissions");
 
 	entry ("octal", "%4.4o", perms);
