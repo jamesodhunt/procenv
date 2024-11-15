@@ -239,6 +239,12 @@ $ snapcraft
    | Linux | build | optional | `libselinux` development package | For SELinux details |
    | BSD | build | optional | `libsysinfo` package or port | For general memory details |
 
+   > **Note:**
+   >
+   > The definitive list of dependenciese can always be seen by looking at the GitHub Actions workflow file here:
+   >
+   > - [`.github/workflows/build.yaml`](.github/workflows/build.yaml)
+
 1. Checkout the source code:
 
    ```bash
