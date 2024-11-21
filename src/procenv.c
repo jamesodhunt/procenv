@@ -3351,6 +3351,54 @@ show_compiler (void)
 	entry ("_XOPEN_SOURCE_EXTENDED", "%s", NOT_DEFINED_STR);
 #endif
 
+#ifdef __STDC_ANALYZABLE__
+	entry ("__STDC_ANALYZABLE__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_ANALYZABLE__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_LIB_EXT1__
+	entry ("__STDC_LIB_EXT1__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_LIB_EXT1__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_NO_THREADS__
+	entry ("__STDC_NO_THREADS__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_NO_THREADS__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_NO_ATOMICS__
+	entry ("__STDC_NO_ATOMICS__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_NO_ATOMICS__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_IEC_559__
+	entry ("__STDC_IEC_559__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_IEC_559__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_IEC_559_COMPLEX__
+	entry ("__STDC_IEC_559_COMPLEX__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_IEC_559_COMPLEX__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_NO_COMPLEX__
+	entry ("__STDC_NO_COMPLEX__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_NO_COMPLEX__", "%s", NOT_DEFINED_STR);
+#endif
+
+#ifdef __STDC_NO_VLA__
+	entry ("__STDC_NO_VLA__", "%s", DEFINED_STR);
+#else
+	entry ("__STDC_NO_VLA__", "%s", NOT_DEFINED_STR);
+#endif
+
 	section_close ();
 
 	footer ();
