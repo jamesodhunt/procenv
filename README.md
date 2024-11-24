@@ -141,6 +141,10 @@ applications.
 For instructions on building from source, see also the
 [build document](README-BUILD.md).
 
+## Developer documentation
+
+See the [developer document](README-DEVELOPER.md).
+
 ## Install
 
 ### Snap
