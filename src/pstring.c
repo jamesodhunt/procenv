@@ -8,6 +8,7 @@
 #include "pstring.h"
 
 #include <assert.h>
+#include <errno.h>
 
 extern wchar_t wide_indent_char;
 
@@ -25,9 +26,22 @@ char_to_wchar (const char *str)
 
 	memset(&ps, 0, sizeof (ps));
 
+	errno = 0;
 	len = mbsrtowcs (NULL, &str, 0, &ps);
-	if (len <= 0)
+	if (len == 0) {
 		return NULL;
+	}
+
+	if (len == (size_t)-1 || errno == EILSEQ) {
+		return NULL;
+	}
+
+	/* Another possible error state.
+	 * See mbsrtowcs(3).
+	 */
+	if (str == NULL) {
+		return NULL;
+	}
 
 	/* include space for terminator */
 	bytes = (1 + len) * sizeof (wchar_t);
