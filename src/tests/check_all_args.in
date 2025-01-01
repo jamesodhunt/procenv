@@ -131,7 +131,7 @@ _run_command()
 get_procenv_options()
 {
 	$procenv --help | grep -- '-[a-zA-Z0-9], --[a-zA-Z][a-zA-Z0-9]*' |\
-		cut -d: -f1 | tr ',' '\n' | tr -d ' ' | egrep -v -- '(-h|--help)'
+		cut -d: -f1 | tr ',' '\n' | tr -d ' ' | grep -Ev -- '(-h|--help)'
 }
 
 get_man_options()
@@ -142,7 +142,7 @@ get_man_options()
 		sed 's/^ *//g' |\
 		tr ',' '\n' |\
 		tr -d ' ' |\
-		egrep -v -- '(-h|--help)'
+		grep -Ev -- '(-h|--help)'
 }
 
 init()
@@ -391,7 +391,7 @@ run_tests()
 	echo "$sections"   |grep -v meta:|sort    > "$sorted_sections"
 	echo "$sections"   |grep -v meta:|sort -u > "$unique_sections"
 
-	cat "$arg_sections"|egrep -v "^(meta|version|pathconf):"|\
+	cat "$arg_sections"|grep -Ev "^(meta|version|pathconf):"|\
 		sort -u > "$unique_arg_sections"
 
 	diff=$(diff "$main_sections" "$sorted_sections" || :)
@@ -422,7 +422,7 @@ run_tests()
 
 	if [ "$driver" != "unknown" ]
 	then
-		$procenv|egrep -q "\<pathconf\>:" || die "Failed to find pathconf"
+		$procenv|grep -Eq "\<pathconf\>:" || die "Failed to find pathconf"
 	fi
 
 	#---------------------------------------------------------------------
