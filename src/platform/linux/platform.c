@@ -548,13 +548,12 @@ show_fds_linux (void)
 		assert (len);
 		link[len] = '\0';
 
+		if (stat (link, &st) < 0) {
+			free (num);
+			continue;
+		}
+
 		if (link[0] == '/') {
-
-			if (stat (link, &st) < 0) {
-				free (num);
-				continue;
-			}
-
 			/* Ignore the last (invalid) entry */
 			if (S_ISDIR (st.st_mode)) {
 				free (num);
