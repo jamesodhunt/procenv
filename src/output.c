@@ -128,7 +128,9 @@ static TranslateTable translate_table[] = {
 	{
 		{
 			{ L"\\\"", L'"'  },
-			{ L"\\\\", L'\\' },
+
+			// Yes, this is crazy, but necessary!
+			{ L"\\\\\\\\", L'\\' },
 
 			/* XXX: the hack! */
 			{ NULL, L'\0' },
@@ -355,6 +357,21 @@ object_close (int retain)
 	}
 }
 
+pstring *
+name_to_wide_name(const char *name)
+{
+	pstring *encoded_name = NULL;
+
+	encoded_name = char_to_pstring (name);
+	if (! encoded_name)
+		die ("failed to convert string to pstring");
+
+	if (encode_string (&encoded_name) < 0)
+		die ("failed to encode name");
+
+	return encoded_name;
+}
+
 /**
  * section_open:
  *
@@ -368,12 +385,16 @@ section_open (const char *name)
 	assert (name);
 	common_assert ();
 
+	pstring *encoded_name = NULL;
+
+	encoded_name = name_to_wide_name(name);
+
 	change_element (ELEMENT_TYPE_SECTION_OPEN);
 
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		wappendf (&doc, L"%s:", name);
+		wappendf (&doc, L"%ls:", encoded_name->buf);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -381,17 +402,19 @@ section_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		wappendf (&doc, L"\"%s\" : {", name);
+		wappendf (&doc, L"\"%ls\" : {", encoded_name->buf);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		wappendf (&doc, L"<section name=\"%s\">", name);
+		wappendf (&doc, L"<section name=\"%ls\">", encoded_name->buf);
 		break;
 
 	default:
 		assert_not_reached ();
 		break;
 	}
+
+	pstring_free(encoded_name);
 }
 
 void
@@ -440,12 +463,16 @@ container_open (const char *name)
 	assert (name);
 	common_assert ();
 
+	pstring *encoded_name = NULL;
+
+	encoded_name = name_to_wide_name(name);
+
 	change_element (ELEMENT_TYPE_CONTAINER_OPEN);
 
 	switch (output_format) {
 
 	case OUTPUT_FORMAT_TEXT:
-		wappendf (&doc, L"%s:", name);
+		wappendf (&doc, L"%ls:", encoded_name->buf);
 		break;
 
 	case OUTPUT_FORMAT_CRUMB:
@@ -453,17 +480,19 @@ container_open (const char *name)
 		break;
 
 	case OUTPUT_FORMAT_JSON:
-		wappendf (&doc, L"\"%s\" : [", name);
+		wappendf (&doc, L"\"%ls\" : [", encoded_name->buf);
 		break;
 
 	case OUTPUT_FORMAT_XML:
-		wappendf (&doc, L"<container name=\"%s\">", name);
+		wappendf (&doc, L"<container name=\"%ls\">", encoded_name->buf);
 		break;
 
 	default:
 		assert_not_reached ();
 		break;
 	}
+
+	pstring_free(encoded_name);
 }
 
 /**
