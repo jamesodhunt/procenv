@@ -3249,6 +3249,12 @@ show_compiler (void)
 	entry ("_ISOC11_SOURCE", "%s", NOT_DEFINED_STR);
 #endif
 
+#ifdef _ISOC2Y_SOURCE
+	entry ("_ISOC2Y_SOURCE", "%s", DEFINED_STR);
+#else
+	entry ("_ISOC2Y_SOURCE", "%s", NOT_DEFINED_STR);
+#endif
+
 #ifdef _ISOC95_SOURCE
 	entry ("_ISOC95_SOURCE", "%s", DEFINED_STR);
 #else
